@@ -1,0 +1,15 @@
+{
+  "name": "Labyrinthe Organic",
+  "short_name": "Labyrinthe",
+  "start_url": "/labyrinthe-organic/",
+  "display": "standalone",
+  "background_color": "#0e0e0e",
+  "theme_color": "#0e0e0e",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/GusBZH/labyrinthe-organic/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
