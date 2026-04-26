@@ -1,0 +1,1015 @@
+{
+  "gameName": "Labyrinthe Organic",
+  "reglesNotes": "",
+  "sortsNotes": "",
+  "monstresNotes": "",
+  "lexiqueNotes": "",
+  "materielNotes": "",
+  "sorts": [
+    {
+      "id": "s1",
+      "nom": "Grenade",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s2",
+      "nom": "Lance Flamme",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque tous les joueurs possibles sur une ligne droite en ligne de vue.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s3",
+      "nom": "Pistolet",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque un joueur en ligne de vue.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s4",
+      "nom": "Furie",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Après avoir gagné un combat, rejouez immédiatement un tour entier.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s5",
+      "nom": "Chacal",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Posez un jeton face cachée sur une case vide. Mort si jeton mort. Cases avec jeton = indestructibles.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s6",
+      "nom": "Poing Américain",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "+1 au résultat du dé pendant vos attaques pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s7",
+      "nom": "Lutte Illimitée",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort possédé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s8",
+      "nom": "J'ai Soif !",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s9",
+      "nom": "Non",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s10",
+      "nom": "Chaussures qui Court Loin",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ annulé et vous téléportez sur n'importe quel portail.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s11",
+      "nom": "Mercy",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "3x partie",
+      "effet": "3 compteurs. Si un joueur perd un combat en ligne de vue, utilisez 1 compteur pour annuler.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s12",
+      "nom": "Séisme",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Sélectionnez un carré de 3 cases de côté et défaussez toutes les cases contrôlables.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s13",
+      "nom": "Pas Fantôme",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Déplacez-vous d'une case en ignorant les murs.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s14",
+      "nom": "Portail de Poche",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Téléportez-vous sur n'importe quel portail révélé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s15",
+      "nom": "Échange de Place",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Choisissez un joueur et échangez vos positions.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s16",
+      "nom": "Grappin",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "3x tour",
+      "effet": "Déplacez-vous et explorez en ligne droite. Si monstre sur le chemin, vous devez l'affronter.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s17",
+      "nom": "Tracer",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "À la fin de votre tour, vous pouvez revenir sur la case où vous avez commencé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s18",
+      "nom": "Talisman d'Équilibre",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "",
+      "effet": "Échangez ce sort avec celui d'un autre joueur.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s19",
+      "nom": "Éliotrope",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "4x tour",
+      "effet": "Déplacez une case Portail sur un emplacement vide.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s20",
+      "nom": "Xelor",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Volez 1 PA à un joueur.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s21",
+      "nom": "Miroir de Brume",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Utilisez gratuitement l'effet d'un sort ou d'une énergie qui ne vous appartient pas.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s22",
+      "nom": "Voudoo",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Déplacez un personnage de 3 cases révélées. Peut traverser un portail.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s23",
+      "nom": "Déjà Vu",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Ce sort devient la copie d'un sort dans la défausse pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s24",
+      "nom": "Lanterne des Damnés",
+      "element": "Ombre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Passif — Tant que vous la tenez, tous les monstres lancent 2 dés.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s25",
+      "nom": "Edge",
+      "element": "Ombre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Passif — Tous les portails sont inactifs.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s26",
+      "nom": "Canabis",
+      "element": "Ombre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Passif — Tous les joueurs ont -1 PA.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s27",
+      "nom": "Flux Négatif",
+      "element": "Eau",
+      "statut": "Test 1",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s28",
+      "nom": "Cape d'Invisibilité",
+      "element": "Air",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",
+      "quantite": 1,
+      "notes": ""
+    }
+  ],
+  "energies": [
+    {
+      "id": "e1",
+      "nom": "Énergie Feu 1",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort Feu, posez 1 marqueur +1 sur un item Feu pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
+      "id": "e2",
+      "nom": "Énergie Feu 2",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+1 PA pour chaque sort Feu.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e3",
+      "nom": "Éphémère Feu 1",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défaussez : jusqu'à la fin de votre tour +3 à tous vos jets de dés.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e4",
+      "nom": "Éphémère Feu 2",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défaussez : lancez une attaque à distance sur un joueur où qu'il soit.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e5",
+      "nom": "Énergie Eau 1",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort Eau, posez 1 marqueur +1 sur un item Eau pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
+      "id": "e6",
+      "nom": "Énergie Eau 2",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+1 PA pour chaque sort Eau.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e7",
+      "nom": "Éphémère Eau 1",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défaussez : téléportez-vous strictement à 3 cases d'un autre joueur.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e8",
+      "nom": "Énergie Terre 1",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort Terre, posez 1 marqueur +1 sur un item Terre pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
+      "id": "e9",
+      "nom": "Énergie Terre 2",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+1 au dé en défense pour chaque sort Terre.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e10",
+      "nom": "Énergie Air 1",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort Air, posez 1 marqueur +1 sur un item Air pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
+      "id": "e11",
+      "nom": "Énergie Air 2",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Quand vous utilisez un sort Air, obtenez 1 sprint gratuit.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e12",
+      "nom": "Éphémère Air 1",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défaussez : doublez tous les chiffres de vos items jusqu'à la fin du tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e13",
+      "nom": "Éphémère Air 2",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défaussez : replacez où vous voulez tous les portails révélés.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e14",
+      "nom": "Énergie Ombre 1",
+      "element": "Ombre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+1 au résultat de tous vos jets de dé pour chaque sort Ombre possédé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e15",
+      "nom": "Énergie Multi 1",
+      "element": "Multi",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+1 PA pour chaque sort d'élément différent possédé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e16",
+      "nom": "Énergie Multi 2",
+      "element": "Multi",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Si vous possédez Feu, Terre, Air et Eau : +5 au résultat de tous vos jets de dé.",
+      "quantite": 1,
+      "notes": ""
+    }
+  ],
+  "monstres": [
+    {
+      "id": "m1",
+      "nom": "Monstre 1",
+      "lvl": "Lvl 1",
+      "statut": "Validé",
+      "effet": "En cas de victoire : posez 3 cases Map n'importe où. Un joueur choisit l'orientation.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m2",
+      "nom": "Monstre 2",
+      "lvl": "Lvl 1",
+      "statut": "Validé",
+      "effet": "En cas de victoire : chaque joueur retire une case dans le sens horaire en commençant par vous.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m3",
+      "nom": "Monstre 3",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "En cas de victoire : choisissez un joueur. Pendant son prochain tour vous choisissez l'orientation des cases qu'il révèle.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m4",
+      "nom": "Monstre 4",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "En cas de victoire : chaque joueur choisit une énergie à défausser puis en pioche une nouvelle.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m5",
+      "nom": "Monstre 5",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "En cas de victoire : chaque joueur pioche une énergie.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m6",
+      "nom": "Monstre 6",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "En cas de victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m7",
+      "nom": "Monstre 7",
+      "lvl": "Lvl 4",
+      "statut": "Validé",
+      "effet": "En cas de victoire : volez un sort à un joueur de votre choix.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m8",
+      "nom": "Monstre 8",
+      "lvl": "Lvl 2",
+      "statut": "Test 1",
+      "effet": "En cas de victoire : retirez la case d'un ou plusieurs joueurs. Ils subissent la pénalité de mort.",
+      "quantite": 1,
+      "notes": ""
+    }
+  ],
+  "cases": [
+    {
+      "id": "c1",
+      "nom": "Case de Départ",
+      "statut": "Validé",
+      "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. Cul-de-sac (1 porte).",
+      "quantite": 10,
+      "notes": ""
+    },
+    {
+      "id": "c2",
+      "nom": "Case Instable",
+      "statut": "Validé",
+      "effet": "Se défausse dès qu'un joueur en sort. Les joueurs restants meurent.",
+      "quantite": 25,
+      "notes": ""
+    },
+    {
+      "id": "c3",
+      "nom": "Case Portail",
+      "statut": "Validé",
+      "effet": "Permet de se téléporter à n'importe quel autre portail révélé.",
+      "quantite": 20,
+      "notes": ""
+    },
+    {
+      "id": "c4",
+      "nom": "Case Énergie",
+      "statut": "Validé",
+      "effet": "La première fois par tour qu'on y entre, piocher une énergie dans la pile de son choix.",
+      "quantite": 10,
+      "notes": ""
+    },
+    {
+      "id": "c5",
+      "nom": "Case Fontaine",
+      "statut": "Validé",
+      "effet": "Restaure tous les PV quand on finit son tour dessus.",
+      "quantite": 15,
+      "notes": ""
+    },
+    {
+      "id": "c6",
+      "nom": "Case Œil",
+      "statut": "Validé",
+      "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. Toujours 4 portes.",
+      "quantite": 7,
+      "notes": ""
+    },
+    {
+      "id": "c7",
+      "nom": "Case Monstre",
+      "statut": "Validé",
+      "effet": "En arrivant dessus, piocher une carte Monstre. Combat optionnel. Toujours un cul-de-sac.",
+      "quantite": 10,
+      "notes": ""
+    },
+    {
+      "id": "c8",
+      "nom": "Case Bonus PA",
+      "statut": "Validé",
+      "effet": "La première fois par tour qu'un joueur entre, il gagne +1 PA. Toujours tout droit.",
+      "quantite": 10,
+      "notes": ""
+    },
+    {
+      "id": "c9",
+      "nom": "Case Levier",
+      "statut": "Test 3",
+      "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
+      "quantite": 1,
+      "notes": ""
+    }
+  ],
+  "regles": [
+    {
+      "id": "r1",
+      "nom": "Mise en place",
+      "statut": "Validé",
+      "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, place les 2 autres en bas de la pioche. Les pioches sont coupées en deux.",
+      "notes": ""
+    },
+    {
+      "id": "r2",
+      "nom": "Points d'Action",
+      "statut": "Validé",
+      "effet": "3 PA par tour, utilisables dans n'importe quel ordre.",
+      "notes": ""
+    },
+    {
+      "id": "r3",
+      "nom": "Explorer",
+      "statut": "Validé",
+      "effet": "1 PA — Annoncez la direction, piochez une carte Map, reliez-la et déplacez-vous dessus.",
+      "notes": ""
+    },
+    {
+      "id": "r4",
+      "nom": "Sprinter",
+      "statut": "Validé",
+      "effet": "1 PA, 1x tour — Lancez un dé et déplacez-vous jusqu'à ce nombre de cases révélées.",
+      "notes": ""
+    },
+    {
+      "id": "r5",
+      "nom": "Contrôle du labyrinthe",
+      "statut": "Validé",
+      "effet": "1x par tour, à n'importe quel moment — Retirer, tourner ou déplacer d'une case une case sans joueur dessus.",
+      "notes": ""
+    },
+    {
+      "id": "r6",
+      "nom": "Combat",
+      "statut": "Validé",
+      "effet": "Chacun lance un dé. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'à 0 PV. Égalité contre monstre = joueur gagne. Plusieurs dés = toujours garder le meilleur.",
+      "notes": ""
+    },
+    {
+      "id": "r7",
+      "nom": "Mort",
+      "statut": "Validé",
+      "effet": "Lâchez un item au choix sur votre case et réapparaissez sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",
+      "notes": ""
+    },
+    {
+      "id": "r8",
+      "nom": "PV — 1 ou 2 ?",
+      "statut": "Test 1",
+      "effet": "À tester : 2 PV vs one shot (1 PV). Comparer rythme et durée des combats.",
+      "notes": ""
+    },
+    {
+      "id": "r9",
+      "nom": "Combat de groupe",
+      "statut": "Test 1",
+      "effet": "Plusieurs joueurs ou monstres sur la même case : tous lancent un dé, uniquement le plus bas résultat perd.",
+      "notes": ""
+    },
+    {
+      "id": "r10",
+      "nom": "Combat à distance",
+      "statut": "Test 1",
+      "effet": "Nécessite de la Porté. Uniquement le défenseur peut mourir. Impossible contre les monstres. N'empêche pas une attaque classique dans le même tour.",
+      "notes": ""
+    }
+  ],
+  "lexique": [
+    {
+      "id": "l1",
+      "terme": "Case",
+      "definition": "Tuile physique du plateau. Peut être révélée ou non."
+    },
+    {
+      "id": "l2",
+      "terme": "Révélée",
+      "definition": "Case déjà présente et visible sur le plateau."
+    },
+    {
+      "id": "l3",
+      "terme": "Explorer",
+      "definition": "1 PA — Annoncer une direction, piocher une case et la poser connectée au plateau."
+    },
+    {
+      "id": "l4",
+      "terme": "Sprint",
+      "definition": "1 PA, 1x tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement."
+    },
+    {
+      "id": "l5",
+      "terme": "PA",
+      "definition": "Point d'Action. 3 par joueur par tour par défaut."
+    },
+    {
+      "id": "l6",
+      "terme": "PV",
+      "definition": "Point de Vie. À tester : 2 PV vs 1 PV (one shot)."
+    },
+    {
+      "id": "l7",
+      "terme": "Porté",
+      "definition": "Distance d'attaque. Permet d'attaquer sans partager sa case."
+    },
+    {
+      "id": "l8",
+      "terme": "Ligne de vue",
+      "definition": "Chemin sans mur entre deux positions. Effet d'un vide encore à définir."
+    },
+    {
+      "id": "l9",
+      "terme": "Adjacent",
+      "definition": "Case directement connectée à la vôtre par un passage ouvert."
+    },
+    {
+      "id": "l10",
+      "terme": "Lâcher",
+      "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
+    },
+    {
+      "id": "l11",
+      "terme": "Défausser",
+      "definition": "Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."
+    },
+    {
+      "id": "l12",
+      "terme": "Sort",
+      "definition": "Item obtenu en battant un monstre. Effet actif. Limite : 3."
+    },
+    {
+      "id": "l13",
+      "terme": "Énergie",
+      "definition": "Item obtenu sur une case Énergie. Effet passif + effet actif déclenché par un sort du même élément. Limite : 3."
+    },
+    {
+      "id": "l14",
+      "terme": "Sort de Nature",
+      "definition": "Sort pioché en début de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
+    },
+    {
+      "id": "l15",
+      "terme": "Ombre",
+      "definition": "Catégorie spéciale. Ne compte pas dans la limite. Se lâche uniquement à la mort."
+    },
+    {
+      "id": "l16",
+      "terme": "Multi",
+      "definition": "Élément spécial qui ne compte comme aucun élément spécifique."
+    },
+    {
+      "id": "l17",
+      "terme": "Tour global",
+      "definition": "Cycle de jeu jusqu'au début de votre prochain tour."
+    },
+    {
+      "id": "l18",
+      "terme": "Item équivalent",
+      "definition": "Sort contre sort, énergie contre énergie. Pour les échanges."
+    },
+    {
+      "id": "l19",
+      "terme": "Indestructible",
+      "definition": "Ne peut pas être retirée, tournée ni déplacée."
+    },
+    {
+      "id": "l20",
+      "terme": "1x tour",
+      "definition": "Ne peut être utilisé qu'une fois pendant votre tour."
+    }
+  ],
+  "modes": [
+    {
+      "id": "md1",
+      "nom": "Capture de Drapeau",
+      "emoji": "🚩",
+      "difficulte": "⭐⭐",
+      "style": "Stratégie Combat",
+      "joueurs": "2-10",
+      "contenu": "Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux équipes Rouge et Bleu. Bases indestructibles à 7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRègles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lâche le drapeau.\n\nVariante Distorsion : sur case Œil, piocher une carte et la placer n'importe où dans n'importe quel sens.",
+      "notes": "À tester : rester 1 tour sur la base pour valider\nProblème : nombre impair de joueurs"
+    },
+    {
+      "id": "md2",
+      "nom": "Keeyp",
+      "emoji": "🗝️",
+      "difficulte": "⭐⭐",
+      "style": "Escape",
+      "joueurs": "1-10",
+      "contenu": "Objectif : trouver la Clé, trouver la Porte, s'échapper.\n\nRègles : ramasser la Clé = 0 PA. Porteur ne peut pas sprinter. Si combat perdu, Clé retourne à son origine. Combats monstres automatiques.\n\nVictoire : atteindre la Porte avec la Clé et finir son tour dessus.",
+      "notes": "À tester : ajouter un double monstre à battre pour finir"
+    },
+    {
+      "id": "md3",
+      "nom": "Laboratoire",
+      "emoji": "🧪",
+      "difficulte": "⭐⭐⭐",
+      "style": "Escape Combat",
+      "joueurs": "2-10",
+      "contenu": "Rôles :\nDocteur Fou — contrôle lab partout, pas sprint, pas clé, 1 sort + 1 énergie, tp fontaine 3 PA. S'il bat un Héros, ce Héros devient Zombie.\nZombies — contrôle lab adjacent, pas sprint, pas clé, 1 sort + 1 énergie.\nHéros — contrôle lab adjacent, sprint, clé, 3 sorts + 3 énergies, 2 dés contre méchant.\n\nMise en place : carré 5x5 révélé. Docteur place sa case d'abord. Retirer le carré. Docteur joue en premier. Retirer item Edge.\n\nVictoire Héros : s'échapper par la Porte avec la Clé.\nVictoire Docteur : tous les Héros deviennent Zombies.",
+      "notes": "Priorité de modification\nÀ tester : 7x7, tp fontaine 1 PA, -1 au dé méchants\nProblème : snowball, difficile changer de cible"
+    },
+    {
+      "id": "md4",
+      "nom": "Indiana Jones",
+      "emoji": "🪨",
+      "difficulte": "⭐⭐⭐⭐",
+      "style": "Escape Stratégie",
+      "joueurs": "4-8",
+      "contenu": "Héros : ramasser l'artefact et atteindre la Porte.\nMéchant : écraser chaque Héros une fois avec la Boule Géante.\n\nBoule Géante : avance en ligne droite jusqu'à un mur. Tue tout joueur traversé. Disparaît sur case de départ.\nMéchant contrôle : déplacer dans une direction OU faire apparaître sur une Fontaine.\nHéros contrôle : si fin de tour sur Fontaine, contrôler la Boule à la place du Méchant.",
+      "notes": "Priorité de modification\nÀ tester : case boule déplaçable\nProblème : trop d'anti jeu"
+    },
+    {
+      "id": "md5",
+      "nom": "Traque",
+      "emoji": "🪓",
+      "difficulte": "⭐⭐",
+      "style": "Combat",
+      "joueurs": "3-5",
+      "contenu": "Objectif : traquer et éliminer ta cible secrète.\n\nMise en place : chaque joueur contrôle 2 personnages. Carré 7x7. PA partagés entre les 2 persos.\n\nRègles : éliminer ta cible = 1 marque + nouvelle carte Cible.\n\nVictoire : premier à 3 marques.",
+      "notes": "À tester : version rapide 1 perso chacun"
+    },
+    {
+      "id": "md6",
+      "nom": "Survie",
+      "emoji": "🔥",
+      "difficulte": "⭐",
+      "style": "Combat",
+      "joueurs": "2-10",
+      "contenu": "Objectif : être le dernier joueur en vie.\n\nRègles : 1 Vie par joueur. Perdre un combat = pénalité + perdre une vie. Activer une case Révélation = regagner sa Vie. Mourir à 0 Vie = éliminé.\n\nVictoire : dernier joueur encore en jeu.",
+      "notes": "Mode d'introduction recommandé"
+    },
+    {
+      "id": "md7",
+      "nom": "3 Monstres",
+      "emoji": "👹",
+      "difficulte": "⭐",
+      "style": "Combat",
+      "joueurs": "2-10",
+      "contenu": "Objectif : premier à éliminer 3 monstres.\n\nRègles : battre un monstre = 1 jeton. Cases Monstre indestructibles. Double Monstre = 2 jetons.\n\nVictoire : 3 jetons.",
+      "notes": "À tester : fusionner avec 4 Items"
+    },
+    {
+      "id": "md8",
+      "nom": "4 Items",
+      "emoji": "💎",
+      "difficulte": "⭐",
+      "style": "Combat",
+      "joueurs": "2-10",
+      "contenu": "Objectif : premier à obtenir un 4ème item.\n\nRègles : monstres attaquent automatiquement.\n\nVictoire : 4 items en main = victoire instantanée.",
+      "notes": "À tester : fusionner avec 3 Monstres"
+    },
+    {
+      "id": "md9",
+      "nom": "Infection",
+      "emoji": "🦠",
+      "difficulte": "⭐⭐⭐",
+      "style": "Rôle Caché",
+      "joueurs": "4-8",
+      "contenu": "Gentils veulent purifier. Méchants veulent infecter.\n\nCartes Alignement + Cartes Infection distribuées secrètement.\n\nFontaines : orienter secrètement une carte Infection vers Sain ou Infecté.\n\nRévélations : rituel — yeux fermés, pouce haut = Sain, pouce bas = Infecté.\n\nCompte à rebours : 3 tours globaux puis révélation finale. Majorité gagne.",
+      "notes": "À tester : nerf révélation dans ce mode"
+    },
+    {
+      "id": "md10",
+      "nom": "Rumble in the House",
+      "emoji": "🎭",
+      "difficulte": "⭐",
+      "style": "Rôle Caché",
+      "joueurs": "3-10",
+      "contenu": "Objectif : être le dernier survivant.\n\n3-5 joueurs : double de personnages, 2 jetons secrets chacun.\n6-10 joueurs : 1 personnage par joueur, 1 jeton secret chacun.\n\nRègles : au début de son tour choisir n'importe quel personnage vivant. Mort permanente. 1 item par personnage.",
+      "notes": ""
+    },
+    {
+      "id": "md11",
+      "nom": "Sabotage",
+      "emoji": "🧩",
+      "difficulte": "⭐⭐",
+      "style": "Stratégie",
+      "joueurs": "4-10",
+      "contenu": "Restaurateurs vs Saboteurs — réparer ou saboter les Fontaines.\n\nRègles : finir son tour sur une Fontaine = choisir Réparer ou Saboter. L'action prend tout le tour suivant.\n\nVictoire : autant de Fontaines que de joueurs réparées ou sabotées.",
+      "notes": ""
+    },
+    {
+      "id": "md12",
+      "nom": "Amon Gus",
+      "emoji": "👨‍🚀",
+      "difficulte": "⭐⭐⭐⭐",
+      "style": "Rôle Caché Stratégie",
+      "joueurs": "4-10",
+      "contenu": "Gentils : réparer les Fontaines et éliminer les Imposteurs.\nImposteurs : saboter en secret, tuer les Gentils.\n\nRépartition : 4-5 joueurs = 1 Imposteur / 6-7 = 2 / 8-10 = 3.\n\nEmergency Meeting : tous les X jetons posés (X = nb joueurs) ou sur Révélation. Si majorité sabotés = victoire Imposteurs. Vote : chaque vote = -1 au dé.\n\nPouvoir Imposteur : révéler son rôle une fois = +2 au combat jusqu'à la mort.",
+      "notes": ""
+    },
+    {
+      "id": "md13",
+      "nom": "Relique Maudite",
+      "emoji": "🪬",
+      "difficulte": "⭐⭐",
+      "style": "Combat",
+      "joueurs": "3-6",
+      "contenu": "Objectif : découvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",
+      "notes": ""
+    }
+  ],
+  "ideesModes": [
+    {
+      "id": "im1",
+      "nom": "Mode Intro / Survie simple",
+      "pitch": "Jeton mort si tué par un joueur. Dernier sans jeton gagne. Point d'entrée avant tous les modes."
+    },
+    {
+      "id": "im2",
+      "nom": "Mode Hunger Games / Fantômes",
+      "pitch": "Vie illimitée contre monstres. Mort par joueur = fantôme : défausse sorts, 1 PA, passe à travers les murs."
+    },
+    {
+      "id": "im3",
+      "nom": "Mode Zombie Survie",
+      "pitch": "Zombies qui spawnent. Impossible de supprimer des cases. Trouver clé et porte ou tenir un max de tours."
+    },
+    {
+      "id": "im4",
+      "nom": "Mode Backrooms",
+      "pitch": "Gouttes de survie au lieu de fontaines. Monstres autonomes qui se rapprochent. Sprint coûte une goutte."
+    },
+    {
+      "id": "im5",
+      "nom": "Mode Dofus",
+      "pitch": "Choisir un personnage avec sorts prédéfinis selon sa classe."
+    },
+    {
+      "id": "im6",
+      "nom": "Mode MOBA",
+      "pitch": "Capture de Drapeau avec lanes et objectifs secondaires."
+    },
+    {
+      "id": "im7",
+      "nom": "Mode Open World",
+      "pitch": "Verso des cartes = extérieur. Biomes, donjons, marchands. Extension séparée à long terme."
+    },
+    {
+      "id": "im8",
+      "nom": "Mode Guerre de territoire",
+      "pitch": "Avoir la plus grande zone connectée. Retirer la seule case reliant deux zones = la 2ème devient neutre."
+    },
+    {
+      "id": "im9",
+      "nom": "Mode Chasseur",
+      "pitch": "À définir."
+    },
+    {
+      "id": "im10",
+      "nom": "Mode Maze vs Players",
+      "pitch": "À définir."
+    }
+  ],
+  "soireesProto": [],
+  "ideeEnVrac": "",
+  "materiel": "10 personnages carton sur bloc plastique vertical\n2 dés\n1 case Boule Géante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour Clé et Relique)\n3 jetons Chacal / Cape d'invisibilité\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\n---\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDé : ~6$ pièce\nPersonnages acrylique : ~13.5$",
+  "visuels": {
+    "general": "Inspiration Squid Game / Liminal space coréen\nAmbiance kintsugi bioluminescent bleu\nFog volumétrique + sources de lumière kintsugi\nMurs en noir, sol en blanc pour visibilité\n\n---\n\nLIVRET DE RÈGLES :\nStyle journal comme dans Harry Potter\n3 échelles de typo : ultra grosse (idée), moyenne (règle précise), petite opacité diminuée (détails)",
+    "boite": "Inspiration boîtes Iello — fond blanc avec beaucoup de blanc\nKintsugi bleu qui s'étend sur toute la boîte\nPlusieurs zones avec couleur dominante par élément\nGarder 60% des zones blanches",
+    "personnages": "Acrylique transparent autour\nCouleur distincte par joueur\nIdée : perso avec tissu sur les yeux (statue de la Justice)\nPerso référence Outer Wilds Echo of the Eye (cerf cassé)",
+    "cases": "✅ Portail : sim 3D inspiration Dofus\n✅ Œil : marque au sol violette\n✅ Énergie : feu de camp (ref Outer Wilds)\n✅ Instable : voronoi\n✅ Case de départ : noir et or avec symbole géométrique\nMonstres : dégradé sombre\nFontaine : kintsugi classique",
+    "items": "Illustration par élément sur le dos de la carte\nRune lumineuse dont la couleur révèle l'élément\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir",
+    "monstres": "Dégradé sombre\nBoule Indiana Jones : oeil géant style Léviathan alt236 ou Beholder DnD",
+    "accessoires": "Pierres de combo avec rune lumineuse\nJetons personnages avec logo mort au dos",
+    "references": "Outer Wilds — symbole infini Nomai, feu de camp\nDofus Émeraude\nAvatar Airbender\nSquid Game / Liminal space coréen\nIello (boîtes)\nHytale (personnages)"
+  }
+}
