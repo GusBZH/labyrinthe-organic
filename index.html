@@ -1,19 +1,916 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Labyrinthe Organic</title>
-  <meta name="theme-color" content="#0e0e0e" />
-  <link rel="manifest" href="manifest.json" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Labyrinthe Organic</title>
+<meta name="theme-color" content="#0e0e0e"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0e0e0e;color:#eee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  button{font-family:inherit;cursor:pointer}
+  textarea,input{font-family:inherit}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:#111}
+  ::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="https://esm.sh/react@18/jsx-runtime"></script>
-  <script type="module">
-    import { createRoot } from 'https://esm.sh/react-dom@18/client';
-    import App from './app.jsx';
-    createRoot(document.getElementById('root')).render(App());
-  </script>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+// ── CONFIG ──────────────────────────────────────────────────
+const GITHUB_USER = "GusBZH";
+const GITHUB_REPO = "labyrinthe-organic";
+const GITHUB_FILE = "data.json";
+
+// ── CONSTANTS ────────────────────────────────────────────────
+const ELEMENTS = ["Feu","Eau","Terre","Air","Ombre","Multi"];
+const STATUTS  = ["Validé","Test 1","Test 2","Test 3","Archivé"];
+const LVLS     = ["Lvl 1","Lvl 2","Lvl 3","Lvl 4"];
+
+const EC = {
+  Feu:   {bg:"rgba(220,60,40,.15)",  border:"rgba(220,60,40,.4)",  dot:"#dc3c28", emoji:"🔥"},
+  Eau:   {bg:"rgba(40,120,220,.15)", border:"rgba(40,120,220,.4)", dot:"#2878dc", emoji:"💧"},
+  Terre: {bg:"rgba(120,80,40,.15)",  border:"rgba(120,80,40,.4)",  dot:"#785028", emoji:"🌍"},
+  Air:   {bg:"rgba(80,180,120,.15)", border:"rgba(80,180,120,.4)", dot:"#50b478", emoji:"💨"},
+  Ombre: {bg:"rgba(120,60,180,.15)", border:"rgba(120,60,180,.4)", dot:"#783cb4", emoji:"🌑"},
+  Multi: {bg:"rgba(200,160,40,.15)", border:"rgba(200,160,40,.4)", dot:"#c8a028", emoji:"🌈"},
+};
+const SC = {
+  "Validé":"#4caf50","Test 1":"#ffeb3b","Test 2":"#ff9800",
+  "Test 3":"#f44336","Archivé":"#555"
+};
+const LVL_R = {
+  "Lvl 1":"1 énergie / -2 au dé du monstre",
+  "Lvl 2":"1 sort / -1 au dé du monstre",
+  "Lvl 3":"1 sort + 1 énergie / neutre",
+  "Lvl 4":"2 sorts / monstre lance 2 dés",
+};
+
+function uid(){return Math.random().toString(36).slice(2);}
+
+// ── INITIAL DATA ─────────────────────────────────────────────
+const INIT = {
+  gameName:"Labyrinthe Organic",
+  reglesNotes:"",sortsNotes:"",monstresNotes:"",
+  lexiqueNotes:"",materielNotes:"",
+  sorts:[
+    {id:"s1",nom:"Grenade",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",quantite:1,notes:""},
+    {id:"s2",nom:"Lance Flamme",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Attaque tous les joueurs possibles sur une ligne droite en ligne de vue.",quantite:1,notes:""},
+    {id:"s3",nom:"Pistolet",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Attaque un joueur en ligne de vue.",quantite:1,notes:""},
+    {id:"s4",nom:"Furie",element:"Feu",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"Après avoir gagné un combat, rejouez immédiatement un tour entier.",quantite:1,notes:""},
+    {id:"s5",nom:"Chacal",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Posez un jeton face cachée sur une case vide. Mort si jeton mort. Cases avec jeton = indestructibles.",quantite:1,notes:""},
+    {id:"s6",nom:"Poing Américain",element:"Feu",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"+1 au résultat du dé pendant vos attaques pendant 1 tour.",quantite:1,notes:""},
+    {id:"s7",nom:"Lutte Illimitée",element:"Feu",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort possédé.",quantite:1,notes:""},
+    {id:"s8",nom:"J'ai Soif !",element:"Feu",statut:"Validé",cout:"0 PA",limite:"",effet:"Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",quantite:1,notes:""},
+    {id:"s9",nom:"Non",element:"Terre",statut:"Validé",cout:"0 PA",limite:"",effet:"Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulé.",quantite:1,notes:""},
+    {id:"s10",nom:"Chaussures qui Court Loin",element:"Terre",statut:"Validé",cout:"0 PA",limite:"",effet:"Quand un joueur vous attaque, lancez 1 d6 : sur 4+ annulé et vous téléportez sur n'importe quel portail.",quantite:1,notes:""},
+    {id:"s11",nom:"Mercy",element:"Terre",statut:"Validé",cout:"0 PA",limite:"3x partie",effet:"3 compteurs. Si un joueur perd un combat en ligne de vue, utilisez 1 compteur pour annuler.",quantite:1,notes:""},
+    {id:"s12",nom:"Séisme",element:"Terre",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Sélectionnez un carré de 3 cases de côté et défaussez toutes les cases contrôlables.",quantite:1,notes:""},
+    {id:"s13",nom:"Pas Fantôme",element:"Air",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Déplacez-vous d'une case en ignorant les murs.",quantite:1,notes:""},
+    {id:"s14",nom:"Portail de Poche",element:"Air",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Téléportez-vous sur n'importe quel portail révélé.",quantite:1,notes:""},
+    {id:"s15",nom:"Échange de Place",element:"Air",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Choisissez un joueur et échangez vos positions.",quantite:1,notes:""},
+    {id:"s16",nom:"Grappin",element:"Air",statut:"Validé",cout:"1 PA",limite:"3x tour",effet:"Déplacez-vous et explorez en ligne droite. Si monstre sur le chemin, vous devez l'affronter.",quantite:1,notes:""},
+    {id:"s17",nom:"Tracer",element:"Air",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"À la fin de votre tour, vous pouvez revenir sur la case où vous avez commencé.",quantite:1,notes:""},
+    {id:"s18",nom:"Talisman d'Équilibre",element:"Air",statut:"Validé",cout:"1 PA",limite:"",effet:"Échangez ce sort avec celui d'un autre joueur.",quantite:1,notes:""},
+    {id:"s19",nom:"Éliotrope",element:"Eau",statut:"Validé",cout:"1 PA",limite:"4x tour",effet:"Déplacez une case Portail sur un emplacement vide.",quantite:1,notes:""},
+    {id:"s20",nom:"Xelor",element:"Eau",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"Volez 1 PA à un joueur.",quantite:1,notes:""},
+    {id:"s21",nom:"Miroir de Brume",element:"Eau",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Utilisez gratuitement l'effet d'un sort ou d'une énergie qui ne vous appartient pas.",quantite:1,notes:""},
+    {id:"s22",nom:"Voudoo",element:"Eau",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Déplacez un personnage de 3 cases révélées. Peut traverser un portail.",quantite:1,notes:""},
+    {id:"s23",nom:"Déjà Vu",element:"Eau",statut:"Validé",cout:"0 PA",limite:"1x tour",effet:"Ce sort devient la copie d'un sort dans la défausse pendant 1 tour.",quantite:1,notes:""},
+    {id:"s24",nom:"Lanterne des Damnés",element:"Ombre",statut:"Validé",cout:"",limite:"",effet:"Passif — Tant que vous la tenez, tous les monstres lancent 2 dés.",quantite:1,notes:""},
+    {id:"s25",nom:"Edge",element:"Ombre",statut:"Validé",cout:"",limite:"",effet:"Passif — Tous les portails sont inactifs.",quantite:1,notes:""},
+    {id:"s26",nom:"Canabis",element:"Ombre",statut:"Validé",cout:"",limite:"",effet:"Passif — Tous les joueurs ont -1 PA.",quantite:1,notes:""},
+    {id:"s27",nom:"Flux Négatif",element:"Eau",statut:"Test 1",cout:"1 PA",limite:"1x tour",effet:"Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",quantite:1,notes:""},
+    {id:"s28",nom:"Cape d'Invisibilité",element:"Air",statut:"Test 1",cout:"0 PA",limite:"1x tour",effet:"Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",quantite:1,notes:""},
+  ],
+  energies:[
+    {id:"e1",nom:"Énergie Feu 1",element:"Feu",statut:"Validé",cout:"",limite:"",effet:"Pour chaque sort Feu, posez 1 marqueur +1 sur un item Feu pendant 1 tour global.",quantite:5,notes:""},
+    {id:"e2",nom:"Énergie Feu 2",element:"Feu",statut:"Validé",cout:"",limite:"",effet:"+1 PA pour chaque sort Feu.",quantite:1,notes:""},
+    {id:"e3",nom:"Éphémère Feu 1",element:"Feu",statut:"Validé",cout:"",limite:"",effet:"Défaussez : jusqu'à la fin de votre tour +3 à tous vos jets de dés.",quantite:1,notes:""},
+    {id:"e4",nom:"Éphémère Feu 2",element:"Feu",statut:"Validé",cout:"",limite:"",effet:"Défaussez : lancez une attaque à distance sur un joueur où qu'il soit.",quantite:1,notes:""},
+    {id:"e5",nom:"Énergie Eau 1",element:"Eau",statut:"Validé",cout:"",limite:"",effet:"Pour chaque sort Eau, posez 1 marqueur +1 sur un item Eau pendant 1 tour global.",quantite:5,notes:""},
+    {id:"e6",nom:"Énergie Eau 2",element:"Eau",statut:"Validé",cout:"",limite:"",effet:"+1 PA pour chaque sort Eau.",quantite:1,notes:""},
+    {id:"e7",nom:"Éphémère Eau 1",element:"Eau",statut:"Validé",cout:"",limite:"",effet:"Défaussez : téléportez-vous strictement à 3 cases d'un autre joueur.",quantite:1,notes:""},
+    {id:"e8",nom:"Énergie Terre 1",element:"Terre",statut:"Validé",cout:"",limite:"",effet:"Pour chaque sort Terre, posez 1 marqueur +1 sur un item Terre pendant 1 tour global.",quantite:5,notes:""},
+    {id:"e9",nom:"Énergie Terre 2",element:"Terre",statut:"Validé",cout:"",limite:"",effet:"+1 au dé en défense pour chaque sort Terre.",quantite:1,notes:""},
+    {id:"e10",nom:"Énergie Air 1",element:"Air",statut:"Validé",cout:"",limite:"",effet:"Pour chaque sort Air, posez 1 marqueur +1 sur un item Air pendant 1 tour global.",quantite:5,notes:""},
+    {id:"e11",nom:"Énergie Air 2",element:"Air",statut:"Validé",cout:"",limite:"",effet:"Quand vous utilisez un sort Air, obtenez 1 sprint gratuit.",quantite:1,notes:""},
+    {id:"e12",nom:"Éphémère Air 1",element:"Air",statut:"Validé",cout:"",limite:"",effet:"Défaussez : doublez tous les chiffres de vos items jusqu'à la fin du tour.",quantite:1,notes:""},
+    {id:"e13",nom:"Éphémère Air 2",element:"Air",statut:"Validé",cout:"",limite:"",effet:"Défaussez : replacez où vous voulez tous les portails révélés.",quantite:1,notes:""},
+    {id:"e14",nom:"Énergie Ombre 1",element:"Ombre",statut:"Validé",cout:"",limite:"",effet:"+1 au résultat de tous vos jets de dé pour chaque sort Ombre possédé.",quantite:1,notes:""},
+    {id:"e15",nom:"Énergie Multi 1",element:"Multi",statut:"Validé",cout:"",limite:"",effet:"+1 PA pour chaque sort d'élément différent possédé.",quantite:1,notes:""},
+    {id:"e16",nom:"Énergie Multi 2",element:"Multi",statut:"Validé",cout:"",limite:"",effet:"Si vous possédez Feu, Terre, Air et Eau : +5 au résultat de tous vos jets de dé.",quantite:1,notes:""},
+  ],
+  monstres:[
+    {id:"m1",nom:"Monstre 1",lvl:"Lvl 1",statut:"Validé",effet:"En cas de victoire : posez 3 cases Map n'importe où. Un joueur choisit l'orientation.",quantite:1,notes:""},
+    {id:"m2",nom:"Monstre 2",lvl:"Lvl 1",statut:"Validé",effet:"En cas de victoire : chaque joueur retire une case dans le sens horaire en commençant par vous.",quantite:1,notes:""},
+    {id:"m3",nom:"Monstre 3",lvl:"Lvl 2",statut:"Validé",effet:"En cas de victoire : choisissez un joueur. Pendant son prochain tour vous choisissez l'orientation des cases qu'il révèle.",quantite:1,notes:""},
+    {id:"m4",nom:"Monstre 4",lvl:"Lvl 2",statut:"Validé",effet:"En cas de victoire : chaque joueur choisit une énergie à défausser puis en pioche une nouvelle.",quantite:1,notes:""},
+    {id:"m5",nom:"Monstre 5",lvl:"Lvl 3",statut:"Validé",effet:"En cas de victoire : chaque joueur pioche une énergie.",quantite:1,notes:""},
+    {id:"m6",nom:"Monstre 6",lvl:"Lvl 3",statut:"Validé",effet:"En cas de victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",quantite:1,notes:""},
+    {id:"m7",nom:"Monstre 7",lvl:"Lvl 4",statut:"Validé",effet:"En cas de victoire : volez un sort à un joueur de votre choix.",quantite:1,notes:""},
+    {id:"m8",nom:"Monstre 8",lvl:"Lvl 2",statut:"Test 1",effet:"En cas de victoire : retirez la case d'un ou plusieurs joueurs. Ils subissent la pénalité de mort.",quantite:1,notes:""},
+  ],
+  cases:[
+    {id:"c1",nom:"Case de Départ",statut:"Validé",effet:"Là où les joueurs commencent et réapparaissent après une mort. Indestructible. Cul-de-sac (1 porte).",quantite:10,notes:""},
+    {id:"c2",nom:"Case Instable",statut:"Validé",effet:"Se défausse dès qu'un joueur en sort. Les joueurs restants meurent.",quantite:25,notes:""},
+    {id:"c3",nom:"Case Portail",statut:"Validé",effet:"Permet de se téléporter à n'importe quel autre portail révélé.",quantite:20,notes:""},
+    {id:"c4",nom:"Case Énergie",statut:"Validé",effet:"La première fois par tour qu'on y entre, piocher une énergie dans la pile de son choix.",quantite:10,notes:""},
+    {id:"c5",nom:"Case Fontaine",statut:"Validé",effet:"Restaure tous les PV quand on finit son tour dessus.",quantite:15,notes:""},
+    {id:"c6",nom:"Case Œil",statut:"Validé",effet:"En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. Toujours 4 portes.",quantite:7,notes:""},
+    {id:"c7",nom:"Case Monstre",statut:"Validé",effet:"En arrivant dessus, piocher une carte Monstre. Combat optionnel. Toujours un cul-de-sac.",quantite:10,notes:""},
+    {id:"c8",nom:"Case Bonus PA",statut:"Validé",effet:"La première fois par tour qu'un joueur entre, il gagne +1 PA. Toujours tout droit.",quantite:10,notes:""},
+    {id:"c9",nom:"Case Levier",statut:"Test 3",effet:"Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",quantite:1,notes:""},
+  ],
+  regles:[
+    {id:"r1",nom:"Mise en place",statut:"Validé",effet:"Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, place les 2 autres en bas de la pioche. Les pioches sont coupées en deux.",notes:""},
+    {id:"r2",nom:"Points d'Action",statut:"Validé",effet:"3 PA par tour, utilisables dans n'importe quel ordre.",notes:""},
+    {id:"r3",nom:"Explorer",statut:"Validé",effet:"1 PA — Annoncez la direction, piochez une carte Map, reliez-la et déplacez-vous dessus.",notes:""},
+    {id:"r4",nom:"Sprinter",statut:"Validé",effet:"1 PA, 1x tour — Lancez un dé et déplacez-vous jusqu'à ce nombre de cases révélées.",notes:""},
+    {id:"r5",nom:"Contrôle du labyrinthe",statut:"Validé",effet:"1x par tour, à n'importe quel moment — Retirer, tourner ou déplacer d'une case une case sans joueur dessus.",notes:""},
+    {id:"r6",nom:"Combat",statut:"Validé",effet:"Chacun lance un dé. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'à 0 PV. Égalité contre monstre = joueur gagne. Plusieurs dés = toujours garder le meilleur.",notes:""},
+    {id:"r7",nom:"Mort",statut:"Validé",effet:"Lâchez un item au choix sur votre case et réapparaissez sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",notes:""},
+    {id:"r8",nom:"PV — 1 ou 2 ?",statut:"Test 1",effet:"À tester : 2 PV vs one shot (1 PV). Comparer rythme et durée des combats.",notes:""},
+    {id:"r9",nom:"Combat de groupe",statut:"Test 1",effet:"Plusieurs joueurs ou monstres sur la même case : tous lancent un dé, uniquement le plus bas résultat perd.",notes:""},
+    {id:"r10",nom:"Combat à distance",statut:"Test 1",effet:"Nécessite de la Porté. Uniquement le défenseur peut mourir. Impossible contre les monstres. N'empêche pas une attaque classique dans le même tour.",notes:""},
+  ],
+  lexique:[
+    {id:"l1",terme:"Case",definition:"Tuile physique du plateau. Peut être révélée ou non."},
+    {id:"l2",terme:"Révélée",definition:"Case déjà présente et visible sur le plateau."},
+    {id:"l3",terme:"Explorer",definition:"1 PA — Annoncer une direction, piocher une case et la poser connectée au plateau."},
+    {id:"l4",terme:"Sprint",definition:"1 PA, 1x tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement."},
+    {id:"l5",terme:"PA",definition:"Point d'Action. 3 par joueur par tour par défaut."},
+    {id:"l6",terme:"PV",definition:"Point de Vie. À tester : 2 PV vs 1 PV (one shot)."},
+    {id:"l7",terme:"Porté",definition:"Distance d'attaque. Permet d'attaquer sans partager sa case."},
+    {id:"l8",terme:"Ligne de vue",definition:"Chemin sans mur entre deux positions. Effet d'un vide encore à définir."},
+    {id:"l9",terme:"Adjacent",definition:"Case directement connectée à la vôtre par un passage ouvert."},
+    {id:"l10",terme:"Lâcher",definition:"Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."},
+    {id:"l11",terme:"Défausser",definition:"Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."},
+    {id:"l12",terme:"Sort",definition:"Item obtenu en battant un monstre. Effet actif. Limite : 3."},
+    {id:"l13",terme:"Énergie",definition:"Item obtenu sur une case Énergie. Effet passif + effet actif déclenché par un sort du même élément. Limite : 3."},
+    {id:"l14",terme:"Sort de Nature",definition:"Sort pioché en début de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."},
+    {id:"l15",terme:"Ombre",definition:"Catégorie spéciale. Ne compte pas dans la limite. Se lâche uniquement à la mort."},
+    {id:"l16",terme:"Multi",definition:"Élément spécial qui ne compte comme aucun élément spécifique."},
+    {id:"l17",terme:"Tour global",definition:"Cycle de jeu jusqu'au début de votre prochain tour."},
+    {id:"l18",terme:"Item équivalent",definition:"Sort contre sort, énergie contre énergie. Pour les échanges."},
+    {id:"l19",terme:"Indestructible",definition:"Ne peut pas être retirée, tournée ni déplacée."},
+    {id:"l20",terme:"1x tour",definition:"Ne peut être utilisé qu'une fois pendant votre tour."},
+  ],
+  modes:[
+    {id:"md1",nom:"Capture de Drapeau",emoji:"🚩",difficulte:"⭐⭐",style:"Stratégie Combat",joueurs:"2-10",contenu:"Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux équipes Rouge et Bleu. Bases indestructibles à 7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRègles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lâche le drapeau.\n\nVariante Distorsion : sur case Œil, piocher une carte et la placer n'importe où dans n'importe quel sens.",notes:"À tester : rester 1 tour sur la base pour valider\nProblème : nombre impair de joueurs"},
+    {id:"md2",nom:"Keeyp",emoji:"🗝️",difficulte:"⭐⭐",style:"Escape",joueurs:"1-10",contenu:"Objectif : trouver la Clé, trouver la Porte, s'échapper.\n\nRègles : ramasser la Clé = 0 PA. Porteur ne peut pas sprinter. Si combat perdu, Clé retourne à son origine. Combats monstres automatiques.\n\nVictoire : atteindre la Porte avec la Clé et finir son tour dessus.",notes:"À tester : ajouter un double monstre à battre pour finir"},
+    {id:"md3",nom:"Laboratoire",emoji:"🧪",difficulte:"⭐⭐⭐",style:"Escape Combat",joueurs:"2-10",contenu:"Rôles :\nDocteur Fou — contrôle lab partout, pas sprint, pas clé, 1 sort + 1 énergie, tp fontaine 3 PA. S'il bat un Héros, ce Héros devient Zombie.\nZombies — contrôle lab adjacent, pas sprint, pas clé, 1 sort + 1 énergie.\nHéros — contrôle lab adjacent, sprint, clé, 3 sorts + 3 énergies, 2 dés contre méchant.\n\nMise en place : carré 5x5 révélé. Docteur place sa case d'abord. Retirer le carré. Docteur joue en premier. Retirer item Edge.\n\nVictoire Héros : s'échapper par la Porte avec la Clé.\nVictoire Docteur : tous les Héros deviennent Zombies.",notes:"Priorité de modification\nÀ tester : 7x7, tp fontaine 1 PA, -1 au dé méchants\nProblème : snowball, difficile changer de cible"},
+    {id:"md4",nom:"Indiana Jones",emoji:"🪨",difficulte:"⭐⭐⭐⭐",style:"Escape Stratégie",joueurs:"4-8",contenu:"Héros : ramasser l'artefact et atteindre la Porte.\nMéchant : écraser chaque Héros une fois avec la Boule Géante.\n\nBoule Géante : avance en ligne droite jusqu'à un mur. Tue tout joueur traversé. Disparaît sur case de départ.\nMéchant contrôle : déplacer dans une direction OU faire apparaître sur une Fontaine.\nHéros contrôle : si fin de tour sur Fontaine, contrôler la Boule à la place du Méchant.",notes:"Priorité de modification\nÀ tester : case boule déplaçable\nProblème : trop d'anti jeu"},
+    {id:"md5",nom:"Traque",emoji:"🪓",difficulte:"⭐⭐",style:"Combat",joueurs:"3-5",contenu:"Objectif : traquer et éliminer ta cible secrète.\n\nMise en place : chaque joueur contrôle 2 personnages. Carré 7x7. PA partagés entre les 2 persos.\n\nRègles : éliminer ta cible = 1 marque + nouvelle carte Cible.\n\nVictoire : premier à 3 marques.",notes:"À tester : version rapide 1 perso chacun"},
+    {id:"md6",nom:"Survie",emoji:"🔥",difficulte:"⭐",style:"Combat",joueurs:"2-10",contenu:"Objectif : être le dernier joueur en vie.\n\nRègles : 1 Vie par joueur. Perdre un combat = pénalité + perdre une vie. Activer une case Révélation = regagner sa Vie. Mourir à 0 Vie = éliminé.\n\nVictoire : dernier joueur encore en jeu.",notes:"Mode d'introduction recommandé"},
+    {id:"md7",nom:"3 Monstres",emoji:"👹",difficulte:"⭐",style:"Combat",joueurs:"2-10",contenu:"Objectif : premier à éliminer 3 monstres.\n\nRègles : battre un monstre = 1 jeton. Cases Monstre indestructibles. Double Monstre = 2 jetons.\n\nVictoire : 3 jetons.",notes:"À tester : fusionner avec 4 Items"},
+    {id:"md8",nom:"4 Items",emoji:"💎",difficulte:"⭐",style:"Combat",joueurs:"2-10",contenu:"Objectif : premier à obtenir un 4ème item.\n\nRègles : monstres attaquent automatiquement.\n\nVictoire : 4 items en main = victoire instantanée.",notes:"À tester : fusionner avec 3 Monstres"},
+    {id:"md9",nom:"Infection",emoji:"🦠",difficulte:"⭐⭐⭐",style:"Rôle Caché",joueurs:"4-8",contenu:"Gentils veulent purifier. Méchants veulent infecter.\n\nCartes Alignement + Cartes Infection distribuées secrètement.\n\nFontaines : orienter secrètement une carte Infection vers Sain ou Infecté.\n\nRévélations : rituel — yeux fermés, pouce haut = Sain, pouce bas = Infecté.\n\nCompte à rebours : 3 tours globaux puis révélation finale. Majorité gagne.",notes:"À tester : nerf révélation dans ce mode"},
+    {id:"md10",nom:"Rumble in the House",emoji:"🎭",difficulte:"⭐",style:"Rôle Caché",joueurs:"3-10",contenu:"Objectif : être le dernier survivant.\n\n3-5 joueurs : double de personnages, 2 jetons secrets chacun.\n6-10 joueurs : 1 personnage par joueur, 1 jeton secret chacun.\n\nRègles : au début de son tour choisir n'importe quel personnage vivant. Mort permanente. 1 item par personnage.",notes:""},
+    {id:"md11",nom:"Sabotage",emoji:"🧩",difficulte:"⭐⭐",style:"Stratégie",joueurs:"4-10",contenu:"Restaurateurs vs Saboteurs — réparer ou saboter les Fontaines.\n\nRègles : finir son tour sur une Fontaine = choisir Réparer ou Saboter. L'action prend tout le tour suivant.\n\nVictoire : autant de Fontaines que de joueurs réparées ou sabotées.",notes:""},
+    {id:"md12",nom:"Amon Gus",emoji:"👨‍🚀",difficulte:"⭐⭐⭐⭐",style:"Rôle Caché Stratégie",joueurs:"4-10",contenu:"Gentils : réparer les Fontaines et éliminer les Imposteurs.\nImposteurs : saboter en secret, tuer les Gentils.\n\nRépartition : 4-5 joueurs = 1 Imposteur / 6-7 = 2 / 8-10 = 3.\n\nEmergency Meeting : tous les X jetons posés (X = nb joueurs) ou sur Révélation. Si majorité sabotés = victoire Imposteurs. Vote : chaque vote = -1 au dé.\n\nPouvoir Imposteur : révéler son rôle une fois = +2 au combat jusqu'à la mort.",notes:""},
+    {id:"md13",nom:"Relique Maudite",emoji:"🪬",difficulte:"⭐⭐",style:"Combat",joueurs:"3-6",contenu:"Objectif : découvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",notes:""},
+  ],
+  ideesModes:[
+    {id:"im1",nom:"Mode Intro / Survie simple",pitch:"Jeton mort si tué par un joueur. Dernier sans jeton gagne. Point d'entrée avant tous les modes."},
+    {id:"im2",nom:"Mode Hunger Games / Fantômes",pitch:"Vie illimitée contre monstres. Mort par joueur = fantôme : défausse sorts, 1 PA, passe à travers les murs."},
+    {id:"im3",nom:"Mode Zombie Survie",pitch:"Zombies qui spawnent. Impossible de supprimer des cases. Trouver clé et porte ou tenir un max de tours."},
+    {id:"im4",nom:"Mode Backrooms",pitch:"Gouttes de survie au lieu de fontaines. Monstres autonomes qui se rapprochent. Sprint coûte une goutte."},
+    {id:"im5",nom:"Mode Dofus",pitch:"Choisir un personnage avec sorts prédéfinis selon sa classe."},
+    {id:"im6",nom:"Mode MOBA",pitch:"Capture de Drapeau avec lanes et objectifs secondaires."},
+    {id:"im7",nom:"Mode Open World",pitch:"Verso des cartes = extérieur. Biomes, donjons, marchands. Extension séparée à long terme."},
+    {id:"im8",nom:"Mode Guerre de territoire",pitch:"Avoir la plus grande zone connectée. Retirer la seule case reliant deux zones = la 2ème devient neutre."},
+    {id:"im9",nom:"Mode Chasseur",pitch:"À définir."},
+    {id:"im10",nom:"Mode Maze vs Players",pitch:"À définir."},
+  ],
+  soireesProto:[],
+  ideeEnVrac:"",
+  materiel:`10 personnages carton sur bloc plastique vertical\n2 dés\n1 case Boule Géante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour Clé et Relique)\n3 jetons Chacal / Cape d'invisibilité\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\n---\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDé : ~6$ pièce\nPersonnages acrylique : ~13.5$`,
+  visuels:{
+    general:"Inspiration Squid Game / Liminal space coréen\nAmbiance kintsugi bioluminescent bleu\nFog volumétrique + sources de lumière kintsugi\nMurs en noir, sol en blanc pour visibilité\n\n---\n\nLIVRET DE RÈGLES :\nStyle journal comme dans Harry Potter\n3 échelles de typo : ultra grosse (idée), moyenne (règle précise), petite opacité diminuée (détails)",
+    boite:"Inspiration boîtes Iello — fond blanc avec beaucoup de blanc\nKintsugi bleu qui s'étend sur toute la boîte\nPlusieurs zones avec couleur dominante par élément\nGarder 60% des zones blanches",
+    personnages:"Acrylique transparent autour\nCouleur distincte par joueur\nIdée : perso avec tissu sur les yeux (statue de la Justice)\nPerso référence Outer Wilds Echo of the Eye (cerf cassé)",
+    cases:"✅ Portail : sim 3D inspiration Dofus\n✅ Œil : marque au sol violette\n✅ Énergie : feu de camp (ref Outer Wilds)\n✅ Instable : voronoi\n✅ Case de départ : noir et or avec symbole géométrique\nMonstres : dégradé sombre\nFontaine : kintsugi classique",
+    items:"Illustration par élément sur le dos de la carte\nRune lumineuse dont la couleur révèle l'élément\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir",
+    monstres:"Dégradé sombre\nBoule Indiana Jones : oeil géant style Léviathan alt236 ou Beholder DnD",
+    accessoires:"Pierres de combo avec rune lumineuse\nJetons personnages avec logo mort au dos",
+    references:"Outer Wilds — symbole infini Nomai, feu de camp\nDofus Émeraude\nAvatar Airbender\nSquid Game / Liminal space coréen\nIello (boîtes)\nHytale (personnages)",
+  }
+};
+
+// ── GITHUB API ───────────────────────────────────────────────
+async function ghGet(token){
+  const r=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+    {headers:{Authorization:`token ${token}`,Accept:"application/vnd.github.v3+json"}});
+  if(r.status===404)return{data:null,sha:null};
+  if(!r.ok)throw new Error("Erreur GitHub");
+  const j=await r.json();
+  return{data:JSON.parse(atob(j.content.replace(/\n/g,""))),sha:j.sha};
+}
+async function ghPut(token,data,sha){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  const body={message:"Update",content};
+  if(sha)body.sha=sha;
+  const r=await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+    {method:"PUT",headers:{Authorization:`token ${token}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("Erreur sauvegarde");
+  return(await r.json()).content.sha;
+}
+
+// ── COMPONENTS ───────────────────────────────────────────────
+
+function Separator(){
+  return <hr style={{border:"none",borderTop:"1px solid rgba(255,255,255,0.12)",margin:"8px 0"}}/>;
+}
+
+function renderText(text){
+  if(!text)return null;
+  const parts=text.split(/\n\n---\n\n|\n---\n/);
+  return parts.map((p,i)=>(
+    <React.Fragment key={i}>
+      <span style={{whiteSpace:"pre-wrap"}}>{p}</span>
+      {i<parts.length-1&&<Separator/>}
+    </React.Fragment>
+  ));
+}
+
+function EditText({value,onChange,editMode,multiline,style={}}){
+  const [editing,setEditing]=useState(false);
+  const [val,setVal]=useState(value);
+  useEffect(()=>setVal(value),[value]);
+  if(!editMode)return <span style={{whiteSpace:"pre-wrap",...style}}>{renderText(value)}</span>;
+  if(editing){
+    const s={background:"rgba(255,255,255,0.06)",border:"1px solid #444",borderRadius:4,
+      color:"#eee",padding:"4px 6px",width:"100%",fontFamily:"inherit",
+      fontSize:"inherit",lineHeight:"inherit",...style};
+    return multiline
+      ?<textarea value={val} autoFocus rows={3} onChange={e=>setVal(e.target.value)}
+          onBlur={()=>{onChange(val);setEditing(false);}} style={{...s,resize:"vertical"}}/>
+      :<input value={val} autoFocus onChange={e=>setVal(e.target.value)}
+          onBlur={()=>{onChange(val);setEditing(false);}} style={s}/>;
+  }
+  return(
+    <span onDoubleClick={()=>setEditing(true)}
+      style={{cursor:"pointer",borderBottom:"1px dashed rgba(255,255,255,0.2)",...style}}
+      title="Double-cliquer pour modifier">
+      {renderText(val)||<span style={{color:"#444"}}>Double-cliquer pour modifier</span>}
+    </span>
+  );
+}
+
+function StatusDot({statut,editMode,onClick}){
+  const c=SC[statut]||"#555";
+  return(
+    <div onClick={editMode?onClick:undefined}
+      title={statut}
+      style={{width:10,height:10,borderRadius:"50%",background:c,
+        border:`2px solid ${c}`,boxShadow:`0 0 6px ${c}44`,flexShrink:0,
+        cursor:editMode?"pointer":"default"}}>
+    </div>
+  );
+}
+
+function StatusMenu({statut,onChange,onClose}){
+  return(
+    <div style={{position:"absolute",zIndex:200,left:16,top:0,
+      background:"#1c1c1c",border:"1px solid #333",borderRadius:8,padding:6,
+      minWidth:130,boxShadow:"0 8px 24px rgba(0,0,0,.7)"}}>
+      {STATUTS.map(s=>(
+        <div key={s} onClick={()=>{onChange(s);onClose();}}
+          style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",
+            borderRadius:4,cursor:"pointer",fontSize:12,
+            background:s===statut?"rgba(255,255,255,.08)":"transparent"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.08)"}
+          onMouseLeave={e=>e.currentTarget.style.background=s===statut?"rgba(255,255,255,.08)":"transparent"}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:SC[s]}}/>
+          {s}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ElemMenu({element,onChange,onClose}){
+  return(
+    <div style={{position:"absolute",zIndex:200,left:20,top:0,
+      background:"#1c1c1c",border:"1px solid #333",borderRadius:8,padding:6,
+      minWidth:120,boxShadow:"0 8px 24px rgba(0,0,0,.7)"}}>
+      {ELEMENTS.map(el=>(
+        <div key={el} onClick={()=>{onChange(el);onClose();}}
+          style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",
+            borderRadius:4,cursor:"pointer",fontSize:12}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.08)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <span>{EC[el].emoji}</span>{el}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LvlMenu({lvl,onChange,onClose}){
+  return(
+    <div style={{position:"absolute",zIndex:200,left:20,top:0,
+      background:"#1c1c1c",border:"1px solid #333",borderRadius:8,padding:6,
+      minWidth:100,boxShadow:"0 8px 24px rgba(0,0,0,.7)"}}>
+      {LVLS.map(l=>(
+        <div key={l} onClick={()=>{onChange(l);onClose();}}
+          style={{padding:"5px 8px",borderRadius:4,cursor:"pointer",fontSize:12,
+            background:l===lvl?"rgba(255,255,255,.08)":"transparent"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.08)"}
+          onMouseLeave={e=>e.currentTarget.style.background=l===lvl?"rgba(255,255,255,.08)":"transparent"}>
+          {l}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AddBtn({onClick}){
+  return(
+    <div onClick={onClick}
+      style={{display:"flex",justifyContent:"center",alignItems:"center",
+        height:40,cursor:"pointer",opacity:.45,transition:"opacity .2s",marginTop:4}}
+      onMouseEnter={e=>e.currentTarget.style.opacity="1"}
+      onMouseLeave={e=>e.currentTarget.style.opacity=".45"}>
+      <div style={{width:28,height:28,borderRadius:"50%",background:"#fff",
+        display:"flex",alignItems:"center",justifyContent:"center",
+        fontSize:20,color:"#000",fontWeight:700,lineHeight:1}}>+</div>
+    </div>
+  );
+}
+
+function Card({item,onUpdate,onDelete,editMode,showElem=true,withElem=false,withLvl=false}){
+  const [showSt,setShowSt]=useState(false);
+  const [showEl,setShowEl]=useState(false);
+  const [showLv,setShowLv]=useState(false);
+  const [showNotes,setShowNotes]=useState(false);
+  const ec=item.element?EC[item.element]:null;
+
+  return(
+    <div style={{
+      background:ec?ec.bg:"rgba(255,255,255,.04)",
+      border:`1px solid ${ec?ec.border:"rgba(255,255,255,.1)"}`,
+      borderRadius:8,padding:"10px 12px",marginBottom:8,position:"relative"}}>
+      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+        {editMode&&(
+          <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"center",flexShrink:0}}>
+            <div style={{position:"relative"}}>
+              <StatusDot statut={item.statut} editMode={editMode} onClick={()=>setShowSt(!showSt)}/>
+              {showSt&&<StatusMenu statut={item.statut} onChange={s=>onUpdate({...item,statut:s})} onClose={()=>setShowSt(false)}/>}
+            </div>
+            {withElem&&(
+              <div style={{position:"relative"}}>
+                <div onClick={()=>setShowEl(!showEl)} style={{fontSize:14,cursor:"pointer"}} title="Changer élément">
+                  {ec?.emoji||"?"}
+                </div>
+                {showEl&&<ElemMenu element={item.element} onChange={el=>onUpdate({...item,element:el})} onClose={()=>setShowEl(false)}/>}
+              </div>
+            )}
+            {withLvl&&(
+              <div style={{position:"relative"}}>
+                <div onClick={()=>setShowLv(!showLv)}
+                  style={{fontSize:10,color:"#aaa",cursor:"pointer",whiteSpace:"nowrap"}}>
+                  {item.lvl?.replace("Lvl ","L")}
+                </div>
+                {showLv&&<LvlMenu lvl={item.lvl} onChange={l=>onUpdate({...item,lvl:l})} onClose={()=>setShowLv(false)}/>}
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:4}}>
+            <div style={{fontWeight:600,fontSize:13,color:"#eee",flex:1,minWidth:0}}>
+              <EditText value={item.nom} onChange={v=>onUpdate({...item,nom:v})} editMode={editMode}/>
+            </div>
+            <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
+              {item.cout&&<span style={{fontSize:11,color:"#aaa",background:"rgba(255,255,255,.07)",padding:"1px 6px",borderRadius:4}}>
+                <EditText value={item.cout} onChange={v=>onUpdate({...item,cout:v})} editMode={editMode}/>
+              </span>}
+              {item.limite&&<span style={{fontSize:11,color:"#777"}}>
+                <EditText value={item.limite} onChange={v=>onUpdate({...item,limite:v})} editMode={editMode}/>
+              </span>}
+              {item.lvl&&!withLvl&&<span style={{fontSize:11,color:"#aaa",background:"rgba(255,255,255,.07)",padding:"1px 6px",borderRadius:4}}>{item.lvl}</span>}
+            </div>
+          </div>
+          <div style={{fontSize:12,color:"#bbb",lineHeight:1.6}}>
+            <EditText value={item.effet} onChange={v=>onUpdate({...item,effet:v})} editMode={editMode} multiline/>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+            <div>
+              {!editMode&&showElem&&ec&&(
+                <span style={{fontSize:10,color:ec.dot,background:ec.bg,padding:"1px 6px",borderRadius:10,border:`1px solid ${ec.border}`}}>
+                  {ec.emoji} {item.element}
+                </span>
+              )}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:11,color:"#666"}}>×{item.quantite||1}</span>
+              {editMode&&(
+                <>
+                  <span onClick={()=>setShowNotes(!showNotes)}
+                    style={{fontSize:10,color:"#555",cursor:"pointer"}}>
+                    {showNotes?"▲":"▼"} notes
+                  </span>
+                  <span onClick={()=>onDelete(item.id)} style={{fontSize:10,color:"#444",cursor:"pointer"}} title="Supprimer">✕</span>
+                </>
+              )}
+            </div>
+          </div>
+          {editMode&&showNotes&&(
+            <div style={{marginTop:8,padding:8,background:"rgba(0,0,0,.3)",borderRadius:6,border:"1px solid #2a2a2a"}}>
+              <div style={{fontSize:10,color:"#555",marginBottom:4}}>Notes</div>
+              <EditText value={item.notes||""} onChange={v=>onUpdate({...item,notes:v})} editMode={editMode} multiline style={{fontSize:11,color:"#999",display:"block",width:"100%"}}/>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({title,emoji,children,defaultOpen=false}){
+  const [open,setOpen]=useState(defaultOpen);
+  return(
+    <div style={{marginBottom:6}}>
+      <div onClick={()=>setOpen(!open)}
+        style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",
+          background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",
+          borderRadius:open?"8px 8px 0 0":8,cursor:"pointer",userSelect:"none"}}>
+        <span style={{fontSize:13,transform:open?"rotate(0)":"rotate(-90deg)",
+          transition:"transform .2s",display:"inline-block",color:"#777"}}>▼</span>
+        <span style={{fontSize:16}}>{emoji}</span>
+        <span style={{flex:1,fontSize:13,fontWeight:500,color:"#ddd"}}>{title}</span>
+      </div>
+      {open&&(
+        <div style={{padding:"12px 14px",background:"rgba(255,255,255,.02)",
+          border:"1px solid rgba(255,255,255,.08)",borderTop:"none",borderRadius:"0 0 8px 8px"}}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ElemGroup({element,items,editMode,onUpdate,onDelete,onAdd,withElem=false}){
+  const ec=EC[element];
+  const validCount=items.filter(i=>i.statut==="Validé").length;
+  const [open,setOpen]=useState(false);
+  const filtered=editMode
+    ?[...items].sort((a,b)=>STATUTS.indexOf(a.statut)-STATUTS.indexOf(b.statut))
+    :items.filter(i=>i.statut==="Validé");
+  if(!editMode&&filtered.length===0)return null;
+  return(
+    <div style={{marginBottom:6}}>
+      <div onClick={()=>setOpen(!open)}
+        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
+          background:ec.bg,border:`1px solid ${ec.border}`,
+          borderRadius:open?"6px 6px 0 0":6,cursor:"pointer",userSelect:"none"}}>
+        <span style={{fontSize:11,transform:open?"rotate(0)":"rotate(-90deg)",
+          transition:"transform .2s",display:"inline-block",color:ec.dot}}>▼</span>
+        <span style={{fontSize:14}}>{ec.emoji}</span>
+        <span style={{flex:1,fontSize:12,fontWeight:600,color:ec.dot}}>{element}</span>
+        <span style={{fontSize:11,background:ec.border,color:ec.dot,
+          padding:"1px 8px",borderRadius:10,fontWeight:700}}>{validCount}</span>
+      </div>
+      {open&&(
+        <div style={{padding:10,background:"rgba(0,0,0,.2)",
+          border:`1px solid ${ec.border}`,borderTop:"none",borderRadius:"0 0 6px 6px"}}>
+          {filtered.map(i=>(
+            <Card key={i.id} item={i} onUpdate={onUpdate} onDelete={onDelete}
+              editMode={editMode} withElem={withElem} showElem={false}/>
+          ))}
+          {editMode&&<AddBtn onClick={()=>onAdd({id:uid(),nom:"Nouveau",element,statut:"Test 3",cout:"",limite:"",effet:"",quantite:1,notes:""})}/>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LvlGroup({lvl,items,editMode,onUpdate,onDelete,onAdd}){
+  const validCount=items.filter(i=>i.statut==="Validé").length;
+  const [open,setOpen]=useState(false);
+  const filtered=editMode
+    ?[...items].sort((a,b)=>STATUTS.indexOf(a.statut)-STATUTS.indexOf(b.statut))
+    :items.filter(i=>i.statut==="Validé");
+  if(!editMode&&filtered.length===0)return null;
+  return(
+    <div style={{marginBottom:6}}>
+      <div onClick={()=>setOpen(!open)}
+        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
+          background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.1)",
+          borderRadius:open?"6px 6px 0 0":6,cursor:"pointer",userSelect:"none"}}>
+        <span style={{fontSize:11,transform:open?"rotate(0)":"rotate(-90deg)",
+          transition:"transform .2s",display:"inline-block",color:"#777"}}>▼</span>
+        <span style={{flex:1,fontSize:12,fontWeight:600,color:"#ccc"}}>
+          {lvl} <span style={{fontWeight:400,color:"#666",fontSize:11}}>— {LVL_R[lvl]}</span>
+        </span>
+        <span style={{fontSize:11,background:"rgba(255,255,255,.08)",color:"#aaa",
+          padding:"1px 8px",borderRadius:10,fontWeight:700}}>{validCount}</span>
+      </div>
+      {open&&(
+        <div style={{padding:10,background:"rgba(0,0,0,.15)",
+          border:"1px solid rgba(255,255,255,.06)",borderTop:"none",borderRadius:"0 0 6px 6px"}}>
+          {filtered.map(i=>(
+            <Card key={i.id} item={i} onUpdate={onUpdate} onDelete={onDelete}
+              editMode={editMode} showElem={false} withLvl={editMode}/>
+          ))}
+          {editMode&&<AddBtn onClick={()=>onAdd({id:uid(),nom:"Nom",lvl,statut:"Test 3",effet:"",quantite:1,notes:""})}/>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModeCard({mode,editMode,onUpdate}){
+  const [open,setOpen]=useState(false);
+  return(
+    <div style={{marginBottom:6}}>
+      <div onClick={()=>setOpen(!open)}
+        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
+          background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",
+          borderRadius:open?"6px 6px 0 0":6,cursor:"pointer",userSelect:"none"}}>
+        <span style={{fontSize:11,transform:open?"rotate(0)":"rotate(-90deg)",
+          transition:"transform .2s",display:"inline-block",color:"#777"}}>▼</span>
+        <span style={{fontSize:14}}>{mode.emoji}</span>
+        <span style={{flex:1,fontSize:12,fontWeight:600,color:"#ddd"}}>{mode.nom}</span>
+        {mode.difficulte&&<span style={{fontSize:10,color:"#666"}}>{mode.difficulte}</span>}
+      </div>
+      {open&&(
+        <div style={{padding:12,background:"rgba(0,0,0,.15)",
+          border:"1px solid rgba(255,255,255,.06)",borderTop:"none",borderRadius:"0 0 6px 6px"}}>
+          {mode.joueurs&&<div style={{fontSize:11,color:"#666",marginBottom:8}}>👥 {mode.joueurs} · {mode.style}</div>}
+          <div style={{fontSize:12,color:"#bbb",lineHeight:1.7}}>
+            <EditText value={mode.contenu} onChange={v=>onUpdate({...mode,contenu:v})} editMode={editMode} multiline/>
+          </div>
+          {editMode&&(
+            <div style={{marginTop:10,padding:8,background:"rgba(0,0,0,.3)",borderRadius:6,border:"1px solid #2a2a2a"}}>
+              <div style={{fontSize:10,color:"#555",marginBottom:4}}>Notes de test</div>
+              <EditText value={mode.notes||""} onChange={v=>onUpdate({...mode,notes:v})} editMode={editMode} multiline style={{fontSize:11,color:"#999"}}/>
+            </div>
+          )}
+          {!editMode&&mode.notes&&(
+            <div style={{marginTop:10,padding:8,background:"rgba(0,0,0,.2)",borderRadius:6,borderLeft:"2px solid #333"}}>
+              <div style={{fontSize:10,color:"#555",marginBottom:4}}>📝 Notes</div>
+              <div style={{fontSize:11,color:"#888",whiteSpace:"pre-wrap"}}>{renderText(mode.notes)}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotesBlock({value,onChange,editMode,label}){
+  if(!editMode)return null;
+  return(
+    <div style={{marginTop:8,padding:8,background:"rgba(0,0,0,.3)",borderRadius:6,border:"1px solid #2a2a2a"}}>
+      <div style={{fontSize:10,color:"#555",marginBottom:4}}>{label||"Notes globales"}</div>
+      <EditText value={value||""} onChange={onChange} editMode={editMode} multiline style={{fontSize:11,color:"#999",display:"block",width:"100%"}}/>
+    </div>
+  );
+}
+
+// ── PAGES ────────────────────────────────────────────────────
+function SoireePage({soirees,onUpdate,onAdd,onDelete,editMode,onBack}){
+  const sorted=[...soirees].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return(
+    <div style={{padding:"0 16px 80px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 0"}}>
+        <button onClick={onBack} style={{background:"none",border:"1px solid #333",borderRadius:6,color:"#aaa",padding:"6px 12px",fontSize:12}}>← Retour</button>
+        <h2 style={{margin:0,fontSize:16,color:"#eee"}}>📅 Soirées Proto</h2>
+      </div>
+      {sorted.map(s=>(
+        <Section key={s.id} title={s.date||"Sans date"} emoji="📅">
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:10,color:"#555",marginBottom:4}}>Participants & lieu</div>
+            {editMode
+              ?<EditText value={s.meta||""} onChange={v=>onUpdate({...s,meta:v})} editMode={editMode} multiline/>
+              :<div style={{fontSize:12,color:"#bbb"}}>{renderText(s.meta||"")}</div>}
+          </div>
+          <Separator/>
+          <div style={{fontSize:10,color:"#555",marginBottom:4}}>Notes</div>
+          {editMode
+            ?<EditText value={s.notes||""} onChange={v=>onUpdate({...s,notes:v})} editMode={editMode} multiline/>
+            :<div style={{fontSize:12,color:"#bbb",whiteSpace:"pre-wrap"}}>{renderText(s.notes||"")}</div>}
+          {editMode&&<div style={{marginTop:8,textAlign:"right"}}>
+            <button onClick={()=>onDelete(s.id)} style={{background:"none",border:"1px solid #333",borderRadius:4,color:"#666",padding:"2px 8px",fontSize:11}}>Supprimer</button>
+          </div>}
+        </Section>
+      ))}
+      <AddBtn onClick={()=>onAdd({id:uid(),date:new Date().toLocaleDateString("fr-FR"),meta:"",notes:""})}/>
+    </div>
+  );
+}
+
+function IdeeVracPage({value,onChange,editMode,onBack}){
+  return(
+    <div style={{padding:"0 16px 80px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 0"}}>
+        <button onClick={onBack} style={{background:"none",border:"1px solid #333",borderRadius:6,color:"#aaa",padding:"6px 12px",fontSize:12}}>← Retour</button>
+        <h2 style={{margin:0,fontSize:16,color:"#eee"}}>💡 Idées en vrac</h2>
+      </div>
+      <textarea value={value} onChange={e=>onChange(e.target.value)}
+        placeholder="Tes idées ici... Double retour à la ligne + --- crée un séparateur."
+        style={{width:"100%",minHeight:"65vh",background:"rgba(255,255,255,.03)",
+          border:"1px solid #333",borderRadius:8,color:"#ddd",padding:12,
+          fontFamily:"inherit",fontSize:13,lineHeight:1.7,resize:"vertical",boxSizing:"border-box"}}/>
+    </div>
+  );
+}
+
+// ── MAIN APP ─────────────────────────────────────────────────
+function App(){
+  const [data,setData]=useState(null);
+  const [sha,setSha]=useState(null);
+  const [token,setToken]=useState(()=>localStorage.getItem("gh_token")||"");
+  const [tokenInput,setTokenInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [saveErr,setSaveErr]=useState(null);
+  const [editMode,setEditMode]=useState(false);
+  const [page,setPage]=useState("home");
+  const saveTimer=useRef(null);
+  const shaRef=useRef(sha);
+  useEffect(()=>{shaRef.current=sha;},[sha]);
+
+  useEffect(()=>{
+    if(!token)return;
+    setLoading(true);
+    ghGet(token).then(({data:d,sha:s})=>{
+      setData(d||INIT);setSha(s);setLoading(false);
+    }).catch(e=>{setSaveErr(e.message);setLoading(false);setData(INIT);});
+  },[token]);
+
+  const save=useCallback((nd)=>{
+    if(!token)return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current=setTimeout(async()=>{
+      setSaving(true);setSaveErr(null);
+      try{const s=await ghPut(token,nd,shaRef.current);setSha(s);shaRef.current=s;}
+      catch(e){setSaveErr("Sauvegarde échouée");}
+      setSaving(false);
+    },2000);
+  },[token]);
+
+  const upd=useCallback((nd)=>{setData(nd);save(nd);},[save]);
+
+  const updArr=(key,item)=>upd({...data,[key]:data[key].map(i=>i.id===item.id?item:i)});
+  const delArr=(key,id)=>upd({...data,[key]:data[key].filter(i=>i.id!==id)});
+  const addArr=(key,item)=>upd({...data,[key]:[...data[key],item]});
+
+  if(!token){
+    return(
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{maxWidth:340,width:"100%",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:16}}>🎲</div>
+          <h1 style={{color:"#eee",fontSize:20,marginBottom:8}}>Labyrinthe Organic</h1>
+          <p style={{color:"#666",fontSize:13,marginBottom:20}}>Entre ton token GitHub pour accéder à tes données.</p>
+          <input type="password" value={tokenInput} onChange={e=>setTokenInput(e.target.value)}
+            onKeyDown={e=>{if(e.key==="Enter"){localStorage.setItem("gh_token",tokenInput);setToken(tokenInput);}}}
+            placeholder="ghp_..." autoFocus
+            style={{width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #333",
+              borderRadius:8,color:"#eee",padding:"10px 14px",fontSize:14,boxSizing:"border-box",marginBottom:10}}/>
+          <button onClick={()=>{localStorage.setItem("gh_token",tokenInput);setToken(tokenInput);}}
+            style={{width:"100%",background:"#222",border:"1px solid #444",borderRadius:8,
+              color:"#eee",padding:"10px 14px",fontSize:14}}>
+            Connexion
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if(loading)return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#555"}}>
+      Chargement...
+    </div>
+  );
+
+  if(!data)return null;
+
+  if(page==="soirees")return(
+    <div style={{minHeight:"100vh"}}>
+      <SoireePage soirees={data.soireesProto} editMode={editMode} onBack={()=>setPage("home")}
+        onUpdate={s=>updArr("soireesProto",s)}
+        onAdd={s=>addArr("soireesProto",s)}
+        onDelete={id=>delArr("soireesProto",id)}/>
+    </div>
+  );
+
+  if(page==="idees")return(
+    <div style={{minHeight:"100vh"}}>
+      <IdeeVracPage value={data.ideeEnVrac} onChange={v=>upd({...data,ideeEnVrac:v})}
+        editMode={editMode} onBack={()=>setPage("home")}/>
+    </div>
+  );
+
+  const sortsByEl={};
+  ELEMENTS.forEach(el=>{sortsByEl[el]=data.sorts.filter(s=>s.element===el);});
+  const energsByEl={};
+  ELEMENTS.forEach(el=>{energsByEl[el]=data.energies.filter(e=>e.element===el);});
+  const monsByLvl={};
+  LVLS.forEach(l=>{monsByLvl[l]=data.monstres.filter(m=>m.lvl===l);});
+
+  const reglesF=editMode
+    ?[...data.regles].sort((a,b)=>STATUTS.indexOf(a.statut)-STATUTS.indexOf(b.statut))
+    :data.regles.filter(r=>r.statut==="Validé");
+  const casesF=editMode
+    ?[...data.cases].sort((a,b)=>STATUTS.indexOf(a.statut)-STATUTS.indexOf(b.statut))
+    :data.cases.filter(c=>c.statut==="Validé");
+
+  const bgStyle=editMode
+    ?{background:"repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(255,255,255,.025) 23px,rgba(255,255,255,.025) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(255,255,255,.025) 23px,rgba(255,255,255,.025) 24px),#111"}
+    :{background:"#0e0e0e"};
+
+  const VISUEL_CATS=[
+    {key:"general",label:"💡 Idée générale"},
+    {key:"boite",label:"📦 Boîte"},
+    {key:"personnages",label:"🧑 Personnages"},
+    {key:"cases",label:"🗺️ Cases"},
+    {key:"items",label:"💎 Items"},
+    {key:"monstres",label:"👹 Monstres"},
+    {key:"accessoires",label:"🎲 Accessoires"},
+    {key:"references",label:"🎨 Références"},
+  ];
+
+  return(
+    <div style={{minHeight:"100vh",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#eee",transition:"background .4s",...bgStyle}}>
+
+      {/* HEADER */}
+      <div style={{position:"sticky",top:0,zIndex:50,
+        background:editMode?"rgba(25,25,25,.97)":"rgba(14,14,14,.97)",
+        backdropFilter:"blur(10px)",borderBottom:"1px solid rgba(255,255,255,.06)",
+        padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:"#eee"}}>
+            <EditText value={data.gameName} onChange={v=>upd({...data,gameName:v})} editMode={editMode}/>
+          </div>
+          <div style={{fontSize:10,color:saveErr?"#f44":saving?"#888":"#333",marginTop:1}}>
+            {saveErr||( saving?"Sauvegarde...":"")}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setEditMode(!editMode)}
+            style={{background:editMode?"rgba(255,255,255,.1)":"none",
+              border:`1px solid ${editMode?"rgba(255,255,255,.3)":"#333"}`,
+              borderRadius:8,padding:"6px 10px",color:editMode?"#eee":"#666",fontSize:16,transition:"all .2s"}}
+            title="Mode édition">✏️</button>
+          <button onClick={()=>{localStorage.removeItem("gh_token");setToken("");}}
+            style={{background:"none",border:"1px solid #222",borderRadius:8,padding:"6px 10px",color:"#444",fontSize:11}}
+            title="Déconnexion">⏻</button>
+        </div>
+      </div>
+
+      <div style={{padding:"16px 16px 100px"}}>
+
+        {/* JOUER WIP */}
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",
+          borderRadius:12,padding:16,marginBottom:20,textAlign:"center",opacity:.35,cursor:"not-allowed"}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#888"}}>🎮 Jouer</div>
+          <div style={{fontSize:11,color:"#555",marginTop:4}}>WIP — bientôt disponible</div>
+        </div>
+
+        {/* RÈGLES */}
+        <Section title="Règles de base" emoji="📋">
+          {reglesF.map(r=>(
+            <Card key={r.id} item={r} onUpdate={i=>updArr("regles",i)} onDelete={id=>delArr("regles",id)}
+              editMode={editMode} showElem={false}/>
+          ))}
+          {editMode&&<AddBtn onClick={()=>addArr("regles",{id:uid(),nom:"Nouvelle règle",statut:"Test 3",effet:"",notes:""})}/>}
+          <NotesBlock value={data.reglesNotes} onChange={v=>upd({...data,reglesNotes:v})} editMode={editMode} label="Notes globales — Règles"/>
+        </Section>
+
+        {/* CASES */}
+        <Section title="Cases" emoji="🗺️">
+          {casesF.map(c=>(
+            <Card key={c.id} item={c} onUpdate={i=>updArr("cases",i)} onDelete={id=>delArr("cases",id)}
+              editMode={editMode} showElem={false}/>
+          ))}
+          {editMode&&<AddBtn onClick={()=>addArr("cases",{id:uid(),nom:"Nouvelle case",statut:"Test 3",effet:"",quantite:1,notes:""})}/>}
+        </Section>
+
+        {/* SORTS */}
+        <Section title="Sorts" emoji="💎">
+          {ELEMENTS.map(el=>(
+            <ElemGroup key={el} element={el} items={sortsByEl[el]||[]}
+              editMode={editMode} withElem={true}
+              onUpdate={i=>updArr("sorts",i)}
+              onDelete={id=>delArr("sorts",id)}
+              onAdd={i=>addArr("sorts",i)}/>
+          ))}
+          <NotesBlock value={data.sortsNotes} onChange={v=>upd({...data,sortsNotes:v})} editMode={editMode} label="Notes globales — Sorts"/>
+        </Section>
+
+        {/* ÉNERGIES */}
+        <Section title="Énergies" emoji="✨">
+          {ELEMENTS.map(el=>(
+            <ElemGroup key={el} element={el} items={energsByEl[el]||[]}
+              editMode={editMode} withElem={false}
+              onUpdate={i=>updArr("energies",i)}
+              onDelete={id=>delArr("energies",id)}
+              onAdd={i=>addArr("energies",{id:uid(),nom:"Nouvelle énergie",element:el,statut:"Test 3",cout:"",limite:"",effet:"",quantite:1,notes:""})}/>
+          ))}
+        </Section>
+
+        {/* MONSTRES */}
+        <Section title="Monstres" emoji="👹">
+          {LVLS.map(l=>(
+            <LvlGroup key={l} lvl={l} items={monsByLvl[l]||[]}
+              editMode={editMode}
+              onUpdate={i=>updArr("monstres",i)}
+              onDelete={id=>delArr("monstres",id)}
+              onAdd={i=>addArr("monstres",i)}/>
+          ))}
+          <NotesBlock value={data.monstresNotes} onChange={v=>upd({...data,monstresNotes:v})} editMode={editMode} label="Notes globales — Monstres"/>
+        </Section>
+
+        {/* LEXIQUE */}
+        <Section title="Lexique" emoji="📖">
+          {data.lexique.map((l,i)=>(
+            <div key={l.id} style={{padding:"8px 0",
+              borderBottom:i<data.lexique.length-1?"1px solid rgba(255,255,255,.06)":"none",
+              display:"flex",gap:8}}>
+              <div style={{minWidth:120,fontSize:12,fontWeight:600,color:"#ccc",flexShrink:0}}>
+                <EditText value={l.terme} onChange={v=>{const a=data.lexique.map(x=>x.id===l.id?{...x,terme:v}:x);upd({...data,lexique:a});}} editMode={editMode}/>
+              </div>
+              <div style={{fontSize:12,color:"#888",flex:1}}>
+                <EditText value={l.definition} onChange={v=>{const a=data.lexique.map(x=>x.id===l.id?{...x,definition:v}:x);upd({...data,lexique:a});}} editMode={editMode} multiline/>
+              </div>
+            </div>
+          ))}
+          {editMode&&<AddBtn onClick={()=>upd({...data,lexique:[...data.lexique,{id:uid(),terme:"Terme",definition:"Définition"}]})}/>}
+          <NotesBlock value={data.lexiqueNotes} onChange={v=>upd({...data,lexiqueNotes:v})} editMode={editMode}/>
+        </Section>
+
+        {/* MODES */}
+        <Section title="Modes de jeu" emoji="🎮">
+          {data.modes.map(m=>(
+            <ModeCard key={m.id} mode={m} editMode={editMode}
+              onUpdate={m2=>{const a=data.modes.map(x=>x.id===m2.id?m2:x);upd({...data,modes:a});}}/>
+          ))}
+          {editMode&&<AddBtn onClick={()=>upd({...data,modes:[...data.modes,{id:uid(),nom:"Nouveau mode",emoji:"🎲",difficulte:"⭐",style:"",joueurs:"",contenu:"",notes:""}]})}/>}
+          <div style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:8}}>
+            <div style={{fontSize:11,color:"#555",marginBottom:8}}>💡 Idées de modes</div>
+            {data.ideesModes.map(im=>(
+              <div key={im.id} style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:6,padding:"8px 10px",marginBottom:6}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#ccc",marginBottom:4}}>
+                  <EditText value={im.nom} onChange={v=>{const a=data.ideesModes.map(x=>x.id===im.id?{...x,nom:v}:x);upd({...data,ideesModes:a});}} editMode={editMode}/>
+                </div>
+                <div style={{fontSize:12,color:"#777"}}>
+                  <EditText value={im.pitch} onChange={v=>{const a=data.ideesModes.map(x=>x.id===im.id?{...x,pitch:v}:x);upd({...data,ideesModes:a});}} editMode={editMode} multiline/>
+                </div>
+              </div>
+            ))}
+            {editMode&&<AddBtn onClick={()=>upd({...data,ideesModes:[...data.ideesModes,{id:uid(),nom:"Nouveau mode",pitch:""}]})}/>}
+          </div>
+        </Section>
+
+        {/* VISUELS */}
+        <Section title="Visuels" emoji="🎨">
+          {VISUEL_CATS.map(cat=>(
+            <Section key={cat.key} title={cat.label} emoji="">
+              <div style={{fontSize:12,color:"#bbb",lineHeight:1.7}}>
+                <EditText value={data.visuels[cat.key]||""} onChange={v=>upd({...data,visuels:{...data.visuels,[cat.key]:v}})} editMode={editMode} multiline/>
+              </div>
+            </Section>
+          ))}
+        </Section>
+
+        {/* MATÉRIEL */}
+        <Section title="Matériel" emoji="🧰">
+          <div style={{fontSize:12,color:"#bbb",lineHeight:1.7}}>
+            <EditText value={data.materiel} onChange={v=>upd({...data,materiel:v})} editMode={editMode} multiline/>
+          </div>
+          <NotesBlock value={data.materielNotes} onChange={v=>upd({...data,materielNotes:v})} editMode={editMode}/>
+        </Section>
+
+        {/* BOUTONS */}
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:20}}>
+          <button onClick={()=>setPage("soirees")}
+            style={{width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.1)",
+              borderRadius:10,padding:14,color:"#ccc",fontSize:14,fontWeight:600}}>
+            📅 Soirées Prototype
+          </button>
+          <button onClick={()=>setPage("idees")}
+            style={{width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.1)",
+              borderRadius:10,padding:14,color:"#ccc",fontSize:14,fontWeight:600}}>
+            💡 Idées en vrac
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
