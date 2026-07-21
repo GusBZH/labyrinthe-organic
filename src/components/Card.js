@@ -66,12 +66,6 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
               fontSize:10, color:ec.dot, background:ec.bg, padding:'1px 6px',
               borderRadius:10, border:`1px solid ${ec.br}`
             }}, `${ec.em} ${item.element}`),
-            editMode && h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer'}},
-              showNotes ? '▲ notes' : '▼ notes'
-            )
-          ),
-          h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-            h('span', {style:{fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
             withLvl && h('div', {ref:lvRef, style:{position:'relative'}},
               h('div', {onClick:()=>setShowLv(!showLv), style:{fontSize:10, color:'#aaa', cursor:'pointer'}},
                 item.lvl?.replace('Lvl ','L')
@@ -79,10 +73,16 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
               showLv && h(Popup, {
                 onClose:()=>setShowLv(false),
                 anchorRef: lvRef,
-                style:{right:0, bottom:'100%', marginBottom:4},
+                style:{left:0, bottom:'100%', marginBottom:4},
                 items: LVLS.map(l => ({label:l, onClick:()=>onUpdate({...item, lvl:l})}))
               })
             ),
+            editMode && h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer'}},
+              showNotes ? '▲ notes' : '▼ notes'
+            )
+          ),
+          h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+            h('span', {style:{fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
             editMode && h('span', {onClick:()=>onDelete(item.id), style:{fontSize:10, color:'#444', cursor:'pointer'}}, '✕')
           )
         ),

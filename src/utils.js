@@ -42,7 +42,7 @@ export function useEditFlash(editMode){
       wasEdit.current = editMode;
       clearTimeout(timer.current);
       setCls(editMode ? 'gridflash-in' : 'gridflash-out');
-      timer.current = setTimeout(() => setCls(''), 500);
+      timer.current = setTimeout(() => setCls(''), editMode ? 500 : 900);
     }
   }, [editMode]);
 

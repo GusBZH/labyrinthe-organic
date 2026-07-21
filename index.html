@@ -40,7 +40,7 @@ button,input,textarea{font-family:inherit;cursor:pointer}
   opacity:0;
 }
 .gridflash-in::after{ animation:editGridFlashIn .4s both; }
-.gridflash-out::after{ animation:editGridFlashOut .4s both; }
+.gridflash-out::after{ animation:editGridFlashOut .8s both; }
 @keyframes editGridFlashIn{
   0%   {opacity:0; animation-timing-function:ease-out;}
   25%  {opacity:.33; animation-timing-function:ease-in;}
@@ -48,10 +48,10 @@ button,input,textarea{font-family:inherit;cursor:pointer}
 }
 @keyframes editGridFlashOut{
   0%   {opacity:.33; animation-timing-function:steps(1,end);}
-  12%  {opacity:0; animation-timing-function:steps(1,end);}
-  40%  {opacity:.33; animation-timing-function:steps(1,end);}
-  50%  {opacity:0; animation-timing-function:steps(1,end);}
-  58%  {opacity:.33;}
+  6%   {opacity:0; animation-timing-function:steps(1,end);}
+  62%  {opacity:.33; animation-timing-function:steps(1,end);}
+  67%  {opacity:0; animation-timing-function:steps(1,end);}
+  75%  {opacity:.33;}
   100% {opacity:0;}
 }
 </style>
