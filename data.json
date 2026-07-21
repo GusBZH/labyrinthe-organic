@@ -10,10 +10,10 @@
       "id": "s1",
       "nom": "Grenade",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Attaque en sÃ©lectionnant une case en ligne de vue. Touche la case + toutes Ã  1 de distance en ligne de vue.",
+      "effet": "Attaque en sÃÂ©lectionnant une case en ligne de vue. Touche la case + toutes ÃÂ  1 de distance en ligne de vue.",
       "quantite": 1,
       "notes": ""
     },
@@ -21,7 +21,7 @@
       "id": "s2",
       "nom": "Lance Flamme",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Attaque tous les joueurs possibles sur une ligne droite en ligne de vue.",
@@ -32,7 +32,7 @@
       "id": "s3",
       "nom": "Pistolet",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Attaque un joueur en ligne de vue.",
@@ -43,10 +43,10 @@
       "id": "s4",
       "nom": "Furie",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "AprÃ¨s avoir gagnÃ© un combat, rejouez immÃ©diatement un tour entier.",
+      "effet": "AprÃÂ¨s avoir gagnÃÂ© un combat, rejouez immÃÂ©diatement un tour entier.",
       "quantite": 1,
       "notes": ""
     },
@@ -54,32 +54,32 @@
       "id": "s5",
       "nom": "Chacal",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Posez un jeton face cachÃ©e sur une case vide. Mort si jeton mort. Cases avec jeton = indestructibles.",
+      "effet": "Posez un jeton face cachÃÂ©e sur une case vide. Mort si jeton mort. Cases avec jeton = indestructibles.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s6",
-      "nom": "Poing AmÃ©ricain",
+      "nom": "Poing AmÃÂ©ricain",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "+1 au rÃ©sultat du dÃ© pendant vos attaques pendant 1 tour.",
+      "effet": "+1 au rÃÂ©sultat du dÃÂ© pendant vos attaques pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s7",
-      "nom": "Lutte IllimitÃ©e",
+      "nom": "Lutte IllimitÃÂ©e",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Pendant 1 tour, lancez 1 dÃ© de plus en combat pour chaque sort possÃ©dÃ©.",
+      "effet": "Pendant 1 tour, lancez 1 dÃÂ© de plus en combat pour chaque sort possÃÂ©dÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
@@ -87,7 +87,7 @@
       "id": "s8",
       "nom": "J'ai Soif !",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "",
       "effet": "Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",
@@ -98,10 +98,10 @@
       "id": "s9",
       "nom": "Non",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "",
-      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulÃ©.",
+      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
@@ -109,10 +109,10 @@
       "id": "s10",
       "nom": "Chaussures qui Court Loin",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "",
-      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ annulÃ© et vous tÃ©lÃ©portez sur n'importe quel portail.",
+      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ annulÃÂ© et vous tÃÂ©lÃÂ©portez sur n'importe quel portail.",
       "quantite": 1,
       "notes": ""
     },
@@ -120,7 +120,7 @@
       "id": "s11",
       "nom": "Mercy",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "3x partie",
       "effet": "3 compteurs. Si un joueur perd un combat en ligne de vue, utilisez 1 compteur pour annuler.",
@@ -129,23 +129,23 @@
     },
     {
       "id": "s12",
-      "nom": "SÃ©isme",
+      "nom": "SÃÂ©isme",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "SÃ©lectionnez un carrÃ© de 3 cases de cÃ´tÃ© et dÃ©faussez toutes les cases contrÃ´lables.",
+      "effet": "SÃÂ©lectionnez un carrÃÂ© de 3 cases de cÃÂ´tÃÂ© et dÃÂ©faussez toutes les cases contrÃÂ´lables.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s13",
-      "nom": "Pas FantÃ´me",
+      "nom": "Pas FantÃÂ´me",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "DÃ©placez-vous d'une case en ignorant les murs.",
+      "effet": "DÃÂ©placez-vous d'une case en ignorant les murs.",
       "quantite": 1,
       "notes": ""
     },
@@ -153,21 +153,21 @@
       "id": "s14",
       "nom": "Portail de Poche",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "TÃ©lÃ©portez-vous sur n'importe quel portail rÃ©vÃ©lÃ©.",
+      "effet": "TÃÂ©lÃÂ©portez-vous sur n'importe quel portail rÃÂ©vÃÂ©lÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s15",
-      "nom": "Ãchange de Place",
+      "nom": "ÃÂchange de Place",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Choisissez un joueur et Ã©changez vos positions.",
+      "effet": "Choisissez un joueur et ÃÂ©changez vos positions.",
       "quantite": 1,
       "notes": ""
     },
@@ -175,10 +175,10 @@
       "id": "s16",
       "nom": "Grappin",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "3x tour",
-      "effet": "DÃ©placez-vous et explorez en ligne droite. Si monstre sur le chemin, vous devez l'affronter.",
+      "effet": "DÃÂ©placez-vous et explorez en ligne droite. Si monstre sur le chemin, vous devez l'affronter.",
       "quantite": 1,
       "notes": ""
     },
@@ -186,32 +186,32 @@
       "id": "s17",
       "nom": "Tracer",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Ã la fin de votre tour, vous pouvez revenir sur la case oÃ¹ vous avez commencÃ©.",
+      "effet": "ÃÂ la fin de votre tour, vous pouvez revenir sur la case oÃÂ¹ vous avez commencÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s18",
-      "nom": "Talisman d'Ãquilibre",
+      "nom": "Talisman d'ÃÂquilibre",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "",
-      "effet": "Ãchangez ce sort avec celui d'un autre joueur.",
+      "effet": "ÃÂchangez ce sort avec celui d'un autre joueur.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s19",
-      "nom": "Ãliotrope",
+      "nom": "ÃÂliotrope",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "4x tour",
-      "effet": "DÃ©placez une case Portail sur un emplacement vide.",
+      "effet": "DÃÂ©placez une case Portail sur un emplacement vide.",
       "quantite": 1,
       "notes": ""
     },
@@ -219,10 +219,10 @@
       "id": "s20",
       "nom": "Xelor",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Volez 1 PA Ã  un joueur.",
+      "effet": "Volez 1 PA ÃÂ  un joueur.",
       "quantite": 1,
       "notes": ""
     },
@@ -230,10 +230,10 @@
       "id": "s21",
       "nom": "Miroir de Brume",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Utilisez gratuitement l'effet d'un sort ou d'une Ã©nergie qui ne vous appartient pas.",
+      "effet": "Utilisez gratuitement l'effet d'un sort ou d'une ÃÂ©nergie qui ne vous appartient pas.",
       "quantite": 1,
       "notes": ""
     },
@@ -241,32 +241,32 @@
       "id": "s22",
       "nom": "Voudoo",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "DÃ©placez un personnage de 3 cases rÃ©vÃ©lÃ©es. Peut traverser un portail.",
+      "effet": "DÃÂ©placez un personnage de 3 cases rÃÂ©vÃÂ©lÃÂ©es. Peut traverser un portail.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s23",
-      "nom": "DÃ©jÃ  Vu",
+      "nom": "DÃÂ©jÃÂ  Vu",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Ce sort devient la copie d'un sort dans la dÃ©fausse pendant 1 tour.",
+      "effet": "Ce sort devient la copie d'un sort dans la dÃÂ©fausse pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s24",
-      "nom": "Lanterne des DamnÃ©s",
+      "nom": "Lanterne des DamnÃÂ©s",
       "element": "Ombre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "Passif â Tant que vous la tenez, tous les monstres lancent 2 dÃ©s.",
+      "effet": "Passif Ã¢ÂÂ Tant que vous la tenez, tous les monstres lancent 2 dÃÂ©s.",
       "quantite": 1,
       "notes": ""
     },
@@ -274,10 +274,10 @@
       "id": "s25",
       "nom": "Edge",
       "element": "Ombre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "Passif â Tous les portails sont inactifs.",
+      "effet": "Passif Ã¢ÂÂ Tous les portails sont inactifs.",
       "quantite": 1,
       "notes": ""
     },
@@ -285,27 +285,27 @@
       "id": "s26",
       "nom": "Canabis",
       "element": "Ombre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "Passif â Tous les joueurs ont -1 PA.",
+      "effet": "Passif Ã¢ÂÂ Tous les joueurs ont -1 PA.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s27",
-      "nom": "Flux NÃ©gatif",
+      "nom": "Flux NÃÂ©gatif",
       "element": "Eau",
       "statut": "Test 1",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Placez un compteur. Ã tout moment, dÃ©pensez un compteur pour rÃ©duire de 1 le rÃ©sultat d'un dÃ©.",
+      "effet": "Placez un compteur. ÃÂ tout moment, dÃÂ©pensez un compteur pour rÃÂ©duire de 1 le rÃÂ©sultat d'un dÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "s28",
-      "nom": "Cape d'InvisibilitÃ©",
+      "nom": "Cape d'InvisibilitÃÂ©",
       "element": "Air",
       "statut": "Test 1",
       "cout": "0 PA",
@@ -318,9 +318,9 @@
   "energies": [
     {
       "id": "e1",
-      "nom": "Ãnergie Feu 1",
+      "nom": "ÃÂnergie Feu 1",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "Pour chaque sort Feu, posez 1 marqueur +1 sur un item Feu pendant 1 tour global.",
@@ -329,9 +329,9 @@
     },
     {
       "id": "e2",
-      "nom": "Ãnergie Feu 2",
+      "nom": "ÃÂnergie Feu 2",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "+1 PA pour chaque sort Feu.",
@@ -340,31 +340,31 @@
     },
     {
       "id": "e3",
-      "nom": "ÃphÃ©mÃ¨re Feu 1",
+      "nom": "ÃÂphÃÂ©mÃÂ¨re Feu 1",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "DÃ©faussez : jusqu'Ã  la fin de votre tour +3 Ã  tous vos jets de dÃ©s.",
+      "effet": "DÃÂ©faussez : jusqu'ÃÂ  la fin de votre tour +3 ÃÂ  tous vos jets de dÃÂ©s.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e4",
-      "nom": "ÃphÃ©mÃ¨re Feu 2",
+      "nom": "ÃÂphÃÂ©mÃÂ¨re Feu 2",
       "element": "Feu",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "DÃ©faussez : lancez une attaque Ã  distance sur un joueur oÃ¹ qu'il soit.",
+      "effet": "DÃÂ©faussez : lancez une attaque ÃÂ  distance sur un joueur oÃÂ¹ qu'il soit.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e5",
-      "nom": "Ãnergie Eau 1",
+      "nom": "ÃÂnergie Eau 1",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "Pour chaque sort Eau, posez 1 marqueur +1 sur un item Eau pendant 1 tour global.",
@@ -373,9 +373,9 @@
     },
     {
       "id": "e6",
-      "nom": "Ãnergie Eau 2",
+      "nom": "ÃÂnergie Eau 2",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "+1 PA pour chaque sort Eau.",
@@ -384,20 +384,20 @@
     },
     {
       "id": "e7",
-      "nom": "ÃphÃ©mÃ¨re Eau 1",
+      "nom": "ÃÂphÃÂ©mÃÂ¨re Eau 1",
       "element": "Eau",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "DÃ©faussez : tÃ©lÃ©portez-vous strictement Ã  3 cases d'un autre joueur.",
+      "effet": "DÃÂ©faussez : tÃÂ©lÃÂ©portez-vous strictement ÃÂ  3 cases d'un autre joueur.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e8",
-      "nom": "Ãnergie Terre 1",
+      "nom": "ÃÂnergie Terre 1",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "Pour chaque sort Terre, posez 1 marqueur +1 sur un item Terre pendant 1 tour global.",
@@ -406,20 +406,20 @@
     },
     {
       "id": "e9",
-      "nom": "Ãnergie Terre 2",
+      "nom": "ÃÂnergie Terre 2",
       "element": "Terre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "+1 au dÃ© en dÃ©fense pour chaque sort Terre.",
+      "effet": "+1 au dÃÂ© en dÃÂ©fense pour chaque sort Terre.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e10",
-      "nom": "Ãnergie Air 1",
+      "nom": "ÃÂnergie Air 1",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "Pour chaque sort Air, posez 1 marqueur +1 sur un item Air pendant 1 tour global.",
@@ -428,9 +428,9 @@
     },
     {
       "id": "e11",
-      "nom": "Ãnergie Air 2",
+      "nom": "ÃÂnergie Air 2",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
       "effet": "Quand vous utilisez un sort Air, obtenez 1 sprint gratuit.",
@@ -439,56 +439,56 @@
     },
     {
       "id": "e12",
-      "nom": "ÃphÃ©mÃ¨re Air 1",
+      "nom": "ÃÂphÃÂ©mÃÂ¨re Air 1",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "DÃ©faussez : doublez tous les chiffres de vos items jusqu'Ã  la fin du tour.",
+      "effet": "DÃÂ©faussez : doublez tous les chiffres de vos items jusqu'ÃÂ  la fin du tour.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e13",
-      "nom": "ÃphÃ©mÃ¨re Air 2",
+      "nom": "ÃÂphÃÂ©mÃÂ¨re Air 2",
       "element": "Air",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "DÃ©faussez : replacez oÃ¹ vous voulez tous les portails rÃ©vÃ©lÃ©s.",
+      "effet": "DÃÂ©faussez : replacez oÃÂ¹ vous voulez tous les portails rÃÂ©vÃÂ©lÃÂ©s.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e14",
-      "nom": "Ãnergie Ombre 1",
+      "nom": "ÃÂnergie Ombre 1",
       "element": "Ombre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "+1 au rÃ©sultat de tous vos jets de dÃ© pour chaque sort Ombre possÃ©dÃ©.",
+      "effet": "+1 au rÃÂ©sultat de tous vos jets de dÃÂ© pour chaque sort Ombre possÃÂ©dÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e15",
-      "nom": "Ãnergie Multi 1",
+      "nom": "ÃÂnergie Multi 1",
       "element": "Multi",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "+1 PA pour chaque sort d'Ã©lÃ©ment diffÃ©rent possÃ©dÃ©.",
+      "effet": "+1 PA pour chaque sort d'ÃÂ©lÃÂ©ment diffÃÂ©rent possÃÂ©dÃÂ©.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "e16",
-      "nom": "Ãnergie Multi 2",
+      "nom": "ÃÂnergie Multi 2",
       "element": "Multi",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "cout": "",
       "limite": "",
-      "effet": "Si vous possÃ©dez Feu, Terre, Air et Eau : +5 au rÃ©sultat de tous vos jets de dÃ©.",
+      "effet": "Si vous possÃÂ©dez Feu, Terre, Air et Eau : +5 au rÃÂ©sultat de tous vos jets de dÃÂ©.",
       "quantite": 1,
       "notes": ""
     }
@@ -498,8 +498,8 @@
       "id": "m1",
       "nom": "Monstre 1",
       "lvl": "Lvl 1",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : posez 3 cases Map n'importe oÃ¹. Un joueur choisit l'orientation.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : posez 3 cases Map n'importe oÃÂ¹. Un joueur choisit l'orientation.",
       "quantite": 1,
       "notes": ""
     },
@@ -507,8 +507,8 @@
       "id": "m2",
       "nom": "Monstre 2",
       "lvl": "Lvl 1",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : chaque joueur retire une case dans le sens horaire en commenÃ§ant par vous.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : chaque joueur retire une case dans le sens horaire en commenÃÂ§ant par vous.",
       "quantite": 1,
       "notes": ""
     },
@@ -516,8 +516,8 @@
       "id": "m3",
       "nom": "Monstre 3",
       "lvl": "Lvl 2",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : choisissez un joueur. Pendant son prochain tour vous choisissez l'orientation des cases qu'il rÃ©vÃ¨le.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : choisissez un joueur. Pendant son prochain tour vous choisissez l'orientation des cases qu'il rÃÂ©vÃÂ¨le.",
       "quantite": 1,
       "notes": ""
     },
@@ -525,8 +525,8 @@
       "id": "m4",
       "nom": "Monstre 4",
       "lvl": "Lvl 2",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : chaque joueur choisit une Ã©nergie Ã  dÃ©fausser puis en pioche une nouvelle.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : chaque joueur choisit une ÃÂ©nergie ÃÂ  dÃÂ©fausser puis en pioche une nouvelle.",
       "quantite": 1,
       "notes": ""
     },
@@ -534,8 +534,8 @@
       "id": "m5",
       "nom": "Monstre 5",
       "lvl": "Lvl 3",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : chaque joueur pioche une Ã©nergie.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : chaque joueur pioche une ÃÂ©nergie.",
       "quantite": 1,
       "notes": ""
     },
@@ -543,8 +543,8 @@
       "id": "m6",
       "nom": "Monstre 6",
       "lvl": "Lvl 3",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres Ã  gauche.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres ÃÂ  gauche.",
       "quantite": 1,
       "notes": ""
     },
@@ -552,8 +552,8 @@
       "id": "m7",
       "nom": "Monstre 7",
       "lvl": "Lvl 4",
-      "statut": "ValidÃ©",
-      "effet": "En cas de victoire : volez un sort Ã  un joueur de votre choix.",
+      "statut": "ValidÃÂ©",
+      "effet": "En cas de victoire : volez un sort ÃÂ  un joueur de votre choix.",
       "quantite": 1,
       "notes": ""
     },
@@ -562,7 +562,7 @@
       "nom": "Monstre 8",
       "lvl": "Lvl 2",
       "statut": "Test 1",
-      "effet": "En cas de victoire : retirez la case d'un ou plusieurs joueurs. Ils subissent la pÃ©nalitÃ© de mort.",
+      "effet": "En cas de victoire : retirez la case d'un ou plusieurs joueurs. Ils subissent la pÃÂ©nalitÃÂ© de mort.",
       "quantite": 1,
       "notes": ""
     }
@@ -570,56 +570,56 @@
   "cases": [
     {
       "id": "c1",
-      "nom": "Case de DÃ©part",
-      "statut": "ValidÃ©",
-      "effet": "LÃ  oÃ¹ les joueurs commencent et rÃ©apparaissent aprÃ¨s une mort. Indestructible. Cul-de-sac (1 porte).",
+      "nom": "Case de DÃÂ©part",
+      "statut": "ValidÃÂ©",
+      "effet": "LÃÂ  oÃÂ¹ les joueurs commencent et rÃÂ©apparaissent aprÃÂ¨s une mort. Indestructible. Cul-de-sac (1 porte).",
       "quantite": 10,
       "notes": ""
     },
     {
       "id": "c2",
       "nom": "Case Instable",
-      "statut": "ValidÃ©",
-      "effet": "Se dÃ©fausse dÃ¨s qu'un joueur en sort. Les joueurs restants meurent.",
+      "statut": "ValidÃÂ©",
+      "effet": "Se dÃÂ©fausse dÃÂ¨s qu'un joueur en sort. Les joueurs restants meurent.",
       "quantite": 25,
       "notes": ""
     },
     {
       "id": "c3",
       "nom": "Case Portail",
-      "statut": "ValidÃ©",
-      "effet": "Permet de se tÃ©lÃ©porter Ã  n'importe quel autre portail rÃ©vÃ©lÃ©.",
+      "statut": "ValidÃÂ©",
+      "effet": "Permet de se tÃÂ©lÃÂ©porter ÃÂ  n'importe quel autre portail rÃÂ©vÃÂ©lÃÂ©.",
       "quantite": 20,
       "notes": ""
     },
     {
       "id": "c4",
-      "nom": "Case Ãnergie",
-      "statut": "ValidÃ©",
-      "effet": "La premiÃ¨re fois par tour qu'on y entre, piocher une Ã©nergie dans la pile de son choix.",
+      "nom": "Case ÃÂnergie",
+      "statut": "ValidÃÂ©",
+      "effet": "La premiÃÂ¨re fois par tour qu'on y entre, piocher une ÃÂ©nergie dans la pile de son choix.",
       "quantite": 10,
       "notes": ""
     },
     {
       "id": "c5",
       "nom": "Case Fontaine",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "effet": "Restaure tous les PV quand on finit son tour dessus.",
       "quantite": 15,
       "notes": ""
     },
     {
       "id": "c6",
-      "nom": "Case Åil",
-      "statut": "ValidÃ©",
-      "effet": "En finissant son tour dessus, peut dÃ©fausser un item pour dÃ©fausser un item Ã©quivalent d'un autre joueur. Toujours 4 portes.",
+      "nom": "Case ÃÂil",
+      "statut": "ValidÃÂ©",
+      "effet": "En finissant son tour dessus, peut dÃÂ©fausser un item pour dÃÂ©fausser un item ÃÂ©quivalent d'un autre joueur. Toujours 4 portes.",
       "quantite": 7,
       "notes": ""
     },
     {
       "id": "c7",
       "nom": "Case Monstre",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "effet": "En arrivant dessus, piocher une carte Monstre. Combat optionnel. Toujours un cul-de-sac.",
       "quantite": 10,
       "notes": ""
@@ -627,8 +627,8 @@
     {
       "id": "c8",
       "nom": "Case Bonus PA",
-      "statut": "ValidÃ©",
-      "effet": "La premiÃ¨re fois par tour qu'un joueur entre, il gagne +1 PA. Toujours tout droit.",
+      "statut": "ValidÃÂ©",
+      "effet": "La premiÃÂ¨re fois par tour qu'un joueur entre, il gagne +1 PA. Toujours tout droit.",
       "quantite": 10,
       "notes": ""
     },
@@ -636,7 +636,7 @@
       "id": "c9",
       "nom": "Case Levier",
       "statut": "Test 3",
-      "effet": "DÃ©truit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
+      "effet": "DÃÂ©truit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
       "quantite": 1,
       "notes": ""
     }
@@ -645,71 +645,71 @@
     {
       "id": "r1",
       "nom": "Mise en place",
-      "statut": "ValidÃ©",
-      "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, place les 2 autres en bas de la pioche. Les pioches sont coupÃ©es en deux.",
+      "statut": "ValidÃÂ©",
+      "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, place les 2 autres en bas de la pioche. Les pioches sont coupÃÂ©es en deux.",
       "notes": ""
     },
     {
       "id": "r2",
       "nom": "Points d'Action",
-      "statut": "ValidÃ©",
+      "statut": "ValidÃÂ©",
       "effet": "3 PA par tour, utilisables dans n'importe quel ordre.",
       "notes": ""
     },
     {
       "id": "r3",
       "nom": "Explorer",
-      "statut": "ValidÃ©",
-      "effet": "1 PA â Annoncez la direction, piochez une carte Map, reliez-la et dÃ©placez-vous dessus.",
+      "statut": "ValidÃÂ©",
+      "effet": "1 PA Ã¢ÂÂ Annoncez la direction, piochez une carte Map, reliez-la et dÃÂ©placez-vous dessus.",
       "notes": ""
     },
     {
       "id": "r4",
       "nom": "Sprinter",
-      "statut": "ValidÃ©",
-      "effet": "1 PA, 1x tour â Lancez un dÃ© et dÃ©placez-vous jusqu'Ã  ce nombre de cases rÃ©vÃ©lÃ©es.",
+      "statut": "ValidÃÂ©",
+      "effet": "1 PA, 1x tour Ã¢ÂÂ Lancez un dÃÂ© et dÃÂ©placez-vous jusqu'ÃÂ  ce nombre de cases rÃÂ©vÃÂ©lÃÂ©es.",
       "notes": ""
     },
     {
       "id": "r5",
-      "nom": "ContrÃ´le du labyrinthe",
-      "statut": "ValidÃ©",
-      "effet": "1x par tour, Ã  n'importe quel moment â Retirer, tourner ou dÃ©placer d'une case une case sans joueur dessus.",
+      "nom": "ContrÃÂ´le du labyrinthe",
+      "statut": "ValidÃÂ©",
+      "effet": "1x par tour, ÃÂ  n'importe quel moment Ã¢ÂÂ Retirer, tourner ou dÃÂ©placer d'une case une case sans joueur dessus.",
       "notes": ""
     },
     {
       "id": "r6",
       "nom": "Combat",
-      "statut": "ValidÃ©",
-      "effet": "Chacun lance un dÃ©. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'Ã  0 PV. ÃgalitÃ© contre monstre = joueur gagne. Plusieurs dÃ©s = toujours garder le meilleur.",
+      "statut": "ValidÃÂ©",
+      "effet": "Chacun lance un dÃÂ©. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'ÃÂ  0 PV. ÃÂgalitÃÂ© contre monstre = joueur gagne. Plusieurs dÃÂ©s = toujours garder le meilleur.",
       "notes": ""
     },
     {
       "id": "r7",
       "nom": "Mort",
-      "statut": "ValidÃ©",
-      "effet": "LÃ¢chez un item au choix sur votre case et rÃ©apparaissez sur votre case de dÃ©part. Vous pouvez quand mÃªme effectuer votre contrÃ´le du labyrinthe.",
+      "statut": "ValidÃÂ©",
+      "effet": "LÃÂ¢chez un item au choix sur votre case et rÃÂ©apparaissez sur votre case de dÃÂ©part. Vous pouvez quand mÃÂªme effectuer votre contrÃÂ´le du labyrinthe.",
       "notes": ""
     },
     {
       "id": "r8",
-      "nom": "PV â 1 ou 2 ?",
+      "nom": "PV Ã¢ÂÂ 1 ou 2 ?",
       "statut": "Test 1",
-      "effet": "Ã tester : 2 PV vs one shot (1 PV). Comparer rythme et durÃ©e des combats.",
+      "effet": "ÃÂ tester : 2 PV vs one shot (1 PV). Comparer rythme et durÃÂ©e des combats.",
       "notes": ""
     },
     {
       "id": "r9",
       "nom": "Combat de groupe",
       "statut": "Test 1",
-      "effet": "Plusieurs joueurs ou monstres sur la mÃªme case : tous lancent un dÃ©, uniquement le plus bas rÃ©sultat perd.",
+      "effet": "Plusieurs joueurs ou monstres sur la mÃÂªme case : tous lancent un dÃÂ©, uniquement le plus bas rÃÂ©sultat perd.",
       "notes": ""
     },
     {
       "id": "r10",
-      "nom": "Combat Ã  distance",
+      "nom": "Combat ÃÂ  distance",
       "statut": "Test 1",
-      "effet": "NÃ©cessite de la PortÃ©. Uniquement le dÃ©fenseur peut mourir. Impossible contre les monstres. N'empÃªche pas une attaque classique dans le mÃªme tour.",
+      "effet": "NÃÂ©cessite de la PortÃÂ©. Uniquement le dÃÂ©fenseur peut mourir. Impossible contre les monstres. N'empÃÂªche pas une attaque classique dans le mÃÂªme tour.",
       "notes": ""
     }
   ],
@@ -717,57 +717,57 @@
     {
       "id": "l1",
       "terme": "Case",
-      "definition": "Tuile physique du plateau. Peut Ãªtre rÃ©vÃ©lÃ©e ou non."
+      "definition": "Tuile physique du plateau. Peut ÃÂªtre rÃÂ©vÃÂ©lÃÂ©e ou non."
     },
     {
       "id": "l2",
-      "terme": "RÃ©vÃ©lÃ©e",
-      "definition": "Case dÃ©jÃ  prÃ©sente et visible sur le plateau."
+      "terme": "RÃÂ©vÃÂ©lÃÂ©e",
+      "definition": "Case dÃÂ©jÃÂ  prÃÂ©sente et visible sur le plateau."
     },
     {
       "id": "l3",
       "terme": "Explorer",
-      "definition": "1 PA â Annoncer une direction, piocher une case et la poser connectÃ©e au plateau."
+      "definition": "1 PA Ã¢ÂÂ Annoncer une direction, piocher une case et la poser connectÃÂ©e au plateau."
     },
     {
       "id": "l4",
       "terme": "Sprint",
-      "definition": "1 PA, 1x tour â Lancer un dÃ© et se dÃ©placer de ce nombre sur des cases rÃ©vÃ©lÃ©es uniquement."
+      "definition": "1 PA, 1x tour Ã¢ÂÂ Lancer un dÃÂ© et se dÃÂ©placer de ce nombre sur des cases rÃÂ©vÃÂ©lÃÂ©es uniquement."
     },
     {
       "id": "l5",
       "terme": "PA",
-      "definition": "Point d'Action. 3 par joueur par tour par dÃ©faut."
+      "definition": "Point d'Action. 3 par joueur par tour par dÃÂ©faut."
     },
     {
       "id": "l6",
       "terme": "PV",
-      "definition": "Point de Vie. Ã tester : 2 PV vs 1 PV (one shot)."
+      "definition": "Point de Vie. ÃÂ tester : 2 PV vs 1 PV (one shot)."
     },
     {
       "id": "l7",
-      "terme": "PortÃ©",
+      "terme": "PortÃÂ©",
       "definition": "Distance d'attaque. Permet d'attaquer sans partager sa case."
     },
     {
       "id": "l8",
       "terme": "Ligne de vue",
-      "definition": "Chemin sans mur entre deux positions. Effet d'un vide encore Ã  dÃ©finir."
+      "definition": "Chemin sans mur entre deux positions. Effet d'un vide encore ÃÂ  dÃÂ©finir."
     },
     {
       "id": "l9",
       "terme": "Adjacent",
-      "definition": "Case directement connectÃ©e Ã  la vÃ´tre par un passage ouvert."
+      "definition": "Case directement connectÃÂ©e ÃÂ  la vÃÂ´tre par un passage ouvert."
     },
     {
       "id": "l10",
-      "terme": "LÃ¢cher",
-      "definition": "Laisser un item sur sa case. Reste sur le plateau, rÃ©cupÃ©rable par d'autres. Si monstre prÃ©sent, le battre d'abord."
+      "terme": "LÃÂ¢cher",
+      "definition": "Laisser un item sur sa case. Reste sur le plateau, rÃÂ©cupÃÂ©rable par d'autres. Si monstre prÃÂ©sent, le battre d'abord."
     },
     {
       "id": "l11",
-      "terme": "DÃ©fausser",
-      "definition": "Retirer dÃ©finitivement un item du jeu. Va dans la dÃ©fausse de sa pioche."
+      "terme": "DÃÂ©fausser",
+      "definition": "Retirer dÃÂ©finitivement un item du jeu. Va dans la dÃÂ©fausse de sa pioche."
     },
     {
       "id": "l12",
@@ -776,174 +776,174 @@
     },
     {
       "id": "l13",
-      "terme": "Ãnergie",
-      "definition": "Item obtenu sur une case Ãnergie. Effet passif + effet actif dÃ©clenchÃ© par un sort du mÃªme Ã©lÃ©ment. Limite : 3."
+      "terme": "ÃÂnergie",
+      "definition": "Item obtenu sur une case ÃÂnergie. Effet passif + effet actif dÃÂ©clenchÃÂ© par un sort du mÃÂªme ÃÂ©lÃÂ©ment. Limite : 3."
     },
     {
       "id": "l14",
       "terme": "Sort de Nature",
-      "definition": "Sort piochÃ© en dÃ©but de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
+      "definition": "Sort piochÃÂ© en dÃÂ©but de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
     },
     {
       "id": "l15",
       "terme": "Ombre",
-      "definition": "CatÃ©gorie spÃ©ciale. Ne compte pas dans la limite. Se lÃ¢che uniquement Ã  la mort."
+      "definition": "CatÃÂ©gorie spÃÂ©ciale. Ne compte pas dans la limite. Se lÃÂ¢che uniquement ÃÂ  la mort."
     },
     {
       "id": "l16",
       "terme": "Multi",
-      "definition": "ÃlÃ©ment spÃ©cial qui ne compte comme aucun Ã©lÃ©ment spÃ©cifique."
+      "definition": "ÃÂlÃÂ©ment spÃÂ©cial qui ne compte comme aucun ÃÂ©lÃÂ©ment spÃÂ©cifique."
     },
     {
       "id": "l17",
       "terme": "Tour global",
-      "definition": "Cycle de jeu jusqu'au dÃ©but de votre prochain tour."
+      "definition": "Cycle de jeu jusqu'au dÃÂ©but de votre prochain tour."
     },
     {
       "id": "l18",
-      "terme": "Item Ã©quivalent",
-      "definition": "Sort contre sort, Ã©nergie contre Ã©nergie. Pour les Ã©changes."
+      "terme": "Item ÃÂ©quivalent",
+      "definition": "Sort contre sort, ÃÂ©nergie contre ÃÂ©nergie. Pour les ÃÂ©changes."
     },
     {
       "id": "l19",
       "terme": "Indestructible",
-      "definition": "Ne peut pas Ãªtre retirÃ©e, tournÃ©e ni dÃ©placÃ©e."
+      "definition": "Ne peut pas ÃÂªtre retirÃÂ©e, tournÃÂ©e ni dÃÂ©placÃÂ©e."
     },
     {
       "id": "l20",
       "terme": "1x tour",
-      "definition": "Ne peut Ãªtre utilisÃ© qu'une fois pendant votre tour."
+      "definition": "Ne peut ÃÂªtre utilisÃÂ© qu'une fois pendant votre tour."
     }
   ],
   "modes": [
     {
       "id": "md1",
       "nom": "Capture de Drapeau",
-      "emoji": "ð©",
-      "difficulte": "â­â­",
-      "style": "StratÃ©gie Combat",
+      "emoji": "Ã°ÂÂÂ©",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­Â",
+      "style": "StratÃÂ©gie Combat",
       "joueurs": "2-10",
-      "contenu": "Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux Ã©quipes Rouge et Bleu. Bases indestructibles Ã  7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRÃ¨gles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lÃ¢che le drapeau.\n\nVariante Distorsion : sur case Åil, piocher une carte et la placer n'importe oÃ¹ dans n'importe quel sens.",
-      "notes": "Ã tester : rester 1 tour sur la base pour valider\nProblÃ¨me : nombre impair de joueurs"
+      "contenu": "Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux ÃÂ©quipes Rouge et Bleu. Bases indestructibles ÃÂ  7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRÃÂ¨gles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lÃÂ¢che le drapeau.\n\nVariante Distorsion : sur case ÃÂil, piocher une carte et la placer n'importe oÃÂ¹ dans n'importe quel sens.",
+      "notes": "ÃÂ tester : rester 1 tour sur la base pour valider\nProblÃÂ¨me : nombre impair de joueurs"
     },
     {
       "id": "md2",
       "nom": "Keeyp",
-      "emoji": "ðï¸",
-      "difficulte": "â­â­",
+      "emoji": "Ã°ÂÂÂÃ¯Â¸Â",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­Â",
       "style": "Escape",
       "joueurs": "1-10",
-      "contenu": "Objectif : trouver la ClÃ©, trouver la Porte, s'Ã©chapper.\n\nRÃ¨gles : ramasser la ClÃ© = 0 PA. Porteur ne peut pas sprinter. Si combat perdu, ClÃ© retourne Ã  son origine. Combats monstres automatiques.\n\nVictoire : atteindre la Porte avec la ClÃ© et finir son tour dessus.",
-      "notes": "Ã tester : ajouter un double monstre Ã  battre pour finir"
+      "contenu": "Objectif : trouver la ClÃÂ©, trouver la Porte, s'ÃÂ©chapper.\n\nRÃÂ¨gles : ramasser la ClÃÂ© = 0 PA. Porteur ne peut pas sprinter. Si combat perdu, ClÃÂ© retourne ÃÂ  son origine. Combats monstres automatiques.\n\nVictoire : atteindre la Porte avec la ClÃÂ© et finir son tour dessus.",
+      "notes": "ÃÂ tester : ajouter un double monstre ÃÂ  battre pour finir"
     },
     {
       "id": "md3",
       "nom": "Laboratoire",
-      "emoji": "ð§ª",
-      "difficulte": "â­â­â­",
+      "emoji": "Ã°ÂÂ§Âª",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­ÂÃ¢Â­Â",
       "style": "Escape Combat",
       "joueurs": "2-10",
-      "contenu": "RÃ´les :\nDocteur Fou â contrÃ´le lab partout, pas sprint, pas clÃ©, 1 sort + 1 Ã©nergie, tp fontaine 3 PA. S'il bat un HÃ©ros, ce HÃ©ros devient Zombie.\nZombies â contrÃ´le lab adjacent, pas sprint, pas clÃ©, 1 sort + 1 Ã©nergie.\nHÃ©ros â contrÃ´le lab adjacent, sprint, clÃ©, 3 sorts + 3 Ã©nergies, 2 dÃ©s contre mÃ©chant.\n\nMise en place : carrÃ© 5x5 rÃ©vÃ©lÃ©. Docteur place sa case d'abord. Retirer le carrÃ©. Docteur joue en premier. Retirer item Edge.\n\nVictoire HÃ©ros : s'Ã©chapper par la Porte avec la ClÃ©.\nVictoire Docteur : tous les HÃ©ros deviennent Zombies.",
-      "notes": "PrioritÃ© de modification\nÃ tester : 7x7, tp fontaine 1 PA, -1 au dÃ© mÃ©chants\nProblÃ¨me : snowball, difficile changer de cible"
+      "contenu": "RÃÂ´les :\nDocteur Fou Ã¢ÂÂ contrÃÂ´le lab partout, pas sprint, pas clÃÂ©, 1 sort + 1 ÃÂ©nergie, tp fontaine 3 PA. S'il bat un HÃÂ©ros, ce HÃÂ©ros devient Zombie.\nZombies Ã¢ÂÂ contrÃÂ´le lab adjacent, pas sprint, pas clÃÂ©, 1 sort + 1 ÃÂ©nergie.\nHÃÂ©ros Ã¢ÂÂ contrÃÂ´le lab adjacent, sprint, clÃÂ©, 3 sorts + 3 ÃÂ©nergies, 2 dÃÂ©s contre mÃÂ©chant.\n\nMise en place : carrÃÂ© 5x5 rÃÂ©vÃÂ©lÃÂ©. Docteur place sa case d'abord. Retirer le carrÃÂ©. Docteur joue en premier. Retirer item Edge.\n\nVictoire HÃÂ©ros : s'ÃÂ©chapper par la Porte avec la ClÃÂ©.\nVictoire Docteur : tous les HÃÂ©ros deviennent Zombies.",
+      "notes": "PrioritÃÂ© de modification\nÃÂ tester : 7x7, tp fontaine 1 PA, -1 au dÃÂ© mÃÂ©chants\nProblÃÂ¨me : snowball, difficile changer de cible"
     },
     {
       "id": "md4",
       "nom": "Indiana Jones",
-      "emoji": "ðª¨",
-      "difficulte": "â­â­â­â­",
-      "style": "Escape StratÃ©gie",
+      "emoji": "Ã°ÂÂªÂ¨",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­ÂÃ¢Â­ÂÃ¢Â­Â",
+      "style": "Escape StratÃÂ©gie",
       "joueurs": "4-8",
-      "contenu": "HÃ©ros : ramasser l'artefact et atteindre la Porte.\nMÃ©chant : Ã©craser chaque HÃ©ros une fois avec la Boule GÃ©ante.\n\nBoule GÃ©ante : avance en ligne droite jusqu'Ã  un mur. Tue tout joueur traversÃ©. DisparaÃ®t sur case de dÃ©part.\nMÃ©chant contrÃ´le : dÃ©placer dans une direction OU faire apparaÃ®tre sur une Fontaine.\nHÃ©ros contrÃ´le : si fin de tour sur Fontaine, contrÃ´ler la Boule Ã  la place du MÃ©chant.",
-      "notes": "PrioritÃ© de modification\nÃ tester : case boule dÃ©plaÃ§able\nProblÃ¨me : trop d'anti jeu"
+      "contenu": "HÃÂ©ros : ramasser l'artefact et atteindre la Porte.\nMÃÂ©chant : ÃÂ©craser chaque HÃÂ©ros une fois avec la Boule GÃÂ©ante.\n\nBoule GÃÂ©ante : avance en ligne droite jusqu'ÃÂ  un mur. Tue tout joueur traversÃÂ©. DisparaÃÂ®t sur case de dÃÂ©part.\nMÃÂ©chant contrÃÂ´le : dÃÂ©placer dans une direction OU faire apparaÃÂ®tre sur une Fontaine.\nHÃÂ©ros contrÃÂ´le : si fin de tour sur Fontaine, contrÃÂ´ler la Boule ÃÂ  la place du MÃÂ©chant.",
+      "notes": "PrioritÃÂ© de modification\nÃÂ tester : case boule dÃÂ©plaÃÂ§able\nProblÃÂ¨me : trop d'anti jeu"
     },
     {
       "id": "md5",
       "nom": "Traque",
-      "emoji": "ðª",
-      "difficulte": "â­â­",
+      "emoji": "Ã°ÂÂªÂ",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­Â",
       "style": "Combat",
       "joueurs": "3-5",
-      "contenu": "Objectif : traquer et Ã©liminer ta cible secrÃ¨te.\n\nMise en place : chaque joueur contrÃ´le 2 personnages. CarrÃ© 7x7. PA partagÃ©s entre les 2 persos.\n\nRÃ¨gles : Ã©liminer ta cible = 1 marque + nouvelle carte Cible.\n\nVictoire : premier Ã  3 marques.",
-      "notes": "Ã tester : version rapide 1 perso chacun"
+      "contenu": "Objectif : traquer et ÃÂ©liminer ta cible secrÃÂ¨te.\n\nMise en place : chaque joueur contrÃÂ´le 2 personnages. CarrÃÂ© 7x7. PA partagÃÂ©s entre les 2 persos.\n\nRÃÂ¨gles : ÃÂ©liminer ta cible = 1 marque + nouvelle carte Cible.\n\nVictoire : premier ÃÂ  3 marques.",
+      "notes": "ÃÂ tester : version rapide 1 perso chacun"
     },
     {
       "id": "md6",
       "nom": "Survie",
-      "emoji": "ð¥",
-      "difficulte": "â­",
+      "emoji": "Ã°ÂÂÂ¥",
+      "difficulte": "Ã¢Â­Â",
       "style": "Combat",
       "joueurs": "2-10",
-      "contenu": "Objectif : Ãªtre le dernier joueur en vie.\n\nRÃ¨gles : 1 Vie par joueur. Perdre un combat = pÃ©nalitÃ© + perdre une vie. Activer une case RÃ©vÃ©lation = regagner sa Vie. Mourir Ã  0 Vie = Ã©liminÃ©.\n\nVictoire : dernier joueur encore en jeu.",
-      "notes": "Mode d'introduction recommandÃ©"
+      "contenu": "Objectif : ÃÂªtre le dernier joueur en vie.\n\nRÃÂ¨gles : 1 Vie par joueur. Perdre un combat = pÃÂ©nalitÃÂ© + perdre une vie. Activer une case RÃÂ©vÃÂ©lation = regagner sa Vie. Mourir ÃÂ  0 Vie = ÃÂ©liminÃÂ©.\n\nVictoire : dernier joueur encore en jeu.",
+      "notes": "Mode d'introduction recommandÃÂ©"
     },
     {
       "id": "md7",
       "nom": "3 Monstres",
-      "emoji": "ð¹",
-      "difficulte": "â­",
+      "emoji": "Ã°ÂÂÂ¹",
+      "difficulte": "Ã¢Â­Â",
       "style": "Combat",
       "joueurs": "2-10",
-      "contenu": "Objectif : premier Ã  Ã©liminer 3 monstres.\n\nRÃ¨gles : battre un monstre = 1 jeton. Cases Monstre indestructibles. Double Monstre = 2 jetons.\n\nVictoire : 3 jetons.",
-      "notes": "Ã tester : fusionner avec 4 Items"
+      "contenu": "Objectif : premier ÃÂ  ÃÂ©liminer 3 monstres.\n\nRÃÂ¨gles : battre un monstre = 1 jeton. Cases Monstre indestructibles. Double Monstre = 2 jetons.\n\nVictoire : 3 jetons.",
+      "notes": "ÃÂ tester : fusionner avec 4 Items"
     },
     {
       "id": "md8",
       "nom": "4 Items",
-      "emoji": "ð",
-      "difficulte": "â­",
+      "emoji": "Ã°ÂÂÂ",
+      "difficulte": "Ã¢Â­Â",
       "style": "Combat",
       "joueurs": "2-10",
-      "contenu": "Objectif : premier Ã  obtenir un 4Ã¨me item.\n\nRÃ¨gles : monstres attaquent automatiquement.\n\nVictoire : 4 items en main = victoire instantanÃ©e.",
-      "notes": "Ã tester : fusionner avec 3 Monstres"
+      "contenu": "Objectif : premier ÃÂ  obtenir un 4ÃÂ¨me item.\n\nRÃÂ¨gles : monstres attaquent automatiquement.\n\nVictoire : 4 items en main = victoire instantanÃÂ©e.",
+      "notes": "ÃÂ tester : fusionner avec 3 Monstres"
     },
     {
       "id": "md9",
       "nom": "Infection",
-      "emoji": "ð¦ ",
-      "difficulte": "â­â­â­",
-      "style": "RÃ´le CachÃ©",
+      "emoji": "Ã°ÂÂ¦Â ",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­ÂÃ¢Â­Â",
+      "style": "RÃÂ´le CachÃÂ©",
       "joueurs": "4-8",
-      "contenu": "Gentils veulent purifier. MÃ©chants veulent infecter.\n\nCartes Alignement + Cartes Infection distribuÃ©es secrÃ¨tement.\n\nFontaines : orienter secrÃ¨tement une carte Infection vers Sain ou InfectÃ©.\n\nRÃ©vÃ©lations : rituel â yeux fermÃ©s, pouce haut = Sain, pouce bas = InfectÃ©.\n\nCompte Ã  rebours : 3 tours globaux puis rÃ©vÃ©lation finale. MajoritÃ© gagne.",
-      "notes": "Ã tester : nerf rÃ©vÃ©lation dans ce mode"
+      "contenu": "Gentils veulent purifier. MÃÂ©chants veulent infecter.\n\nCartes Alignement + Cartes Infection distribuÃÂ©es secrÃÂ¨tement.\n\nFontaines : orienter secrÃÂ¨tement une carte Infection vers Sain ou InfectÃÂ©.\n\nRÃÂ©vÃÂ©lations : rituel Ã¢ÂÂ yeux fermÃÂ©s, pouce haut = Sain, pouce bas = InfectÃÂ©.\n\nCompte ÃÂ  rebours : 3 tours globaux puis rÃÂ©vÃÂ©lation finale. MajoritÃÂ© gagne.",
+      "notes": "ÃÂ tester : nerf rÃÂ©vÃÂ©lation dans ce mode"
     },
     {
       "id": "md10",
       "nom": "Rumble in the House",
-      "emoji": "ð­",
-      "difficulte": "â­",
-      "style": "RÃ´le CachÃ©",
+      "emoji": "Ã°ÂÂÂ­",
+      "difficulte": "Ã¢Â­Â",
+      "style": "RÃÂ´le CachÃÂ©",
       "joueurs": "3-10",
-      "contenu": "Objectif : Ãªtre le dernier survivant.\n\n3-5 joueurs : double de personnages, 2 jetons secrets chacun.\n6-10 joueurs : 1 personnage par joueur, 1 jeton secret chacun.\n\nRÃ¨gles : au dÃ©but de son tour choisir n'importe quel personnage vivant. Mort permanente. 1 item par personnage.",
+      "contenu": "Objectif : ÃÂªtre le dernier survivant.\n\n3-5 joueurs : double de personnages, 2 jetons secrets chacun.\n6-10 joueurs : 1 personnage par joueur, 1 jeton secret chacun.\n\nRÃÂ¨gles : au dÃÂ©but de son tour choisir n'importe quel personnage vivant. Mort permanente. 1 item par personnage.",
       "notes": ""
     },
     {
       "id": "md11",
       "nom": "Sabotage",
-      "emoji": "ð§©",
-      "difficulte": "â­â­",
-      "style": "StratÃ©gie",
+      "emoji": "Ã°ÂÂ§Â©",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­Â",
+      "style": "StratÃÂ©gie",
       "joueurs": "4-10",
-      "contenu": "Restaurateurs vs Saboteurs â rÃ©parer ou saboter les Fontaines.\n\nRÃ¨gles : finir son tour sur une Fontaine = choisir RÃ©parer ou Saboter. L'action prend tout le tour suivant.\n\nVictoire : autant de Fontaines que de joueurs rÃ©parÃ©es ou sabotÃ©es.",
+      "contenu": "Restaurateurs vs Saboteurs Ã¢ÂÂ rÃÂ©parer ou saboter les Fontaines.\n\nRÃÂ¨gles : finir son tour sur une Fontaine = choisir RÃÂ©parer ou Saboter. L'action prend tout le tour suivant.\n\nVictoire : autant de Fontaines que de joueurs rÃÂ©parÃÂ©es ou sabotÃÂ©es.",
       "notes": ""
     },
     {
       "id": "md12",
       "nom": "Amon Gus",
-      "emoji": "ð¨âð",
-      "difficulte": "â­â­â­â­",
-      "style": "RÃ´le CachÃ© StratÃ©gie",
+      "emoji": "Ã°ÂÂÂ¨Ã¢ÂÂÃ°ÂÂÂ",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­ÂÃ¢Â­ÂÃ¢Â­Â",
+      "style": "RÃÂ´le CachÃÂ© StratÃÂ©gie",
       "joueurs": "4-10",
-      "contenu": "Gentils : rÃ©parer les Fontaines et Ã©liminer les Imposteurs.\nImposteurs : saboter en secret, tuer les Gentils.\n\nRÃ©partition : 4-5 joueurs = 1 Imposteur / 6-7 = 2 / 8-10 = 3.\n\nEmergency Meeting : tous les X jetons posÃ©s (X = nb joueurs) ou sur RÃ©vÃ©lation. Si majoritÃ© sabotÃ©s = victoire Imposteurs. Vote : chaque vote = -1 au dÃ©.\n\nPouvoir Imposteur : rÃ©vÃ©ler son rÃ´le une fois = +2 au combat jusqu'Ã  la mort.",
+      "contenu": "Gentils : rÃÂ©parer les Fontaines et ÃÂ©liminer les Imposteurs.\nImposteurs : saboter en secret, tuer les Gentils.\n\nRÃÂ©partition : 4-5 joueurs = 1 Imposteur / 6-7 = 2 / 8-10 = 3.\n\nEmergency Meeting : tous les X jetons posÃÂ©s (X = nb joueurs) ou sur RÃÂ©vÃÂ©lation. Si majoritÃÂ© sabotÃÂ©s = victoire Imposteurs. Vote : chaque vote = -1 au dÃÂ©.\n\nPouvoir Imposteur : rÃÂ©vÃÂ©ler son rÃÂ´le une fois = +2 au combat jusqu'ÃÂ  la mort.",
       "notes": ""
     },
     {
       "id": "md13",
       "nom": "Relique Maudite",
-      "emoji": "ðª¬",
-      "difficulte": "â­â­",
+      "emoji": "Ã°ÂÂªÂ¬",
+      "difficulte": "Ã¢Â­ÂÃ¢Â­Â",
       "style": "Combat",
       "joueurs": "3-6",
-      "contenu": "Objectif : dÃ©couvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",
+      "contenu": "Objectif : dÃÂ©couvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",
       "notes": ""
     }
   ],
@@ -951,27 +951,27 @@
     {
       "id": "im1",
       "nom": "Mode Intro / Survie simple",
-      "pitch": "Jeton mort si tuÃ© par un joueur. Dernier sans jeton gagne. Point d'entrÃ©e avant tous les modes."
+      "pitch": "Jeton mort si tuÃÂ© par un joueur. Dernier sans jeton gagne. Point d'entrÃÂ©e avant tous les modes."
     },
     {
       "id": "im2",
-      "nom": "Mode Hunger Games / FantÃ´mes",
-      "pitch": "Vie illimitÃ©e contre monstres. Mort par joueur = fantÃ´me : dÃ©fausse sorts, 1 PA, passe Ã  travers les murs."
+      "nom": "Mode Hunger Games / FantÃÂ´mes",
+      "pitch": "Vie illimitÃÂ©e contre monstres. Mort par joueur = fantÃÂ´me : dÃÂ©fausse sorts, 1 PA, passe ÃÂ  travers les murs."
     },
     {
       "id": "im3",
       "nom": "Mode Zombie Survie",
-      "pitch": "Zombies qui spawnent. Impossible de supprimer des cases. Trouver clÃ© et porte ou tenir un max de tours."
+      "pitch": "Zombies qui spawnent. Impossible de supprimer des cases. Trouver clÃÂ© et porte ou tenir un max de tours."
     },
     {
       "id": "im4",
       "nom": "Mode Backrooms",
-      "pitch": "Gouttes de survie au lieu de fontaines. Monstres autonomes qui se rapprochent. Sprint coÃ»te une goutte."
+      "pitch": "Gouttes de survie au lieu de fontaines. Monstres autonomes qui se rapprochent. Sprint coÃÂ»te une goutte."
     },
     {
       "id": "im5",
       "nom": "Mode Dofus",
-      "pitch": "Choisir un personnage avec sorts prÃ©dÃ©finis selon sa classe."
+      "pitch": "Choisir un personnage avec sorts prÃÂ©dÃÂ©finis selon sa classe."
     },
     {
       "id": "im6",
@@ -981,35 +981,35 @@
     {
       "id": "im7",
       "nom": "Mode Open World",
-      "pitch": "Verso des cartes = extÃ©rieur. Biomes, donjons, marchands. Extension sÃ©parÃ©e Ã  long terme."
+      "pitch": "Verso des cartes = extÃÂ©rieur. Biomes, donjons, marchands. Extension sÃÂ©parÃÂ©e ÃÂ  long terme."
     },
     {
       "id": "im8",
       "nom": "Mode Guerre de territoire",
-      "pitch": "Avoir la plus grande zone connectÃ©e. Retirer la seule case reliant deux zones = la 2Ã¨me devient neutre."
+      "pitch": "Avoir la plus grande zone connectÃÂ©e. Retirer la seule case reliant deux zones = la 2ÃÂ¨me devient neutre."
     },
     {
       "id": "im9",
       "nom": "Mode Chasseur",
-      "pitch": "Ã dÃ©finir."
+      "pitch": "ÃÂ dÃÂ©finir."
     },
     {
       "id": "im10",
       "nom": "Mode Maze vs Players",
-      "pitch": "Ã dÃ©finir."
+      "pitch": "ÃÂ dÃÂ©finir."
     }
   ],
   "soireesProto": [],
   "ideeEnVrac": "",
-  "materiel": "10 personnages carton sur bloc plastique vertical\n2 dÃ©s\n1 case Boule GÃ©ante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour ClÃ© et Relique)\n3 jetons Chacal / Cape d'invisibilitÃ©\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\n---\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDÃ© : ~6$ piÃ¨ce\nPersonnages acrylique : ~13.5$",
+  "materiel": "10 personnages carton sur bloc plastique vertical\n2 dÃÂ©s\n1 case Boule GÃÂ©ante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour ClÃÂ© et Relique)\n3 jetons Chacal / Cape d'invisibilitÃÂ©\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\n---\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDÃÂ© : ~6$ piÃÂ¨ce\nPersonnages acrylique : ~13.5$",
   "visuels": {
-    "general": "Inspiration Squid Game / Liminal space corÃ©en\nAmbiance kintsugi bioluminescent bleu\nFog volumÃ©trique + sources de lumiÃ¨re kintsugi\nMurs en noir, sol en blanc pour visibilitÃ©\n\n---\n\nLIVRET DE RÃGLES :\nStyle journal comme dans Harry Potter\n3 Ã©chelles de typo : ultra grosse (idÃ©e), moyenne (rÃ¨gle prÃ©cise), petite opacitÃ© diminuÃ©e (dÃ©tails)",
-    "boite": "Inspiration boÃ®tes Iello â fond blanc avec beaucoup de blanc\nKintsugi bleu qui s'Ã©tend sur toute la boÃ®te\nPlusieurs zones avec couleur dominante par Ã©lÃ©ment\nGarder 60% des zones blanches",
-    "personnages": "Acrylique transparent autour\nCouleur distincte par joueur\nIdÃ©e : perso avec tissu sur les yeux (statue de la Justice)\nPerso rÃ©fÃ©rence Outer Wilds Echo of the Eye (cerf cassÃ©)",
-    "cases": "â Portail : sim 3D inspiration Dofus\nâ Åil : marque au sol violette\nâ Ãnergie : feu de camp (ref Outer Wilds)\nâ Instable : voronoi\nâ Case de dÃ©part : noir et or avec symbole gÃ©omÃ©trique\nMonstres : dÃ©gradÃ© sombre\nFontaine : kintsugi classique",
-    "items": "Illustration par Ã©lÃ©ment sur le dos de la carte\nRune lumineuse dont la couleur rÃ©vÃ¨le l'Ã©lÃ©ment\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir",
-    "monstres": "DÃ©gradÃ© sombre\nBoule Indiana Jones : oeil gÃ©ant style LÃ©viathan alt236 ou Beholder DnD",
+    "general": "Inspiration Squid Game / Liminal space corÃÂ©en\nAmbiance kintsugi bioluminescent bleu\nFog volumÃÂ©trique + sources de lumiÃÂ¨re kintsugi\nMurs en noir, sol en blanc pour visibilitÃÂ©\n\n---\n\nLIVRET DE RÃÂGLES :\nStyle journal comme dans Harry Potter\n3 ÃÂ©chelles de typo : ultra grosse (idÃÂ©e), moyenne (rÃÂ¨gle prÃÂ©cise), petite opacitÃÂ© diminuÃÂ©e (dÃÂ©tails)",
+    "boite": "Inspiration boÃÂ®tes Iello Ã¢ÂÂ fond blanc avec beaucoup de blanc\nKintsugi bleu qui s'ÃÂ©tend sur toute la boÃÂ®te\nPlusieurs zones avec couleur dominante par ÃÂ©lÃÂ©ment\nGarder 60% des zones blanches",
+    "personnages": "Acrylique transparent autour\nCouleur distincte par joueur\nIdÃÂ©e : perso avec tissu sur les yeux (statue de la Justice)\nPerso rÃÂ©fÃÂ©rence Outer Wilds Echo of the Eye (cerf cassÃÂ©)",
+    "cases": "Ã¢ÂÂ Portail : sim 3D inspiration Dofus\nÃ¢ÂÂ ÃÂil : marque au sol violette\nÃ¢ÂÂ ÃÂnergie : feu de camp (ref Outer Wilds)\nÃ¢ÂÂ Instable : voronoi\nÃ¢ÂÂ Case de dÃÂ©part : noir et or avec symbole gÃÂ©omÃÂ©trique\nMonstres : dÃÂ©gradÃÂ© sombre\nFontaine : kintsugi classique",
+    "items": "Illustration par ÃÂ©lÃÂ©ment sur le dos de la carte\nRune lumineuse dont la couleur rÃÂ©vÃÂ¨le l'ÃÂ©lÃÂ©ment\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir",
+    "monstres": "DÃÂ©gradÃÂ© sombre\nBoule Indiana Jones : oeil gÃÂ©ant style LÃÂ©viathan alt236 ou Beholder DnD",
     "accessoires": "Pierres de combo avec rune lumineuse\nJetons personnages avec logo mort au dos",
-    "references": "Outer Wilds â symbole infini Nomai, feu de camp\nDofus Ãmeraude\nAvatar Airbender\nSquid Game / Liminal space corÃ©en\nIello (boÃ®tes)\nHytale (personnages)"
+    "references": "Outer Wilds Ã¢ÂÂ symbole infini Nomai, feu de camp\nDofus ÃÂmeraude\nAvatar Airbender\nSquid Game / Liminal space corÃÂ©en\nIello (boÃÂ®tes)\nHytale (personnages)"
   }
 }
