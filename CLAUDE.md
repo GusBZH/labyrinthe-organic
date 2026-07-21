@@ -8,13 +8,31 @@ sorts élémentaires, cartes énergie, monstres, 13 modes de jeu.
 6 éléments : Feu, Eau, Terre, Air, Ombre, Multi.
 
 ## Architecture technique — IMPORTANT
-App web mono-fichier, SANS étape de build (pas de JSX compilé, pas de Babel).
-- `app.jsx` — logique React (via `React.createElement`, imports esm.sh)
-- `index.html` — shell HTML + CSS
-- `data.json` — toutes les données du jeu (source de vérité)
+App web SANS étape de build (pas de JSX compilé, pas de Babel, pas de bundler).
+La logique tourne en `React.createElement` pur, découpée en modules ES natifs
+(`import`/`export` entre fichiers `.js`, chargés par le navigateur sans outil).
+- `index.html` — coquille HTML + CSS + les deux `<script>` UMD React/ReactDOM
+  + `<script type="module" src="src/main.js">`
+- `src/main.js` — point d'entrée, monte `<App/>`
+- `src/App.js` — état de session (token, data, sha, editMode), chargement/
+  sauvegarde GitHub, routing entre pages
+- `src/react.js` — réexporte `h`/hooks depuis le global `React` (UMD)
+- `src/config.js` — constantes (éléments, statuts, couleurs...)
+- `src/github.js` — lecture/écriture de `data.json` via l'API GitHub
+- `src/utils.js` — helpers (`uid`, `renderText`)
+- `src/data/initialData.js` — jeu de données de secours (mode local sans token)
+- `src/components/` — briques UI génériques réutilisées partout (Card, Section,
+  EditText, ElemGroup, LvlGroup...)
+- `src/pages/` — écrans assemblés à partir des composants (HomePage,
+  SoireePage, IdeeVracPage)
+- `data.json` — toutes les données du jeu (source de vérité, lu/écrit via l'API GitHub)
 - `manifest.json` — PWA manifest
+
 Déployé sur GitHub Pages : https://gusbzh.github.io/labyrinthe-organic/
-GitHub Pages sert les fichiers tels quels — pas de pipeline CI/CD.
+GitHub Pages sert les fichiers tels quels — pas de pipeline CI/CD. Les modules
+ES fonctionnent nativement dans le navigateur sans build, mais ne se testent
+pas en ouvrant le fichier directement (`file://`) — il faut un serveur local
+(ex: `python3 -m http.server`) à cause des restrictions CORS sur les imports.
 
 ## Structure de data.json
 Le nombre d'entrées et le contenu exact évoluent en continu — data.json est la
