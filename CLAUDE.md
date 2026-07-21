@@ -53,6 +53,9 @@ seule source de vérité, ne pas se fier à un compte figé ici. Les catégories
   ajoutables, réordonnables, supprimables depuis l'UI). Migré automatiquement au
   chargement depuis l'ancien format objet fixe si besoin (`migrateVisuels` dans
   `src/utils.js`) — aucune modification manuelle de data.json requise.
+- `sectionOrder` — ordre d'affichage des grandes sections de la home page (tableau de
+  clés). Absent ou incomplet → complété automatiquement (`migrateSectionOrder` dans
+  `src/utils.js`).
 
 Chaque item a généralement un champ `statut` : Validé / Test 1 / Test 2 / Test 3 / Archivé,
 avec un système de pastilles colorées dans l'UI.
@@ -69,13 +72,26 @@ avec un système de pastilles colorées dans l'UI.
   ne s'adapte pas à la largeur d'écran). Entrée deux fois de suite scinde le bloc courant
   en deux (nouveau séparateur) ; Retour arrière au tout début d'un bloc le refusionne
   avec le précédent. Composant partagé `src/components/BlockEditor.js`.
-- Réordonner par glisser (souris ou tactile, appui-maintenu) est disponible sur Lexique,
-  Modes de jeu, Idées de modes, catégories de Visuels et Soirées Proto — les listes qui
-  n'ont pas de tri automatique. Volontairement PAS sur Sorts/Énergies/Monstres/Règles/
-  Cases, qui se trient déjà par statut en mode édition (Validé en premier, etc.) —
-  un ordre manuel y entrerait en conflit. Hook partagé `useReorder()` dans
-  `src/utils.js`, poignée `src/components/DragHandle.js` (Pointer Events, marche pareil
-  souris/tactile).
+- Réordonner par glisser (souris ou tactile, appui-maintenu) est disponible partout :
+  Lexique, Modes de jeu, Idées de modes, catégories de Visuels, Soirées Proto, et même
+  l'ordre des grandes sections de la page d'accueil (Règles, Cases, Sorts...). Sur
+  Sorts/Énergies/Monstres/Règles/Cases, qui se trient déjà par statut en mode édition
+  (Validé en premier, etc.), l'ordre manuel s'applique *à l'intérieur* de chaque groupe
+  élément+statut (ou niveau+statut pour les monstres) — pas de nouvel attribut de
+  priorité : l'ordre est simplement la position dans le tableau `data.sorts` /
+  `data.energies` / etc., et le tri par statut étant stable, il respecte cet ordre comme
+  critère de départage. Conséquence : si on change l'élément (ou le niveau) d'un item,
+  il ne garde pas une position arbitraire de son ancien groupe — `updArr` dans
+  `src/App.js` détecte ce changement et renvoie l'item en fin de tableau, donc il
+  atterrit en dernier dans son nouveau groupe (dernier de son statut, pas forcément
+  tout en bas si des statuts inférieurs suivent). Aucun risque de collision : comme il
+  n'y a pas de numéro de priorité séparé, il ne peut pas y avoir deux items avec la
+  "même" position. Helper `reorderSubset()` dans `src/utils.js` pour committer le
+  réordonnancement d'un sous-ensemble filtré/trié sans toucher aux autres items du
+  tableau complet. Hook partagé `useReorder()` (Pointer Events, marche pareil souris/
+  tactile), poignée `src/components/DragHandle.js`. L'ordre des sections elles-mêmes
+  vit dans `data.sectionOrder` (migration douce si absent, voir `migrateSectionOrder()`
+  dans `src/utils.js`).
 - Undo/redo en mode édition (boutons ↩/↪ à gauche du crayon, `src/components/UndoRedo.js`) :
   historique en mémoire géré dans `src/App.js` (pile `pastRef`/`futureRef`, 50 étapes max),
   remis à zéro à chaque nouveau chargement de données. Ne persiste pas entre les sessions.

@@ -4,9 +4,13 @@ import { INIT } from "./data/initialData.js";
 import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
-import { migrateVisuels } from "./utils.js";
+import { migrateVisuels, migrateSectionOrder } from "./utils.js";
 
 const MAX_HISTORY = 50;
+
+function withMigrations(d){
+  return {...d, visuels: migrateVisuels(d.visuels), sectionOrder: migrateSectionOrder(d.sectionOrder)};
+}
 
 export function App() {
   const [data, setData] = useState(null);
@@ -38,10 +42,10 @@ export function App() {
     if (!token) return;
     setLoading(true); setSaveErr(null);
     ghGet(token).then(({data:d, sha:s}) => {
-      setData(d ? {...d, visuels: migrateVisuels(d.visuels)} : INIT);
+      setData(d ? withMigrations(d) : withMigrations(INIT));
       setSha(s); shaRef.current = s; setLoading(false); resetHistory();
     }).catch(() => {
-      setData(INIT); setLoading(false);
+      setData(withMigrations(INIT)); setLoading(false);
       setSaveErr('Mode local — GitHub non disponible'); resetHistory();
     });
   }, [token]);
@@ -89,7 +93,18 @@ export function App() {
     save(next);
   }, [data, save]);
 
-  const updArr = (key, item) => upd({...data, [key]: data[key].map(i => i.id === item.id ? item : i)});
+  const updArr = (key, item) => {
+    const old = data[key].find(i => i.id === item.id);
+    const categoryChanged = old && (old.element !== item.element || old.lvl !== item.lvl);
+    if (categoryChanged) {
+      // Dropped into a new element/level group: land at the end of that
+      // group rather than keeping an arbitrary spot from the old one -
+      // manual reordering from there is up to the user.
+      upd({...data, [key]: [...data[key].filter(i => i.id !== item.id), item]});
+    } else {
+      upd({...data, [key]: data[key].map(i => i.id === item.id ? item : i)});
+    }
+  };
   const delArr = (key, id) => upd({...data, [key]: data[key].filter(i => i.id !== id)});
   const addArr = (key, item) => upd({...data, [key]: [...data[key], item]});
 
@@ -112,7 +127,7 @@ export function App() {
           style:{width:'100%', background:'#222', border:'1px solid #444', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14, marginBottom:8}
         }, 'Connexion GitHub'),
         h('button', {
-          onClick:()=>{setData(INIT); resetHistory();},
+          onClick:()=>{setData(withMigrations(INIT)); resetHistory();},
           style:{width:'100%', background:'none', border:'1px solid #2a2a2a', borderRadius:8, color:'#666', padding:'8px 14px', fontSize:12}
         }, 'Continuer sans token (mode local)')
       )

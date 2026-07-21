@@ -66,17 +66,17 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
           h(EditText, {value:item.effet, onChange:v=>onUpdate({...item,effet:v}), editMode, multiline:true})
         ),
         h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6}},
-          h('div', {},
+          h('div', {style:{display:'flex', alignItems:'center', gap:8}},
             !editMode && showElem && ec && h('span', {style:{
               fontSize:10, color:ec.dot, background:ec.bg, padding:'1px 6px',
               borderRadius:10, border:`1px solid ${ec.br}`
-            }}, `${ec.em} ${item.element}`)
+            }}, `${ec.em} ${item.element}`),
+            editMode && h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer'}},
+              showNotes ? '▲ notes' : '▼ notes'
+            )
           ),
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},
             h('span', {style:{fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
-            editMode && h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer'}},
-              showNotes ? '▲ notes' : '▼ notes'
-            ),
             editMode && h('span', {onClick:()=>onDelete(item.id), style:{fontSize:10, color:'#444', cursor:'pointer'}}, '✕')
           )
         ),

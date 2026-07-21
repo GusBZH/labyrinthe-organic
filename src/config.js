@@ -31,3 +31,5 @@ export const VISUEL_CATS = [
   {key:'items',label:'💎 Items'},{key:'monstres',label:'👹 Monstres'},
   {key:'accessoires',label:'🎲 Accessoires'},{key:'references',label:'🎨 Références'},
 ];
+
+export const SECTION_ORDER_DEFAULT = ['regles','cases','sorts','energies','monstres','lexique','modes','visuels','materiel'];

@@ -1,5 +1,5 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
-import { VISUEL_CATS } from "./config.js";
+import { VISUEL_CATS, SECTION_ORDER_DEFAULT } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
 
@@ -50,6 +50,19 @@ export function useEditFlash(editMode){
 export function migrateVisuels(visuels){
   if (Array.isArray(visuels)) return visuels;
   return VISUEL_CATS.map(c => ({id:c.key, label:c.label, content:(visuels && visuels[c.key]) || ''}));
+}
+
+// data.sectionOrder holds the display order of the home page's top-level
+// sections (a plain array of keys, reorderable like everything else).
+// Fills in a sane default when missing, and folds in any section key not
+// yet present (e.g. after adding a new section in a future update) so it
+// doesn't just silently disappear.
+export function migrateSectionOrder(order){
+  if (!Array.isArray(order)) return [...SECTION_ORDER_DEFAULT];
+  const known = new Set(SECTION_ORDER_DEFAULT);
+  const kept = order.filter(k => known.has(k));
+  const missing = SECTION_ORDER_DEFAULT.filter(k => !kept.includes(k));
+  return [...kept, ...missing];
 }
 
 // Press-and-hold (mouse or touch, via Pointer Events) reordering for a flat
@@ -108,4 +121,15 @@ export function useReorder(items, onReorder){
   })();
 
   return { display, dragIndex, startDrag };
+}
+
+// Commits a reordering of a filtered/sorted subset back into the full
+// array it came from, leaving items that aren't in the subset untouched
+// at their existing slots. Used to let a per-element (or per-level, or
+// per-status) grouping be drag-reordered without disturbing the other
+// groups sharing the same underlying array.
+export function reorderSubset(fullArray, reorderedSubset){
+  const ids = new Set(reorderedSubset.map(x => x.id));
+  let i = 0;
+  return fullArray.map(item => ids.has(item.id) ? reorderedSubset[i++] : item);
 }
