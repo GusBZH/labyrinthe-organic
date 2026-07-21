@@ -79,7 +79,7 @@ export function App() {
   // PAGES
   if (page === 'soirees') return h('div', {style:{minHeight:'100vh'}},
     h(SoireePage, {
-      soirees:data.soireesProto, editMode, onBack:()=>setPage('home'),
+      soirees:data.soireesProto, editMode, setEditMode, onBack:()=>setPage('home'),
       onUpdate:s=>updArr('soireesProto',s),
       onAdd:s=>addArr('soireesProto',s),
       onDelete:id=>delArr('soireesProto',id)
@@ -87,7 +87,7 @@ export function App() {
   );
 
   if (page === 'idees') return h('div', {style:{minHeight:'100vh'}},
-    h(IdeeVracPage, {value:data.ideeEnVrac, onChange:v=>upd({...data,ideeEnVrac:v}), editMode, onBack:()=>setPage('home')})
+    h(IdeeVracPage, {value:data.ideeEnVrac, onChange:v=>upd({...data,ideeEnVrac:v}), editMode, setEditMode, onBack:()=>setPage('home')})
   );
 
   return h(HomePage, {

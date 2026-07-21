@@ -2,13 +2,15 @@ import { h } from "../react.js";
 import { Section } from "../components/Section.js";
 import { EditText } from "../components/EditText.js";
 import { AddBtn } from "../components/AddBtn.js";
+import { EditToggle } from "../components/EditToggle.js";
 import { renderText, uid } from "../utils.js";
 
-export function SoireePage({soirees, onUpdate, onAdd, onDelete, editMode, onBack}) {
+export function SoireePage({soirees, onUpdate, onAdd, onDelete, editMode, setEditMode, onBack}) {
   return h('div', {style:{padding:'0 16px 80px'}},
     h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'16px 0'}},
       h('button', {onClick:onBack, style:{background:'none', border:'1px solid #333', borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
-      h('h2', {style:{margin:0, fontSize:16, color:'#eee'}}, '📅 Soirées Proto')
+      h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '📅 Soirées Proto'),
+      h(EditToggle, {editMode, setEditMode})
     ),
     soirees.map(s => h(Section, {key:s.id, title:s.date||'Sans date', emoji:'📅'},
       h('div', {style:{marginBottom:8}},
