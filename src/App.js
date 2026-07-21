@@ -1,10 +1,9 @@
-import { h, useState, useEffect, useRef, useCallback, Fragment } from "./react.js";
+import { h, useState, useEffect, useRef, useCallback } from "./react.js";
 import { ghGet, ghPut } from "./github.js";
 import { INIT } from "./data/initialData.js";
 import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
-import { EditGridFlash } from "./components/EditGridFlash.js";
 
 export function App() {
   const [data, setData] = useState(null);
@@ -78,27 +77,18 @@ export function App() {
   if (!data) return null;
 
   // PAGES
-  if (page === 'soirees') return h(Fragment, null,
-    h(EditGridFlash, {editMode}),
-    h(SoireePage, {
-      soirees:data.soireesProto, editMode, setEditMode, onBack:()=>setPage('home'),
-      onUpdate:s=>updArr('soireesProto',s),
-      onAdd:s=>addArr('soireesProto',s),
-      onDelete:id=>delArr('soireesProto',id)
-    })
-  );
+  if (page === 'soirees') return h(SoireePage, {
+    soirees:data.soireesProto, editMode, setEditMode, onBack:()=>setPage('home'),
+    onUpdate:s=>updArr('soireesProto',s),
+    onAdd:s=>addArr('soireesProto',s),
+    onDelete:id=>delArr('soireesProto',id)
+  });
 
-  if (page === 'idees') return h(Fragment, null,
-    h(EditGridFlash, {editMode}),
-    h(IdeeVracPage, {value:data.ideeEnVrac, onChange:v=>upd({...data,ideeEnVrac:v}), editMode, setEditMode, onBack:()=>setPage('home')})
-  );
+  if (page === 'idees') return h(IdeeVracPage, {value:data.ideeEnVrac, onChange:v=>upd({...data,ideeEnVrac:v}), editMode, setEditMode, onBack:()=>setPage('home')});
 
-  return h(Fragment, null,
-    h(EditGridFlash, {editMode}),
-    h(HomePage, {
-      data, editMode, setEditMode, saving, saveErr,
-      upd, updArr, delArr, addArr, setPage,
-      onLogout: () => { try{localStorage.removeItem('gh_token');}catch{} setToken(''); setData(null); }
-    })
-  );
+  return h(HomePage, {
+    data, editMode, setEditMode, saving, saveErr,
+    upd, updArr, delArr, addArr, setPage,
+    onLogout: () => { try{localStorage.removeItem('gh_token');}catch{} setToken(''); setData(null); }
+  });
 }
