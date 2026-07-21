@@ -1061,5 +1061,19 @@
     "modes",
     "visuels",
     "materiel"
+  ],
+  "elementOrder": [
+    "Feu",
+    "Eau",
+    "Terre",
+    "Air",
+    "Ombre",
+    "Multi"
+  ],
+  "lvlOrder": [
+    "Lvl 1",
+    "Lvl 2",
+    "Lvl 3",
+    "Lvl 4"
   ]
 }
