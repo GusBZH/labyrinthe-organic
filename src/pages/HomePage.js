@@ -9,9 +9,10 @@ import { NotesBlock } from "../components/NotesBlock.js";
 import { AddBtn } from "../components/AddBtn.js";
 import { EditText } from "../components/EditText.js";
 import { EditToggle } from "../components/EditToggle.js";
-import { uid, editBgStyle } from "../utils.js";
+import { uid, editBgStyle, useEditFlash } from "../utils.js";
 
 export function HomePage({data, editMode, setEditMode, saving, saveErr, upd, updArr, delArr, addArr, setPage, onLogout}) {
+  const flashCls = useEditFlash(editMode);
   const sortsByEl = {};
   ELEMENTS.forEach(el => { sortsByEl[el] = data.sorts.filter(s => s.element === el); });
   const energElems = ['Commun', ...ELEMENTS];
@@ -27,7 +28,7 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, upd, upd
     ? [...data.cases].sort((a,b) => STATUTS.indexOf(a.statut) - STATUTS.indexOf(b.statut))
     : data.cases.filter(c => c.statut === 'Validé');
 
-  return h('div', {style:{minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', color:'#eee', transition:'background .5s', ...editBgStyle(editMode)}},
+  return h('div', {className:flashCls, style:{position:'relative', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', color:'#eee', transition:'background .5s', ...editBgStyle(editMode)}},
 
     // HEADER
     h('div', {style:{position:'sticky', top:0, zIndex:50,

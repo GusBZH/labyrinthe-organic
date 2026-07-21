@@ -30,22 +30,28 @@ button,input,textarea{font-family:inherit;cursor:pointer}
 .sep{border:none;border-top:1px solid rgba(255,255,255,.15);margin:8px 0}
 .edit-input{background:rgba(255,255,255,.06);border:1px solid #444;border-radius:4px;color:#eee;padding:4px 6px;width:100%;font-size:inherit;line-height:inherit}
 .edit-textarea{background:rgba(255,255,255,.06);border:1px solid #444;border-radius:4px;color:#eee;padding:4px 6px;width:100%;font-size:inherit;resize:vertical;min-height:60px}
-.edit-grid-flash{
-  position:fixed;inset:0;z-index:200;pointer-events:none;
+.gridflash-in::after, .gridflash-out::after{
+  content:'';
+  position:absolute;inset:0;z-index:5;pointer-events:none;
   background:
     repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(160,210,255,.9) 27px,rgba(160,210,255,.9) 28px),
     repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(160,210,255,.9) 27px,rgba(160,210,255,.9) 28px);
   filter:drop-shadow(0 0 3px rgba(140,190,255,.9)) drop-shadow(0 0 9px rgba(100,160,255,.6));
   opacity:0;
-  animation:editGridFlash 1s both;
 }
-@keyframes editGridFlash{
+.gridflash-in::after{ animation:editGridFlashIn .5s both; }
+.gridflash-out::after{ animation:editGridFlashOut .5s both; }
+@keyframes editGridFlashIn{
   0%   {opacity:0; animation-timing-function:ease-out;}
-  50%  {opacity:1; animation-timing-function:steps(1,end);}
+  25%  {opacity:1; animation-timing-function:ease-in;}
+  100% {opacity:0;}
+}
+@keyframes editGridFlashOut{
+  0%   {opacity:1; animation-timing-function:steps(1,end);}
+  20%  {opacity:0; animation-timing-function:steps(1,end);}
+  40%  {opacity:1; animation-timing-function:steps(1,end);}
   60%  {opacity:0; animation-timing-function:steps(1,end);}
-  70%  {opacity:1; animation-timing-function:steps(1,end);}
-  80%  {opacity:0; animation-timing-function:steps(1,end);}
-  90%  {opacity:1;}
+  80%  {opacity:1;}
   100% {opacity:0;}
 }
 </style>

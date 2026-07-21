@@ -3,10 +3,11 @@ import { Section } from "../components/Section.js";
 import { EditText } from "../components/EditText.js";
 import { AddBtn } from "../components/AddBtn.js";
 import { EditToggle } from "../components/EditToggle.js";
-import { renderText, uid, editBgStyle } from "../utils.js";
+import { renderText, uid, editBgStyle, useEditFlash } from "../utils.js";
 
 export function SoireePage({soirees, onUpdate, onAdd, onDelete, editMode, setEditMode, onBack}) {
-  return h('div', {style:{minHeight:'100vh', padding:'0 16px 80px', transition:'background .5s', ...editBgStyle(editMode)}},
+  const flashCls = useEditFlash(editMode);
+  return h('div', {className:flashCls, style:{position:'relative', minHeight:'100vh', padding:'0 16px 80px', transition:'background .5s', ...editBgStyle(editMode)}},
     h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'16px 0'}},
       h('button', {onClick:onBack, style:{background:'none', border:'1px solid #333', borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
       h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '📅 Soirées Proto'),

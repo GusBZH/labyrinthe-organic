@@ -58,14 +58,22 @@ avec un système de pastilles colorées dans l'UI.
   fonctionnalités comme des blocs séparés (nouveau composant, nouvelle fonction),
   plutôt que de retoucher ce qui marche déjà.
 - Double saut de ligne dans un texte = doit créer une séparation visuelle (ligne hr) dans l'UI.
-- Dans Idées en vrac, appuyer sur Entrée deux fois de suite insère directement une ligne
-  séparatrice visible (── répété) au lieu d'une ligne vide invisible — plus facile à repérer
-  en scannant le texte brut.
+- Dans Idées en vrac, le contenu est stocké comme un seul texte, les blocs séparés par une
+  ligne vide (`\n\n`) — même convention que le rendu `renderText`. En mode édition, chaque
+  bloc est un `<textarea>` à hauteur automatique séparé par un vrai `<hr>` gris (pas des
+  tirets en texte). Entrée deux fois de suite scinde le bloc courant en deux (nouveau
+  séparateur) ; Retour arrière au tout début d'un bloc le refusionne avec le précédent.
+  Composant `BlockEditor` dans `src/pages/IdeeVracPage.js`.
 - Le mode édition permet la modification de tout texte par double-tap.
-- Activer le mode édition déclenche un flash d'1s sur toute la page : la grille de fond
-  (déjà visible en continu en mode édition) reçoit un glow bleu qui monte en 0.5s puis
-  clignote (glitch) sur la 2ème demi-seconde, avant de disparaître. Composant partagé :
-  `src/components/EditGridFlash.js` + classe CSS `.edit-grid-flash` dans `index.html`.
+- Activer/désactiver le mode édition déclenche un flash de 0.5s sur la grille de fond
+  (déjà visible en continu en mode édition) : à l'entrée, montée rapide puis
+  redescente un peu plus lente (glow) ; à la sortie, un clignotement (glitch) façon
+  power-down. Le flash est un `::after` sur le même élément que le fond en grille
+  (classes `.gridflash-in`/`.gridflash-out` dans `index.html`) pour rester pixel-aligné
+  avec la grille même en scrollant — jamais un calque `position:fixed` séparé, qui
+  désynchronise au scroll. Hook partagé `useEditFlash()` dans `src/utils.js`, conçu pour
+  ne jamais rester bloqué même en activant/désactivant très rapidement (chaque bascule
+  force une nouvelle classe, jamais un no-op).
 - Garder le vocabulaire du jeu tel quel (ex: "Énergie" et pas "Combo" — choix de lore assumé).
 
 ## Bug connu — probablement résolu, à confirmer
