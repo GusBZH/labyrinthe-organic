@@ -945,16 +945,6 @@
       "joueurs": "3-6",
       "contenu": "Objectif : découvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",
       "notes": ""
-    },
-    {
-      "id": "6t3c0dpeps6",
-      "nom": "Nouveau mode",
-      "emoji": "🎲",
-      "difficulte": "⭐",
-      "style": "",
-      "joueurs": "",
-      "contenu": "",
-      "notes": ""
     }
   ],
   "ideesModes": [
