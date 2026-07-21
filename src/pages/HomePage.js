@@ -57,6 +57,12 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
   const visuels = useReorder(data.visuels, next => upd({...data, visuels: next}));
   const sectionsRef = useRef(null);
   const sections = useReorder(data.sectionOrder, next => upd({...data, sectionOrder: next}));
+  const sortsElemRef = useRef(null);
+  const sortsElemOrder = useReorder(data.elementOrder, next => upd({...data, elementOrder: next}));
+  const energiesElemRef = useRef(null);
+  const energiesElemOrder = useReorder(data.elementOrder, next => upd({...data, elementOrder: next}));
+  const lvlOrderRef = useRef(null);
+  const lvlOrder = useReorder(data.lvlOrder, next => upd({...data, lvlOrder: next}));
 
   const sectionContent = {
     regles: h(Section, {title:'Règles de base', emoji:'📋'},
@@ -79,29 +85,46 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     ),
 
     sorts: h(Section, {title:'Sorts', emoji:'💎'},
-      ELEMENTS.map(el => h(ElemGroup, {key:el, element:el, items:sortsByEl[el]||[], editMode, withElem:true,
-        onUpdate:i=>updArr('sorts',i), onDelete:id=>delArr('sorts',id),
-        onAdd:i=>addArr('sorts',i),
-        onReorder:next=>upd({...data, sorts: reorderSubset(data.sorts, next)})
-      })),
+      h('div', {ref:sortsElemRef},
+        sortsElemOrder.display.map((el,i) => h(DragRow, {key:el, dragging:sortsElemOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>sortsElemOrder.startDrag(i, e, sortsElemRef.current)})},
+          h(ElemGroup, {element:el, items:sortsByEl[el]||[], editMode, withElem:true,
+            onUpdate:i2=>updArr('sorts',i2), onDelete:id=>delArr('sorts',id),
+            onAdd:i2=>addArr('sorts',i2),
+            onReorder:next=>upd({...data, sorts: reorderSubset(data.sorts, next)})
+          })
+        ))
+      ),
       h(NotesBlock, {value:data.sortsNotes, onChange:v=>upd({...data,sortsNotes:v}), editMode, label:'Notes — Sorts'})
     ),
 
     energies: h(Section, {title:'Énergies', emoji:'✨'},
-      energElems.map(el => h(ElemGroup, {key:el, element:el, items:energsByEl[el]||[], editMode, withElem:true,
-        onUpdate:i=>updArr('energies',i), onDelete:id=>delArr('energies',id),
-        onAdd:i=>addArr('energies',{id:uid(),nom:'Nouvelle énergie',element:el,statut:'Test 3',cout:'',limite:'',effet:'',quantite:1,notes:''}),
+      h(ElemGroup, {element:'Commun', items:energsByEl['Commun']||[], editMode, withElem:true,
+        onUpdate:i2=>updArr('energies',i2), onDelete:id=>delArr('energies',id),
+        onAdd:i2=>addArr('energies',{id:uid(),nom:'Nouvelle énergie',element:'Commun',statut:'Test 3',cout:'',limite:'',effet:'',quantite:1,notes:''}),
         onReorder:next=>upd({...data, energies: reorderSubset(data.energies, next)})
-      })),
+      }),
+      h('div', {ref:energiesElemRef},
+        energiesElemOrder.display.map((el,i) => h(DragRow, {key:el, dragging:energiesElemOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>energiesElemOrder.startDrag(i, e, energiesElemRef.current)})},
+          h(ElemGroup, {element:el, items:energsByEl[el]||[], editMode, withElem:true,
+            onUpdate:i2=>updArr('energies',i2), onDelete:id=>delArr('energies',id),
+            onAdd:i2=>addArr('energies',{id:uid(),nom:'Nouvelle énergie',element:el,statut:'Test 3',cout:'',limite:'',effet:'',quantite:1,notes:''}),
+            onReorder:next=>upd({...data, energies: reorderSubset(data.energies, next)})
+          })
+        ))
+      ),
       h(NotesBlock, {value:data.energiesNotes, onChange:v=>upd({...data,energiesNotes:v}), editMode, label:'Notes — Énergies'})
     ),
 
     monstres: h(Section, {title:'Monstres', emoji:'👹'},
-      LVLS.map(l => h(LvlGroup, {key:l, lvl:l, items:monsByLvl[l]||[], editMode,
-        onUpdate:i=>updArr('monstres',i), onDelete:id=>delArr('monstres',id),
-        onAdd:i=>addArr('monstres',i),
-        onReorder:next=>upd({...data, monstres: reorderSubset(data.monstres, next)})
-      })),
+      h('div', {ref:lvlOrderRef},
+        lvlOrder.display.map((l,i) => h(DragRow, {key:l, dragging:lvlOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>lvlOrder.startDrag(i, e, lvlOrderRef.current)})},
+          h(LvlGroup, {lvl:l, items:monsByLvl[l]||[], editMode,
+            onUpdate:i2=>updArr('monstres',i2), onDelete:id=>delArr('monstres',id),
+            onAdd:i2=>addArr('monstres',i2),
+            onReorder:next=>upd({...data, monstres: reorderSubset(data.monstres, next)})
+          })
+        ))
+      ),
       h(NotesBlock, {value:data.monstresNotes, onChange:v=>upd({...data,monstresNotes:v}), editMode, label:'Notes — Monstres'})
     ),
 

@@ -4,12 +4,18 @@ import { INIT } from "./data/initialData.js";
 import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
-import { migrateVisuels, migrateSectionOrder } from "./utils.js";
+import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder } from "./utils.js";
 
 const MAX_HISTORY = 50;
 
 function withMigrations(d){
-  return {...d, visuels: migrateVisuels(d.visuels), sectionOrder: migrateSectionOrder(d.sectionOrder)};
+  return {
+    ...d,
+    visuels: migrateVisuels(d.visuels),
+    sectionOrder: migrateSectionOrder(d.sectionOrder),
+    elementOrder: migrateElementOrder(d.elementOrder),
+    lvlOrder: migrateLvlOrder(d.lvlOrder),
+  };
 }
 
 export function App() {

@@ -1,5 +1,5 @@
 import { h, useState, useEffect } from "../react.js";
-import { renderText } from "../utils.js";
+import { renderText, autoGrow } from "../utils.js";
 
 export function EditText({value, onChange, editMode, multiline}) {
   const [editing, setEditing] = useState(false);
@@ -14,10 +14,12 @@ export function EditText({value, onChange, editMode, multiline}) {
     if (multiline) {
       return h('textarea', {
         className: 'edit-textarea',
+        ref: autoGrow,
         value: val,
         autoFocus: true,
-        onChange: e => setVal(e.target.value),
-        onBlur: () => { onChange(val); setEditing(false); }
+        onChange: e => { setVal(e.target.value); autoGrow(e.target); },
+        onBlur: () => { onChange(val); setEditing(false); },
+        style: {resize:'none', overflow:'hidden'}
       });
     }
     return h('input', {

@@ -1,13 +1,9 @@
 import { h, useRef, useEffect } from "../react.js";
-
-function autoGrow(el){
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-}
+import { autoGrow, useReorder } from "../utils.js";
+import { DragHandle } from "./DragHandle.js";
 
 const blockStyle = {
-  width:'100%', display:'block', background:'rgba(255,255,255,.03)', border:'1px solid #333',
+  flex:1, minWidth:0, display:'block', background:'rgba(255,255,255,.03)', border:'1px solid #333',
   borderRadius:8, color:'#ddd', padding:12, fontFamily:'inherit', fontSize:13, lineHeight:1.7,
   resize:'none', overflow:'hidden', boxSizing:'border-box',
 };
@@ -15,11 +11,14 @@ const blockStyle = {
 // Content is stored as one string, blocks separated by a blank line ('\n\n') —
 // the same convention renderText() already uses to draw a real <hr> in view
 // mode. Enter twice in a row splits the current block in two (new divider);
-// Backspace at the very start of a block merges it back into the previous one.
+// Backspace at the very start of a block merges it back into the previous one;
+// blocks can also be drag-reordered via a handle.
 export function BlockEditor({value, onChange, placeholder}){
   const blocks = value === '' ? [''] : value.split('\n\n');
   const refs = useRef([]);
   const focusRequest = useRef(null);
+  const containerRef = useRef(null);
+  const { display, dragIndex, startDrag } = useReorder(blocks, next => onChange(next.join('\n\n')));
 
   useEffect(() => {
     if (focusRequest.current == null) return;
@@ -62,20 +61,24 @@ export function BlockEditor({value, onChange, placeholder}){
     }
   }
 
-  const nodes = [];
-  blocks.forEach((block, i) => {
-    if (i > 0) nodes.push(h('hr', {key:'sep'+i, className:'sep'}));
-    nodes.push(h('textarea', {
-      key:'b'+i,
-      ref: el => { refs.current[i] = el; autoGrow(el); },
-      value: block,
-      onChange: e => { setBlock(i, e.target.value); autoGrow(e.target); },
-      onKeyDown: e => handleKeyDown(e, i),
-      placeholder: blocks.length === 1 ? (placeholder||'') : '',
-      rows: 1,
-      style: blockStyle,
-    }));
-  });
-
-  return h('div', null, ...nodes);
+  return h('div', {ref:containerRef},
+    display.map((block,i) => h('div', {key:'block'+i, style:{
+      opacity: dragIndex===i?0.6:1, transform: dragIndex===i?'scale(1.01)':'none',
+      boxShadow: dragIndex===i?'0 4px 14px rgba(0,0,0,.4)':'none', transition:'opacity .1s, box-shadow .1s',
+    }},
+      i > 0 && h('hr', {className:'sep'}),
+      h('div', {style:{display:'flex', alignItems:'flex-start', gap:4}},
+        h(DragHandle, {onPointerDown:e=>startDrag(i, e, containerRef.current)}),
+        h('textarea', {
+          ref: el => { refs.current[i] = el; autoGrow(el); },
+          value: block,
+          onChange: e => { setBlock(i, e.target.value); autoGrow(e.target); },
+          onKeyDown: e => handleKeyDown(e, i),
+          placeholder: blocks.length === 1 ? (placeholder||'') : '',
+          rows: 1,
+          style: blockStyle,
+        })
+      )
+    ))
+  );
 }
