@@ -1050,5 +1050,16 @@
       "label": "🎨 Références",
       "content": "Outer Wilds — symbole infini Nomai, feu de camp\nDofus Émeraude\nAvatar Airbender\nSquid Game / Liminal space coréen\nIello (boîtes)\nHytale (personnages)"
     }
+  ],
+  "sectionOrder": [
+    "regles",
+    "cases",
+    "sorts",
+    "energies",
+    "monstres",
+    "lexique",
+    "modes",
+    "visuels",
+    "materiel"
   ]
 }
