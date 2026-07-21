@@ -19,10 +19,11 @@ La logique tourne en `React.createElement` pur, découpée en modules ES natifs
 - `src/react.js` — réexporte `h`/hooks depuis le global `React` (UMD)
 - `src/config.js` — constantes (éléments, statuts, couleurs...)
 - `src/github.js` — lecture/écriture de `data.json` via l'API GitHub
-- `src/utils.js` — helpers (`uid`, `renderText`)
+- `src/utils.js` — helpers (`uid`, `renderText`, `useReorder`, `useEditFlash`,
+  `migrateVisuels`, `editBgStyle`)
 - `src/data/initialData.js` — jeu de données de secours (mode local sans token)
 - `src/components/` — briques UI génériques réutilisées partout (Card, Section,
-  EditText, ElemGroup, LvlGroup...)
+  EditText, ElemGroup, LvlGroup, BlockEditor, DragHandle, UndoRedo, EditableSection...)
 - `src/pages/` — écrans assemblés à partir des composants (HomePage,
   SoireePage, IdeeVracPage)
 - `data.json` — toutes les données du jeu (source de vérité, lu/écrit via l'API GitHub)
@@ -48,7 +49,10 @@ seule source de vérité, ne pas se fier à un compte figé ici. Les catégories
 - `soireesProto` — notes de soirées de playtest
 - `ideeEnVrac` — brainstorm libre
 - `materiel` — liste du matériel physique du jeu
-- `visuels` — références visuelles par catégorie
+- `visuels` — tableau extensible de catégories `{id, label, content}` (renommables,
+  ajoutables, réordonnables, supprimables depuis l'UI). Migré automatiquement au
+  chargement depuis l'ancien format objet fixe si besoin (`migrateVisuels` dans
+  `src/utils.js`) — aucune modification manuelle de data.json requise.
 
 Chaque item a généralement un champ `statut` : Validé / Test 1 / Test 2 / Test 3 / Archivé,
 avec un système de pastilles colorées dans l'UI.
@@ -58,12 +62,23 @@ avec un système de pastilles colorées dans l'UI.
   fonctionnalités comme des blocs séparés (nouveau composant, nouvelle fonction),
   plutôt que de retoucher ce qui marche déjà.
 - Double saut de ligne dans un texte = doit créer une séparation visuelle (ligne hr) dans l'UI.
-- Dans Idées en vrac, le contenu est stocké comme un seul texte, les blocs séparés par une
-  ligne vide (`\n\n`) — même convention que le rendu `renderText`. En mode édition, chaque
-  bloc est un `<textarea>` à hauteur automatique séparé par un vrai `<hr>` gris (pas des
-  tirets en texte). Entrée deux fois de suite scinde le bloc courant en deux (nouveau
-  séparateur) ; Retour arrière au tout début d'un bloc le refusionne avec le précédent.
-  Composant `BlockEditor` dans `src/pages/IdeeVracPage.js`.
+- Dans Idées en vrac, Visuels (contenu de chaque catégorie) et Matériel, le contenu est
+  stocké comme un seul texte, les blocs séparés par une ligne vide (`\n\n`) — même
+  convention que le rendu `renderText`. En mode édition, chaque bloc est un `<textarea>`
+  à hauteur automatique séparé par un vrai `<hr>` gris (jamais des tirets en texte, ça
+  ne s'adapte pas à la largeur d'écran). Entrée deux fois de suite scinde le bloc courant
+  en deux (nouveau séparateur) ; Retour arrière au tout début d'un bloc le refusionne
+  avec le précédent. Composant partagé `src/components/BlockEditor.js`.
+- Réordonner par glisser (souris ou tactile, appui-maintenu) est disponible sur Lexique,
+  Modes de jeu, Idées de modes, catégories de Visuels et Soirées Proto — les listes qui
+  n'ont pas de tri automatique. Volontairement PAS sur Sorts/Énergies/Monstres/Règles/
+  Cases, qui se trient déjà par statut en mode édition (Validé en premier, etc.) —
+  un ordre manuel y entrerait en conflit. Hook partagé `useReorder()` dans
+  `src/utils.js`, poignée `src/components/DragHandle.js` (Pointer Events, marche pareil
+  souris/tactile).
+- Undo/redo en mode édition (boutons ↩/↪ à gauche du crayon, `src/components/UndoRedo.js`) :
+  historique en mémoire géré dans `src/App.js` (pile `pastRef`/`futureRef`, 50 étapes max),
+  remis à zéro à chaque nouveau chargement de données. Ne persiste pas entre les sessions.
 - Le mode édition permet la modification de tout texte par double-tap.
 - Activer/désactiver le mode édition déclenche un flash de 0.5s sur la grille de fond
   (déjà visible en continu en mode édition) : à l'entrée, montée rapide puis

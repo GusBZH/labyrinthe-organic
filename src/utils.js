@@ -1,4 +1,5 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
+import { VISUEL_CATS } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
 
@@ -40,4 +41,71 @@ export function useEditFlash(editMode){
 
   useEffect(() => () => clearTimeout(timer.current), []);
   return cls;
+}
+
+// data.visuels used to be a fixed object ({general, boite, ...}); it's now a
+// user-extensible array of {id, label, content} so categories can be added,
+// renamed, reordered and removed. Converts old-shape data read from
+// data.json on the fly — harmless no-op once it's already an array.
+export function migrateVisuels(visuels){
+  if (Array.isArray(visuels)) return visuels;
+  return VISUEL_CATS.map(c => ({id:c.key, label:c.label, content:(visuels && visuels[c.key]) || ''}));
+}
+
+// Press-and-hold (mouse or touch, via Pointer Events) reordering for a flat
+// list. The caller renders `display` (the live drag preview order) inside a
+// container it owns, and wires each item's drag handle to
+// startDrag(indexInDisplay, pointerDownEvent, containerEl).
+export function useReorder(items, onReorder){
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+  const dragRef = useRef(null);
+  const overRef = useRef(null);
+  const rectsRef = useRef([]);
+
+  function startDrag(index, e, listEl){
+    e.preventDefault();
+    dragRef.current = index;
+    overRef.current = index;
+    setDragIndex(index);
+    setOverIndex(index);
+    rectsRef.current = Array.from(listEl.children).map(el => el.getBoundingClientRect());
+
+    function onMove(ev){
+      const y = ev.clientY;
+      let next = overRef.current;
+      for (let i = 0; i < rectsRef.current.length; i++) {
+        const r = rectsRef.current[i];
+        if (y >= r.top && y < r.bottom) { next = i; break; }
+      }
+      if (next !== overRef.current) {
+        overRef.current = next;
+        setOverIndex(next);
+      }
+    }
+    function onUp(){
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      const from = dragRef.current, to = overRef.current;
+      dragRef.current = null; overRef.current = null;
+      setDragIndex(null); setOverIndex(null);
+      if (from !== null && to !== null && from !== to) {
+        const next = [...items];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        onReorder(next);
+      }
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  const display = dragIndex === null ? items : (() => {
+    const next = [...items];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(overIndex, 0, moved);
+    return next;
+  })();
+
+  return { display, dragIndex, startDrag };
 }
