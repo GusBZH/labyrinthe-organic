@@ -161,14 +161,14 @@ export const INIT = {
   soireesProto:[],
   ideeEnVrac:"",
   materiel:"10 personnages carton sur bloc plastique vertical\n2 dés\n1 case Boule Géante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour Clé et Relique)\n3 jetons Chacal / Cape d'invisibilité\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDé : ~6$ pièce\nPersonnages acrylique : ~13.5$",
-  visuels:{
-    general:"Inspiration Squid Game / Liminal space coréen\nAmbiance kintsugi bioluminescent bleu\nFog volumétrique + sources de lumière kintsugi\nMurs en noir, sol en blanc pour visibilité\n\nLIVRET DE RÈGLES :\nStyle journal comme dans Harry Potter\n3 échelles de typo : ultra grosse (idée), moyenne (règle précise), petite opacité diminuée (détails)",
-    boite:"Inspiration boîtes Iello\nKintsugi bleu sur toute la boîte\nPlusieurs zones avec couleur dominante par élément\n60% des zones blanches",
-    personnages:"Acrylique transparent autour\nCouleur distincte par joueur\nIdée : perso avec tissu sur les yeux (statue de la Justice)\nPerso référence Outer Wilds Echo of the Eye (cerf cassé)",
-    cases:"Portail : sim 3D inspiration Dofus\nOeil : marque au sol violette\nEnergie : feu de camp (ref Outer Wilds)\nInstable : voronoi\nCase de départ : noir et or avec symbole géométrique",
-    items:"Illustration par élément sur le dos de la carte\nRune lumineuse dont la couleur révèle l'élément\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir",
-    monstres:"Dégradé sombre\nBoule Indiana Jones : oeil géant style Léviathan alt236",
-    accessoires:"Pierres de combo avec rune lumineuse\nJetons personnages avec logo mort au dos",
-    references:"Outer Wilds — symbole infini Nomai, feu de camp\nDofus Emeraude\nAvatar Airbender\nSquid Game\nIello (boites)\nHytale (personnages)",
-  }
+  visuels:[
+    {id:"general", label:"💡 Idée générale", content:"Inspiration Squid Game / Liminal space coréen\nAmbiance kintsugi bioluminescent bleu\nFog volumétrique + sources de lumière kintsugi\nMurs en noir, sol en blanc pour visibilité\n\nLIVRET DE RÈGLES :\nStyle journal comme dans Harry Potter\n3 échelles de typo : ultra grosse (idée), moyenne (règle précise), petite opacité diminuée (détails)"},
+    {id:"boite", label:"📦 Boîte", content:"Inspiration boîtes Iello\nKintsugi bleu sur toute la boîte\nPlusieurs zones avec couleur dominante par élément\n60% des zones blanches"},
+    {id:"personnages", label:"🧑 Personnages", content:"Acrylique transparent autour\nCouleur distincte par joueur\nIdée : perso avec tissu sur les yeux (statue de la Justice)\nPerso référence Outer Wilds Echo of the Eye (cerf cassé)"},
+    {id:"cases", label:"🗺️ Cases", content:"Portail : sim 3D inspiration Dofus\nOeil : marque au sol violette\nEnergie : feu de camp (ref Outer Wilds)\nInstable : voronoi\nCase de départ : noir et or avec symbole géométrique"},
+    {id:"items", label:"💎 Items", content:"Illustration par élément sur le dos de la carte\nRune lumineuse dont la couleur révèle l'élément\nTexte sur la face, illustration en fond\nMarqueurs +1/-1 en cercle noir"},
+    {id:"monstres", label:"👹 Monstres", content:"Dégradé sombre\nBoule Indiana Jones : oeil géant style Léviathan alt236"},
+    {id:"accessoires", label:"🎲 Accessoires", content:"Pierres de combo avec rune lumineuse\nJetons personnages avec logo mort au dos"},
+    {id:"references", label:"🎨 Références", content:"Outer Wilds — symbole infini Nomai, feu de camp\nDofus Emeraude\nAvatar Airbender\nSquid Game\nIello (boites)\nHytale (personnages)"},
+  ]
 };
