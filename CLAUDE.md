@@ -58,14 +58,26 @@ avec un système de pastilles colorées dans l'UI.
   fonctionnalités comme des blocs séparés (nouveau composant, nouvelle fonction),
   plutôt que de retoucher ce qui marche déjà.
 - Double saut de ligne dans un texte = doit créer une séparation visuelle (ligne hr) dans l'UI.
+- Dans Idées en vrac, appuyer sur Entrée deux fois de suite insère directement une ligne
+  séparatrice visible (── répété) au lieu d'une ligne vide invisible — plus facile à repérer
+  en scannant le texte brut.
 - Le mode édition permet la modification de tout texte par double-tap.
+- Activer le mode édition déclenche un flash d'1s sur toute la page : la grille de fond
+  (déjà visible en continu en mode édition) reçoit un glow bleu qui monte en 0.5s puis
+  clignote (glitch) sur la 2ème demi-seconde, avant de disparaître. Composant partagé :
+  `src/components/EditGridFlash.js` + classe CSS `.edit-grid-flash` dans `index.html`.
 - Garder le vocabulaire du jeu tel quel (ex: "Énergie" et pas "Combo" — choix de lore assumé).
 
-## Bug connu non résolu
-Les onglets (sections) s'affichaient vides hors mode édition sur la version
-déployée GitHub Pages en mobile, alors que ça fonctionnait dans l'aperçu de dev.
-Piste : cache navigateur ou souci de rendu React sur mobile. À vérifier en premier
-si des bugs d'affichage similaires réapparaissent.
+## Bug connu — probablement résolu, à confirmer
+Les sections s'affichaient vides hors mode édition. Cause trouvée : `ghGet` (lecture de
+data.json depuis l'API GitHub) ne décodait pas correctement l'UTF-8 depuis le base64,
+contrairement à `ghPut` (sauvegarde) — ça corrompait les caractères accentués à chaque
+lecture, et notamment le champ `statut` ("Validé" devenait "ValidÃ©"), cassant le filtre
+d'affichage qui compare une chaîne exacte. Corrigé dans `src/github.js` (helpers
+`base64ToUtf8`/`utf8ToBase64` symétriques) + réparation ponctuelle de data.json déjà
+corrompu. Gus a confirmé que ça fonctionne à nouveau après ce fix — si un bug d'affichage
+similaire réapparaît, vérifier en premier si data.json contient du texte corrompu
+(rechercher "Ã" dans le fichier).
 
 ## Roadmap version jouable (multi-étapes)
 1. **Version hotseat locale** — un seul écran, les joueurs passent le tour à
@@ -89,7 +101,6 @@ si des bugs d'affichage similaires réapparaissent.
      même téléphone sert aussi de client de jeu en même temps.
 
 ## Fonctionnalités en attente / roadmap
-- Animation sci-fi à l'entrée du mode édition (effet de balayage top-to-bottom avec glow)
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
 - Corriger l'affichage de l'icône power sur mobile
@@ -103,6 +114,12 @@ si des bugs d'affichage similaires réapparaissent.
 nouvelle fonctionnalité terminée, bug résolu, changement d'archi ou de convention),
 relis ce fichier et mets-le à jour toi-même si des sections sont devenues obsolètes
 (roadmap, bug connu, architecture). Pas besoin que Gus le demande explicitement.
+
+## Déploiement en continu
+Le site est servi depuis la branche `main` (GitHub Pages). Pousser directement
+sur `main` après chaque modif validée — pas besoin de demander confirmation
+avant chaque mise en ligne, Gus veut voir les changements en direct. Toujours
+tester (navigateur headless local) avant de pousser.
 
 ## Comment travailler avec Gus
 - Communique de façon directe et itérative, apprécie les avis honnnêtes sur les

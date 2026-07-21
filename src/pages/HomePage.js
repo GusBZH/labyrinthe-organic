@@ -9,7 +9,7 @@ import { NotesBlock } from "../components/NotesBlock.js";
 import { AddBtn } from "../components/AddBtn.js";
 import { EditText } from "../components/EditText.js";
 import { EditToggle } from "../components/EditToggle.js";
-import { uid } from "../utils.js";
+import { uid, editBgStyle } from "../utils.js";
 
 export function HomePage({data, editMode, setEditMode, saving, saveErr, upd, updArr, delArr, addArr, setPage, onLogout}) {
   const sortsByEl = {};
@@ -27,11 +27,7 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, upd, upd
     ? [...data.cases].sort((a,b) => STATUTS.indexOf(a.statut) - STATUTS.indexOf(b.statut))
     : data.cases.filter(c => c.statut === 'Validé');
 
-  const bgStyle = editMode
-    ? {background:'repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(255,255,255,.04) 27px,rgba(255,255,255,.04) 28px),repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(255,255,255,.04) 27px,rgba(255,255,255,.04) 28px),#1a1a1a'}
-    : {background:'#0e0e0e'};
-
-  return h('div', {style:{minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', color:'#eee', transition:'background .5s', ...bgStyle}},
+  return h('div', {style:{minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', color:'#eee', transition:'background .5s', ...editBgStyle(editMode)}},
 
     // HEADER
     h('div', {style:{position:'sticky', top:0, zIndex:50,
