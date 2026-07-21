@@ -96,10 +96,11 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
 
       // ÉNERGIES
       h(Section, {title:'Énergies', emoji:'✨'},
-        energElems.map(el => h(ElemGroup, {key:el, element:el, items:energsByEl[el]||[], editMode, withElem:false,
+        energElems.map(el => h(ElemGroup, {key:el, element:el, items:energsByEl[el]||[], editMode, withElem:true,
           onUpdate:i=>updArr('energies',i), onDelete:id=>delArr('energies',id),
           onAdd:i=>addArr('energies',{id:uid(),nom:'Nouvelle énergie',element:el,statut:'Test 3',cout:'',limite:'',effet:'',quantite:1,notes:''})
-        }))
+        })),
+        h(NotesBlock, {value:data.energiesNotes, onChange:v=>upd({...data,energiesNotes:v}), editMode, label:'Notes — Énergies'})
       ),
 
       // MONSTRES
