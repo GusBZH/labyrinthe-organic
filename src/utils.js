@@ -12,3 +12,9 @@ export function renderText(text){
   });
   return h(Fragment,null,...out);
 }
+
+export function editBgStyle(editMode){
+  return editMode
+    ? {background:'repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(255,255,255,.04) 27px,rgba(255,255,255,.04) 28px),repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(255,255,255,.04) 27px,rgba(255,255,255,.04) 28px),#1a1a1a'}
+    : {background:'#0e0e0e'};
+}
