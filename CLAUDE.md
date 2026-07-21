@@ -134,26 +134,148 @@ corrompu. Gus a confirmé que ça fonctionne à nouveau après ce fix — si un 
 similaire réapparaît, vérifier en premier si data.json contient du texte corrompu
 (rechercher "Ã" dans le fichier).
 
+## Système de jeu — plateau interactif (design validé, à implémenter par couches)
+Philosophie générale : le plateau numérique est une **aide visuelle de confort**, jamais
+un arbitre de règles. Comme IRL, les joueurs restent responsables de calculer et valider
+leurs propres actions (PA, effets de sorts, etc.) — l'app ne comprend pas la sémantique
+des cartes, elle affiche et laisse manipuler librement. Corollaire : **aucun compteur de
+PA/déplacement n'est prévu** — mouvement des persos totalement libre sur la grille, sans
+limite ni calcul côté app.
+
+Recommandation d'implémentation : construire par couches testables séparément plutôt
+qu'en un seul bloc (risque de régression difficile à isoler sinon) :
+1. Grille + sélection/déplacement perso
+2. Pioche/pose/rotation de tuiles
+3. Items et multi-sélection par case (joueurs/monstres, sorts, énergies)
+4. Mode Vision
+5. Pan/zoom fin + undo/redo global
+
+### Plateau et grille
+- Plateau quadrillé, clics/taps uniquement sur des cases (jamais entre les cases).
+- PV : compteur manuel par joueur, boutons `+1`/`-1`, actionnable sur soi-même ou sur un
+  autre joueur (utile si AFK). Même esprit simple que le reste : aucun calcul, juste un tally.
+- Dé : bouton qui lance un dé virtuel.
+- Pas de compteur PA ni de compteur de déplacement — mouvement libre, à la charge des joueurs.
+
+### Sélection et déplacement des personnages
+- Sélectionner un perso (tap/clic simple) → surbrillance bleu glow.
+- Cliquer/tap sur une case d'arrivée → le perso s'y déplace, sans limite de distance
+  ni de coût compté par l'app.
+- Le labyrinthe (tuiles) ne peut être manipulé que sur des cases sans joueur dessus —
+  prévoir quand même un moyen de choisir explicitement "perso" vs "case" si les deux se
+  chevauchent (cf. système de sélection par geste ci-dessous).
+
+### Système de sélection par geste (résout l'ambiguïté multi-entités par case)
+Une case peut contenir simultanément : un ou plusieurs joueurs/monstres, une ou
+plusieurs cartes/items au sol, et la case du labyrinthe elle-même. Le geste détermine
+quelle couche on sélectionne, trié par fréquence d'usage (le plus fréquent = le geste
+le plus simple) :
+
+**Mobile :**
+- Tap simple → sélectionne les joueurs/monstres présents sur la case
+- Tap prolongé (maintenu) → sélectionne un item au sol (sorts/énergies)
+- Double-tap → sélectionne la case/tuile du labyrinthe
+
+**PC :**
+- Clic simple → joueurs/monstres
+- Clic droit → item au sol
+- Double-clic → case/tuile
+
+Seuil de précision géré nativement par la grille (pas de calcul pixel arbitraire) :
+- Rester sur la même case > 1 seconde → geste "prolongé"
+- Relâcher sans changer de case → tap/clic simple
+- Traverser plusieurs cases pendant le contact → interprété comme un pan/déplacement de
+  vue, pas une sélection. Cas ambigu accepté : en dézoomé avec petites cases, un léger
+  glissement peut être confondu avec un pan — jugé acceptable car l'intention réelle du
+  joueur dans ce contexte (dézoomé) est justement de naviguer, pas d'agir précisément ;
+  et quand precision est recherchée, le joueur est zoomé, donc les cases sont grandes et
+  le seuil d'une case entière est facile à respecter.
+
+**S'il y a plusieurs entités de la couche sélectionnée sur la même case** (ex: 2 joueurs,
+ou plusieurs items), une fenêtre de choix s'ouvre :
+- Pour joueurs/monstres : **joueurs à gauche, monstres à droite**
+- Pour items : **sorts à gauche, énergies à droite**
+- Fermeture de n'importe quelle fenêtre : cliquer/tap ailleurs, ou sélectionner autre chose
+
+### Monstres traités comme des "joueurs"
+Les monstres suivent le même système de sélection/déplacement que les joueurs (pas de
+mécanique séparée à coder). Flux d'une rencontre :
+1. Le joueur arrive sur une case monstre.
+2. Il clique sur la pioche monstre, puis sur sa propre case → le monstre apparaît sur
+   la case (traité désormais comme une entité "joueur" sélectionnable dessus).
+3. Le joueur lance le dé (bouton dé).
+4. S'il gagne, il fait une sélection prolongée sur la case pour cibler le monstre, puis
+   clique sur la défausse pour le défausser.
+
+### Pioche et pose de tuiles (labyrinthe)
+1. Cliquer sur la pioche → la carte du dessus se retourne (reste visuellement sur la
+   pioche, marquée comme "tuile actuellement choisie").
+2. Cliquer sur un emplacement de grille vide → pose la tuile à cet endroit (encore
+   tournable/validable, cf. étape 3).
+3. Un petit menu apparaît avec deux boutons ronds :
+   - Flèche circulaire (à droite) → rotation horaire 90°, cliquable/spammable jusqu'à
+     obtenir l'orientation voulue
+   - Coche/validation (à gauche) → valide la tuile dans son état actuel
+4. Ce même menu (rotation + validation) réapparaît si on resélectionne plus tard une
+   tuile déjà posée — permet aussi, à ce moment, de : tourner, valider, défausser (clic
+   sur la défausse), ou déplacer (clic sur une autre case).
+- Les tuiles déjà posées mais vides (pas de joueur dessus) sont aussi sélectionnables
+  pour les tourner ou les défausser via le même mécanisme.
+- Une tuile du labyrinthe ne peut être manipulée que si aucun joueur n'est dessus.
+
+### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu)
+- Appui long / clic maintenu sur une pioche → la divise en deux (mécanique de jeu à
+  part entière).
+- Double-tap / double-clic sur une pioche OU une défausse → mélange.
+
+### Undo/redo global
+Boutons retour/avancer pour annuler des actions accidentelles (ex: mélange non
+désiré). Réutiliser si possible le composant `UndoRedo` déjà construit pour le mode
+édition (`src/components/UndoRedo.js`) plutôt que redévelopper un système d'historique
+séparé — à évaluer techniquement selon la nature des actions de jeu (probablement un
+historique distinct de celui du mode édition, mais même pattern UI/logique réutilisable).
+
+### Mode Vision (affichage détaillé d'une carte/entité)
+Bouton "œil" en bas à droite de l'écran. Une fois activé, toute sélection (case, perso,
+monstre, item) affiche le texte complet de la carte en grand plutôt que d'exécuter
+l'action normale associée à la sélection — ex: sélectionner un monstre en mode Vision
+affiche ses stats et récompenses en plein écran, au lieu du menu d'action habituel.
+Direction esthétique : overlay bleuté, effet glitch/matrix, inspiré du mode édition
+existant (réutiliser si possible la base de l'effet `useEditFlash` / classes
+`gridflash-in`/`gridflash-out` dans `index.html` plutôt que repartir de zéro — cohérence
+visuelle avec le glitch du mode édition, portails, sortie "Matrix").
+
+### Pan et zoom
+- Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
+  déplacer la vue ; pincer à deux doigts pour zoomer/dézoomer.
+- PC : cliquer-glisser pour déplacer la vue ; molette ou geste trackpad pour zoomer.
+
 ## Roadmap version jouable (multi-étapes)
 1. **Version hotseat locale** — un seul écran, les joueurs passent le tour à
    tour de rôle. Objectif : valider que les mécaniques digitalisées marchent
-   avant d'ajouter la couche réseau.
-2. **Version en ligne entre amis (pas un vrai serveur public type .io hébergé)** —
-   - Le serveur (petit backend Node.js, type Colyseus pour la gestion de salles
-     de jeu multijoueur) tourne sur le PC de Gus, lancé seulement pendant les
-     sessions de jeu, pas en permanence.
-   - Cas simple : tous sur le même WiFi → connexion directe via IP locale.
-   - Cas à distance : Gus lance un tunnel temporaire (type Cloudflare Tunnel)
-     qui génère un lien public éphémère à partager. Les amis n'ont rien à
-     installer, juste cliquer le lien et jouer depuis leur navigateur (mobile
-     ou PC).
-   - Le serveur reste sur PC en priorité (pas sur téléphone) — iOS ne permet
-     pas de faire tourner un serveur en arrière-plan. En solution de secours
-     quand seul le téléphone est dispo (Android uniquement) : faire tourner le
-     serveur via Termux. Nécessite de désactiver l'optimisation de batterie
-     pour Termux et de garder un wake lock actif, sinon Android tue le
-     processus en arrière-plan. Consommation batterie/chaleur accrue si le
-     même téléphone sert aussi de client de jeu en même temps.
+   avant d'ajouter la couche réseau. Voir section "Système de jeu — plateau
+   interactif" ci-dessus pour le détail complet du design validé.
+2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
+   JS open source pour jeux de plateau tour par tour, intégrée directement dans
+   l'app, pas un service externe) pour la gestion des tours et la synchronisation
+   d'état entre joueurs, combinée à **Firebase Realtime Database ou Supabase**
+   (gratuit en usage léger) pour l'hébergement temps réel.
+   - Avantage décisif par rapport à un serveur perso : tourne dans le cloud,
+     aucun appareil (PC ou téléphone) de Gus à garder allumé pendant la partie.
+   - Chaque action d'un joueur sur le plateau (déplacement, pose de tuile, etc.)
+     est propagée en live à tous les autres joueurs connectés à la même partie.
+   - Contrôle total conservé : ce n'est pas un site `.io` externe auquel on
+     adapte le jeu, c'est une brique technique intégrée à l'app existante
+     (même repo, même design, même data.json).
+   - Modifications de `data.json` (cartes, règles) : s'appliquent immédiatement
+     à toutes les *nouvelles* parties lancées après la modif. Pas besoin de
+     figer les règles par partie en cours — Gus a confirmé qu'il ne changera
+     jamais les règles pendant qu'une partie est en cours, donc pas de
+     mécanisme de verrouillage à développer pour l'instant (noté dans les
+     notes de soirée proto si besoin futur).
+   - Ancienne piste abandonnée : serveur Node.js perso (Colyseus) sur PC/tunnel
+     Cloudflare — remplacée par l'approche cloud ci-dessus, plus simple et sans
+     contrainte de disponibilité matérielle.
 
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
