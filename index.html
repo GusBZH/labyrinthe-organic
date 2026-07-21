@@ -40,19 +40,19 @@ button,input,textarea{font-family:inherit;cursor:pointer}
   opacity:0;
 }
 .gridflash-in::after{ animation:editGridFlashIn .4s both; }
-.gridflash-out::after{ animation:editGridFlashOut .8s both; }
+.gridflash-out::after{ animation:editGridFlashOut .576s both; }
 @keyframes editGridFlashIn{
   0%   {opacity:0; animation-timing-function:ease-out;}
   25%  {opacity:.33; animation-timing-function:ease-in;}
   100% {opacity:0;}
 }
 @keyframes editGridFlashOut{
-  0%   {opacity:.33; animation-timing-function:steps(1,end);}
-  6%   {opacity:0; animation-timing-function:steps(1,end);}
-  62%  {opacity:.33; animation-timing-function:steps(1,end);}
-  67%  {opacity:0; animation-timing-function:steps(1,end);}
-  75%  {opacity:.33;}
-  100% {opacity:0;}
+  0%     {opacity:.33; animation-timing-function:steps(1,end);}
+  8.33%  {opacity:0; animation-timing-function:steps(1,end);}
+  47.22% {opacity:.33; animation-timing-function:steps(1,end);}
+  54.17% {opacity:0; animation-timing-function:steps(1,end);}
+  65.28% {opacity:.33;}
+  100%   {opacity:0;}
 }
 </style>
 </head>
