@@ -90,8 +90,15 @@ avec un système de pastilles colorées dans l'UI.
   réordonnancement d'un sous-ensemble filtré/trié sans toucher aux autres items du
   tableau complet. Hook partagé `useReorder()` (Pointer Events, marche pareil souris/
   tactile), poignée `src/components/DragHandle.js`. L'ordre des sections elles-mêmes
-  vit dans `data.sectionOrder` (migration douce si absent, voir `migrateSectionOrder()`
-  dans `src/utils.js`).
+  vit dans `data.sectionOrder`, l'ordre des groupes élément (Sorts/Énergies, partagé
+  entre les deux) dans `data.elementOrder`, l'ordre des niveaux de Monstres dans
+  `data.lvlOrder` — chacun avec sa migration douce si absent (`migrateSectionOrder`/
+  `migrateElementOrder`/`migrateLvlOrder` dans `src/utils.js`). Les blocs de texte
+  eux-mêmes (dans Idées en vrac / Visuels / Matériel, séparés par `\n\n`) sont aussi
+  réordonnables un par un via `BlockEditor`.
+- Tous les `<textarea>` en mode édition (`EditText` multiligne et `BlockEditor`)
+  s'agrandissent automatiquement à la hauteur du texte (`autoGrow()` dans
+  `src/utils.js`) — jamais de petite zone de texte à scroller en interne.
 - Undo/redo en mode édition (boutons ↩/↪ à gauche du crayon, `src/components/UndoRedo.js`) :
   historique en mémoire géré dans `src/App.js` (pile `pastRef`/`futureRef`, 50 étapes max),
   remis à zéro à chaque nouveau chargement de données. Ne persiste pas entre les sessions.

@@ -1,7 +1,14 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
-import { VISUEL_CATS, SECTION_ORDER_DEFAULT } from "./config.js";
+import { VISUEL_CATS, SECTION_ORDER_DEFAULT, ELEMENTS, LVLS } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
+
+// Grows a <textarea> to fit its content instead of scrolling internally.
+export function autoGrow(el){
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
 
 export function renderText(text){
   if(!text) return null;
@@ -62,6 +69,23 @@ export function migrateSectionOrder(order){
   const known = new Set(SECTION_ORDER_DEFAULT);
   const kept = order.filter(k => known.has(k));
   const missing = SECTION_ORDER_DEFAULT.filter(k => !kept.includes(k));
+  return [...kept, ...missing];
+}
+
+// Same idea as migrateSectionOrder, for the display order of elements
+// (Sorts/Énergies group headers) and monster levels.
+export function migrateElementOrder(order){
+  if (!Array.isArray(order)) return [...ELEMENTS];
+  const known = new Set(ELEMENTS);
+  const kept = order.filter(k => known.has(k));
+  const missing = ELEMENTS.filter(k => !kept.includes(k));
+  return [...kept, ...missing];
+}
+export function migrateLvlOrder(order){
+  if (!Array.isArray(order)) return [...LVLS];
+  const known = new Set(LVLS);
+  const kept = order.filter(k => known.has(k));
+  const missing = LVLS.filter(k => !kept.includes(k));
   return [...kept, ...missing];
 }
 
