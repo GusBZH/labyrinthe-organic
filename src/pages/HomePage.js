@@ -1,6 +1,5 @@
 import { h, useRef } from "../react.js";
 import { ELEMENTS, STATUTS, LVLS } from "../config.js";
-import { Section } from "../components/Section.js";
 import { Card } from "../components/Card.js";
 import { ElemGroup } from "../components/ElemGroup.js";
 import { LvlGroup } from "../components/LvlGroup.js";
@@ -65,27 +64,27 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
   const lvlOrder = useReorder(data.lvlOrder, next => upd({...data, lvlOrder: next}));
 
   const sectionContent = {
-    regles: h(Section, {title:'Règles de base', emoji:'📋'},
-      h('div', {ref:reglesRef},
+    regles: [
+      h('div', {key:'list', ref:reglesRef},
         regles.display.map((r,i) => h(DragRow, {key:r.id, dragging:regles.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>regles.startDrag(i, e, reglesRef.current)})},
           h(Card, {item:r, onUpdate:i2=>updArr('regles',i2), onDelete:id=>delArr('regles',id), editMode, showElem:false})
         ))
       ),
-      editMode && h(AddBtn, {onClick:()=>addArr('regles',{id:uid(),nom:'Nouvelle règle',statut:'Test 3',effet:'',notes:''})}),
-      h(NotesBlock, {value:data.reglesNotes, onChange:v=>upd({...data,reglesNotes:v}), editMode, label:'Notes — Règles'})
-    ),
+      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('regles',{id:uid(),nom:'Nouvelle règle',statut:'Test 3',effet:'',notes:''})}),
+      h(NotesBlock, {key:'notes', value:data.reglesNotes, onChange:v=>upd({...data,reglesNotes:v}), editMode, label:'Notes — Règles'})
+    ],
 
-    cases: h(Section, {title:'Cases', emoji:'🗺️'},
-      h('div', {ref:casesRef},
+    cases: [
+      h('div', {key:'list', ref:casesRef},
         cases.display.map((c,i) => h(DragRow, {key:c.id, dragging:cases.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>cases.startDrag(i, e, casesRef.current)})},
           h(Card, {item:c, onUpdate:i2=>updArr('cases',i2), onDelete:id=>delArr('cases',id), editMode, showElem:false})
         ))
       ),
-      editMode && h(AddBtn, {onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:''})})
-    ),
+      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:''})})
+    ],
 
-    sorts: h(Section, {title:'Sorts', emoji:'💎'},
-      h('div', {ref:sortsElemRef},
+    sorts: [
+      h('div', {key:'list', ref:sortsElemRef},
         sortsElemOrder.display.map((el,i) => h(DragRow, {key:el, dragging:sortsElemOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>sortsElemOrder.startDrag(i, e, sortsElemRef.current)})},
           h(ElemGroup, {element:el, items:sortsByEl[el]||[], editMode, withElem:true,
             onUpdate:i2=>updArr('sorts',i2), onDelete:id=>delArr('sorts',id),
@@ -94,16 +93,16 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           })
         ))
       ),
-      h(NotesBlock, {value:data.sortsNotes, onChange:v=>upd({...data,sortsNotes:v}), editMode, label:'Notes — Sorts'})
-    ),
+      h(NotesBlock, {key:'notes', value:data.sortsNotes, onChange:v=>upd({...data,sortsNotes:v}), editMode, label:'Notes — Sorts'})
+    ],
 
-    energies: h(Section, {title:'Énergies', emoji:'✨'},
-      h(ElemGroup, {element:'Commun', items:energsByEl['Commun']||[], editMode, withElem:true,
+    energies: [
+      h(ElemGroup, {key:'commun', element:'Commun', items:energsByEl['Commun']||[], editMode, withElem:true,
         onUpdate:i2=>updArr('energies',i2), onDelete:id=>delArr('energies',id),
         onAdd:i2=>addArr('energies',{id:uid(),nom:'Nouvelle énergie',element:'Commun',statut:'Test 3',cout:'',limite:'',effet:'',quantite:1,notes:''}),
         onReorder:next=>upd({...data, energies: reorderSubset(data.energies, next)})
       }),
-      h('div', {ref:energiesElemRef},
+      h('div', {key:'list', ref:energiesElemRef},
         energiesElemOrder.display.map((el,i) => h(DragRow, {key:el, dragging:energiesElemOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>energiesElemOrder.startDrag(i, e, energiesElemRef.current)})},
           h(ElemGroup, {element:el, items:energsByEl[el]||[], editMode, withElem:true,
             onUpdate:i2=>updArr('energies',i2), onDelete:id=>delArr('energies',id),
@@ -112,11 +111,11 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           })
         ))
       ),
-      h(NotesBlock, {value:data.energiesNotes, onChange:v=>upd({...data,energiesNotes:v}), editMode, label:'Notes — Énergies'})
-    ),
+      h(NotesBlock, {key:'notes', value:data.energiesNotes, onChange:v=>upd({...data,energiesNotes:v}), editMode, label:'Notes — Énergies'})
+    ],
 
-    monstres: h(Section, {title:'Monstres', emoji:'👹'},
-      h('div', {ref:lvlOrderRef},
+    monstres: [
+      h('div', {key:'list', ref:lvlOrderRef},
         lvlOrder.display.map((l,i) => h(DragRow, {key:l, dragging:lvlOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>lvlOrder.startDrag(i, e, lvlOrderRef.current)})},
           h(LvlGroup, {lvl:l, items:monsByLvl[l]||[], editMode,
             onUpdate:i2=>updArr('monstres',i2), onDelete:id=>delArr('monstres',id),
@@ -125,11 +124,11 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           })
         ))
       ),
-      h(NotesBlock, {value:data.monstresNotes, onChange:v=>upd({...data,monstresNotes:v}), editMode, label:'Notes — Monstres'})
-    ),
+      h(NotesBlock, {key:'notes', value:data.monstresNotes, onChange:v=>upd({...data,monstresNotes:v}), editMode, label:'Notes — Monstres'})
+    ],
 
-    lexique: h(Section, {title:'Lexique', emoji:'📖'},
-      h('div', {ref:lexiqueRef},
+    lexique: [
+      h('div', {key:'list', ref:lexiqueRef},
         lexique.display.map((l,i) => h('div', {key:l.id, style:{padding:'8px 0',
           borderBottom:i<lexique.display.length-1?'1px solid rgba(255,255,255,.06)':'none',
           display:'flex', alignItems:'flex-start', gap:8,
@@ -145,12 +144,12 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           editMode && h('div', {onClick:()=>upd({...data,lexique:data.lexique.filter(x=>x.id!==l.id)}), style:{fontSize:10, color:'#555', cursor:'pointer', padding:'2px 4px', flexShrink:0}}, '✕')
         ))
       ),
-      editMode && h(AddBtn, {onClick:()=>upd({...data,lexique:[...data.lexique,{id:uid(),terme:'Terme',definition:'Définition'}]})}),
-      h(NotesBlock, {value:data.lexiqueNotes, onChange:v=>upd({...data,lexiqueNotes:v}), editMode})
-    ),
+      editMode && h(AddBtn, {key:'add', onClick:()=>upd({...data,lexique:[...data.lexique,{id:uid(),terme:'Terme',definition:'Définition'}]})}),
+      h(NotesBlock, {key:'notes', value:data.lexiqueNotes, onChange:v=>upd({...data,lexiqueNotes:v}), editMode})
+    ],
 
-    modes: h(Section, {title:'Modes de jeu', emoji:'🎮'},
-      h('div', {ref:modesRef},
+    modes: [
+      h('div', {key:'list', ref:modesRef},
         modes.display.map((m,i) => h(DragRow, {key:m.id, dragging:modes.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>modes.startDrag(i, e, modesRef.current)})},
           h(ModeCard, {mode:m, editMode,
             onUpdate:m2=>{const a=data.modes.map(x=>x.id===m2.id?m2:x);upd({...data,modes:a});},
@@ -158,8 +157,8 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           })
         ))
       ),
-      editMode && h(AddBtn, {onClick:()=>upd({...data,modes:[...data.modes,{id:uid(),nom:'Nouveau mode',emoji:'🎲',difficulte:'⭐',style:'',joueurs:'',contenu:'',notes:''}]})}),
-      h('div', {style:{marginTop:8, borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:8}},
+      editMode && h(AddBtn, {key:'add', onClick:()=>upd({...data,modes:[...data.modes,{id:uid(),nom:'Nouveau mode',emoji:'🎲',difficulte:'⭐',style:'',joueurs:'',contenu:'',notes:''}]})}),
+      h('div', {key:'idees', style:{marginTop:8, borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:8}},
         h('div', {style:{fontSize:11, color:'#555', marginBottom:8}}, '💡 Idées de modes'),
         h('div', {ref:ideesModesRef},
           ideesModes.display.map((im,i) => h(DragRow, {key:im.id, dragging:ideesModes.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>ideesModes.startDrag(i, e, ideesModesRef.current)})},
@@ -180,10 +179,10 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
         ),
         editMode && h(AddBtn, {onClick:()=>upd({...data,ideesModes:[...data.ideesModes,{id:uid(),nom:'Nouveau mode',pitch:''}]})})
       )
-    ),
+    ],
 
-    visuels: h(Section, {title:'Visuels', emoji:'🎨'},
-      h('div', {ref:visuelsRef},
+    visuels: [
+      h('div', {key:'list', ref:visuelsRef},
         visuels.display.map((cat,i) => h(DragRow, {key:cat.id, dragging:visuels.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>visuels.startDrag(i, e, visuelsRef.current)})},
           h(EditableSection, {
             title: cat.label,
@@ -197,15 +196,15 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           )
         ))
       ),
-      editMode && h(AddBtn, {onClick:()=>upd({...data,visuels:[...data.visuels,{id:uid(),label:'Nouvelle catégorie',content:''}]})})
-    ),
+      editMode && h(AddBtn, {key:'add', onClick:()=>upd({...data,visuels:[...data.visuels,{id:uid(),label:'Nouvelle catégorie',content:''}]})})
+    ],
 
-    materiel: h(Section, {title:'Matériel', emoji:'🧰'},
+    materiel: [
       editMode
-        ? h(BlockEditor, {value:data.materiel||'', onChange:v=>upd({...data,materiel:v})})
-        : h('div', {style:{fontSize:12, color:'#bbb', lineHeight:1.7}}, renderText(data.materiel||'')),
-      h(NotesBlock, {value:data.materielNotes, onChange:v=>upd({...data,materielNotes:v}), editMode})
-    ),
+        ? h(BlockEditor, {key:'edit', value:data.materiel||'', onChange:v=>upd({...data,materiel:v})})
+        : h('div', {key:'view', style:{fontSize:12, color:'#bbb', lineHeight:1.7}}, renderText(data.materiel||'')),
+      h(NotesBlock, {key:'notes', value:data.materielNotes, onChange:v=>upd({...data,materielNotes:v}), editMode})
+    ],
   };
 
   return h('div', {className:flashCls, style:{position:'relative', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', color:'#eee', transition:'background .5s', ...editBgStyle(editMode)}},
@@ -240,8 +239,13 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
       ),
 
       h('div', {ref:sectionsRef},
-        sections.display.map((key,i) => h(DragRow, {key, dragging:sections.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>sections.startDrag(i, e, sectionsRef.current)})},
-          sectionContent[key]
+        sections.display.map((sec,i) => h(DragRow, {key:sec.key, dragging:sections.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>sections.startDrag(i, e, sectionsRef.current)})},
+          h(EditableSection, {
+            title: sec.label,
+            onTitleChange: editMode ? v => { const next = data.sectionOrder.map(s => s.key===sec.key?{...s,label:v}:s); upd({...data, sectionOrder:next}); } : undefined,
+          },
+            ...sectionContent[sec.key]
+          )
         ))
       ),
 

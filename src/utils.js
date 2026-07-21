@@ -1,5 +1,5 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
-import { VISUEL_CATS, SECTION_ORDER_DEFAULT, ELEMENTS, LVLS } from "./config.js";
+import { VISUEL_CATS, SECTION_ORDER_DEFAULT, SECTION_LABELS_DEFAULT, ELEMENTS, LVLS } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
 
@@ -59,16 +59,23 @@ export function migrateVisuels(visuels){
   return VISUEL_CATS.map(c => ({id:c.key, label:c.label, content:(visuels && visuels[c.key]) || ''}));
 }
 
-// data.sectionOrder holds the display order of the home page's top-level
-// sections (a plain array of keys, reorderable like everything else).
-// Fills in a sane default when missing, and folds in any section key not
-// yet present (e.g. after adding a new section in a future update) so it
-// doesn't just silently disappear.
+// data.sectionOrder holds the display order AND renamable labels of the
+// home page's top-level sections: an array of {key, label}. Upgrades the
+// older plain-array-of-keys shape (labels used to be hardcoded in
+// HomePage.js) by filling in the default label, and folds in any section
+// key not yet present (e.g. after adding a new section in a future
+// update) so it doesn't just silently disappear.
 export function migrateSectionOrder(order){
-  if (!Array.isArray(order)) return [...SECTION_ORDER_DEFAULT];
+  if (!Array.isArray(order)) {
+    return SECTION_ORDER_DEFAULT.map(key => ({key, label:SECTION_LABELS_DEFAULT[key]}));
+  }
+  const normalized = order.map(item =>
+    typeof item === 'string' ? {key:item, label:SECTION_LABELS_DEFAULT[item] || item} : item
+  );
   const known = new Set(SECTION_ORDER_DEFAULT);
-  const kept = order.filter(k => known.has(k));
-  const missing = SECTION_ORDER_DEFAULT.filter(k => !kept.includes(k));
+  const kept = normalized.filter(x => known.has(x.key));
+  const keptKeys = new Set(kept.map(x => x.key));
+  const missing = SECTION_ORDER_DEFAULT.filter(k => !keptKeys.has(k)).map(key => ({key, label:SECTION_LABELS_DEFAULT[key]}));
   return [...kept, ...missing];
 }
 

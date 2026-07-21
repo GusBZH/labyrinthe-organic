@@ -33,3 +33,15 @@ export const VISUEL_CATS = [
 ];
 
 export const SECTION_ORDER_DEFAULT = ['regles','cases','sorts','energies','monstres','lexique','modes','visuels','materiel'];
+
+export const SECTION_LABELS_DEFAULT = {
+  regles: '📋 Règles de base',
+  cases: '🗺️ Cases',
+  sorts: '💎 Sorts',
+  energies: '✨ Énergies',
+  monstres: '👹 Monstres',
+  lexique: '📖 Lexique',
+  modes: '🎮 Modes de jeu',
+  visuels: '🎨 Visuels',
+  materiel: '🧰 Matériel',
+};

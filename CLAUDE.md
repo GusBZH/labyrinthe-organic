@@ -95,7 +95,16 @@ avec un système de pastilles colorées dans l'UI.
   `data.lvlOrder` — chacun avec sa migration douce si absent (`migrateSectionOrder`/
   `migrateElementOrder`/`migrateLvlOrder` dans `src/utils.js`). Les blocs de texte
   eux-mêmes (dans Idées en vrac / Visuels / Matériel, séparés par `\n\n`) sont aussi
-  réordonnables un par un via `BlockEditor`.
+  réordonnables un par un via `BlockEditor`. Les grandes sections (et `data.sectionOrder`)
+  sont aussi renommables par double-tap, comme les catégories de Visuels : le libellé
+  complet (emoji inclus) est un seul champ `label` par entrée, édité via `EditableSection`
+  (`src/components/EditableSection.js`) plutôt que le `Section` figé.
+- Les popups de sélection (statut/élément/niveau sur une carte) se ferment en cliquant/
+  tapant n'importe où en dehors — pas besoin de recliquer le même bouton. Géré une seule
+  fois dans `src/components/Popup.js` via un `anchorRef` fourni par l'appelant : le ref
+  doit englober à la fois le bouton et la popup, sinon cliquer le bouton pour la fermer
+  la rouvrirait aussitôt (l'ancien onClick du bouton et le nouveau listener global
+  entreraient en conflit).
 - Tous les `<textarea>` en mode édition (`EditText` multiligne et `BlockEditor`)
   s'agrandissent automatiquement à la hauteur du texte (`autoGrow()` dans
   `src/utils.js`) — jamais de petite zone de texte à scroller en interne.
