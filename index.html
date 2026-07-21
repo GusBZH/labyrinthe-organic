@@ -39,19 +39,19 @@ button,input,textarea{font-family:inherit;cursor:pointer}
   filter:drop-shadow(0 0 3px rgba(140,190,255,.9)) drop-shadow(0 0 9px rgba(100,160,255,.6));
   opacity:0;
 }
-.gridflash-in::after{ animation:editGridFlashIn .5s both; }
-.gridflash-out::after{ animation:editGridFlashOut .5s both; }
+.gridflash-in::after{ animation:editGridFlashIn .4s both; }
+.gridflash-out::after{ animation:editGridFlashOut .4s both; }
 @keyframes editGridFlashIn{
   0%   {opacity:0; animation-timing-function:ease-out;}
-  25%  {opacity:1; animation-timing-function:ease-in;}
+  25%  {opacity:.33; animation-timing-function:ease-in;}
   100% {opacity:0;}
 }
 @keyframes editGridFlashOut{
-  0%   {opacity:1; animation-timing-function:steps(1,end);}
+  0%   {opacity:.33; animation-timing-function:steps(1,end);}
   20%  {opacity:0; animation-timing-function:steps(1,end);}
-  40%  {opacity:1; animation-timing-function:steps(1,end);}
+  40%  {opacity:.33; animation-timing-function:steps(1,end);}
   60%  {opacity:0; animation-timing-function:steps(1,end);}
-  80%  {opacity:1;}
+  80%  {opacity:.33;}
   100% {opacity:0;}
 }
 </style>
