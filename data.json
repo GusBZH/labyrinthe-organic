@@ -1052,15 +1052,42 @@
     }
   ],
   "sectionOrder": [
-    "regles",
-    "cases",
-    "sorts",
-    "energies",
-    "monstres",
-    "lexique",
-    "modes",
-    "visuels",
-    "materiel"
+    {
+      "key": "regles",
+      "label": "📋 Règles de base"
+    },
+    {
+      "key": "cases",
+      "label": "🗺️ Cases"
+    },
+    {
+      "key": "sorts",
+      "label": "💎 Sorts"
+    },
+    {
+      "key": "energies",
+      "label": "✨ Énergies"
+    },
+    {
+      "key": "monstres",
+      "label": "👹 Monstres"
+    },
+    {
+      "key": "lexique",
+      "label": "📖 Lexique"
+    },
+    {
+      "key": "modes",
+      "label": "🎮 Modes de jeu"
+    },
+    {
+      "key": "visuels",
+      "label": "🎨 Visuels"
+    },
+    {
+      "key": "materiel",
+      "label": "🧰 Matériel"
+    }
   ],
   "elementOrder": [
     "Feu",
