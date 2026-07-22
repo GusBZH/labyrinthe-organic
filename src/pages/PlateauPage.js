@@ -70,8 +70,8 @@ function makeInitialDeck(){
 }
 
 // A real card square: black back, white front with a black cross, flipped
-// via a simple rotateY. Reused for the pile stack, the held tile, tiles on
-// the board, and the big floating selected-tile window.
+// via a simple rotateY. Reused for the pile stack, the held tile, the
+// défausse (always shown face-up), and tiles on the board.
 function CardFace({showBack, size}) {
   return h('div', {style:{width:size, height:size, position:'relative', perspective:600}},
     h('div', {style:{
@@ -89,16 +89,20 @@ function CardFace({showBack, size}) {
   );
 }
 
-// A pioche: tap draws (flips the top card in place — it stays face-up on
-// the pile until placed), long-press arms it (blue glow) and opens a
-// Diviser/Mélanger menu, and clicking a DIFFERENT pile while one is armed
-// merges the armed one into it (shuffled, same type only) — that's how you
-// reunite piles after splitting them apart.
-function PileStack({pile, holding, armedId, armedIdRef, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto}) {
+// A pioche: click flips the top card in place to reveal it and holds it
+// "in hand" (see drawFromPile) — clicking the SAME pile again while holding
+// puts it back and flips it back down. Long-press arms it (blue glow) and
+// opens a Diviser/Mélanger menu, and clicking a DIFFERENT pile while one is
+// armed merges the armed one into it (shuffled, same type only) — that's
+// how you reunite piles after splitting them apart. While a card is
+// selected elsewhere (a placed tile, or the top of the défausse), clicking
+// a pile instead opens a Dessus/Dessous menu to insert that card into it.
+function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showSplitMenu, setShowSplitMenu] = useState(false);
+  const [showInsertMenu, setShowInsertMenu] = useState(false);
   const isArmed = armedId === pile.id;
 
   // Captures "what's armed right now" at pointerdown time, not click time.
@@ -117,22 +121,25 @@ function PileStack({pile, holding, armedId, armedIdRef, onArm, onDisarm, onDraw,
     startPress();
   }
   function startPress(){
+    if (hasSelectedCard) return; // a quick click here means "insert", not "arm"
     pressTimer.current = setTimeout(() => {
-      setShowMenu(true);
+      setShowSplitMenu(true);
       onArm(pile.id);
     }, 500);
   }
   function cancelPress(){
     clearTimeout(pressTimer.current);
   }
-  function handleClick(){
-    if (showMenu) return; // the click that follows a long-press shouldn't also draw
+  function handleClick(e){
+    e.stopPropagation(); // don't let this bubble into the header's "click elsewhere deselects" handler
+    if (showSplitMenu) return; // the click that follows a long-press shouldn't also draw
     const armed = pendingArmedRef.current;
     if (armed && armed !== pile.id) { onMergeInto(armed, pile.id); return; }
+    if (hasSelectedCard) { setShowInsertMenu(true); return; }
     onDraw(pile.id);
   }
-  function closeMenu(){
-    setShowMenu(false);
+  function closeSplitMenu(){
+    setShowSplitMenu(false);
     onDisarm();
   }
 
@@ -154,38 +161,60 @@ function PileStack({pile, holding, armedId, armedIdRef, onArm, onDisarm, onDraw,
       h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, pile.cards.length)
     ),
-    showMenu && h(Popup, {
-      onClose:closeMenu,
+    showSplitMenu && h(Popup, {
+      onClose:closeSplitMenu,
       anchorRef,
       style:{left:0, top:'100%', marginTop:6, width:130, zIndex:280},
       items:[
         {label:'✂️ Diviser', onClick:()=>onSplit(pile.id)},
         {label:'🔀 Mélanger', onClick:()=>onShuffle(pile.id)},
       ]
+    }),
+    showInsertMenu && h(Popup, {
+      onClose:()=>setShowInsertMenu(false),
+      anchorRef,
+      style:{left:0, top:'100%', marginTop:6, width:150, zIndex:280},
+      items:[
+        {label:'⬆️ Dessus', onClick:()=>onInsertSelected(pile.id, 'top')},
+        {label:'⬇️ Dessous', onClick:()=>onInsertSelected(pile.id, 'bottom')},
+      ]
     })
   );
 }
 
-// The défausse: an empty slot (dashed border, no card face) — only ever a
-// merge target, never armable/splittable itself.
-function DiscardSlot({count, armedId, armedIdRef, onMergeInto}) {
+// The défausse: shows its top card face-up (it's already known, no flip
+// needed) instead of an empty slot. Click either merges an armed pile into
+// it, discards the currently-selected grid tile into it, selects/deselects
+// its own top card (to place it back on the grid or feed it into a pile),
+// or does nothing if it's empty.
+function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, onMergeInto, onDiscardSelectedTile, onToggleSelect}) {
   const pendingArmedRef = useRef(null);
+  const topCard = cards.length ? cards[cards.length-1] : null;
+  const isSelected = topCard && selectedId === topCard.id;
   function onPointerDown(){
     pendingArmedRef.current = armedIdRef.current;
   }
-  function handleClick(){
+  function handleClick(e){
+    e.stopPropagation();
     const armed = pendingArmedRef.current;
-    if (armed) onMergeInto(armed, 'discard');
+    if (armed) { onMergeInto(armed, 'discard'); return; }
+    if (hasSelectedTile) { onDiscardSelectedTile(); return; }
+    if (topCard) onToggleSelect(topCard.id);
   }
   return h('div', {
     onPointerDown, onClick:handleClick,
     style:{
       width:56, height:56, borderRadius:8, cursor:'pointer', position:'relative', flexShrink:0,
-      border:'2px dashed #444', display:'flex', alignItems:'center', justifyContent:'center'
+      border: topCard ? 'none' : '2px dashed #444',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      boxShadow: isSelected ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
+      outline: isSelected ? '2px solid #4fa3ff' : 'none',
+      transition:'box-shadow .2s, outline-color .2s'
     }
   },
-    count > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
-      background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, count)
+    topCard && h(CardFace, {showBack:false, size:52}),
+    cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
+      background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
   );
 }
 
@@ -240,14 +269,15 @@ export function PlateauPage({onBack}) {
   const [zoom, setZoom] = useState(1);
   const [scrollTick, setScrollTick] = useState(0);
   const [visionMode, setVisionMode] = useState(false);
-  const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, players:[...], tile, forVision}
+  const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids:[...], forVision}
   const [visionPlayerId, setVisionPlayerId] = useState(null);
   const [piles, setPiles] = useState(saved?.piles || [{id:uid(), type:'case', cards:makeInitialDeck()}]);
   const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
   const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
-  const [selectedTile, setSelectedTile] = useState(null); // {id, mode:'placed'|'moving', clientX, clientY}
+  const [selectedTileId, setSelectedTileId] = useState(null);
+  const [selectedDiscardCardId, setSelectedDiscardCardId] = useState(null);
   const armedPileIdRef = useRef(null);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -443,96 +473,171 @@ export function PlateauPage({onBack}) {
     setPlacedTiles(placedTiles.map(t => t.id === tileId ? {...t, flipped:!t.flipped} : t));
   }
 
+  // Sends a placed tile to the défausse — always face-up there regardless
+  // of the tile's own flipped state at the time (the défausse never stores
+  // or tracks `flipped`, it just always renders face-up).
   function discardTile(tileId){
     setPlacedTiles(placedTiles.filter(t => t.id !== tileId));
     setDiscardCards([...discardCards, {id:tileId}]);
-    setSelectedTile(null);
+    setSelectedTileId(null);
   }
 
-  function pickFromCellPicker(kind, id){
-    if (kind === 'player') {
-      if (cellPicker?.forVision) setVisionPlayerId(id);
-      else setSelectedId(id);
-    } else {
-      setSelectedTile({id, mode:'moving', clientX:cellPicker.clientX, clientY:cellPicker.clientY});
-    }
-    setCellPicker(null);
+  function discardSelectedTile(){
+    if (selectedTileId) discardTile(selectedTileId);
   }
 
-  // One tap always selects whatever's on the cell: a single occupant is
-  // selected directly, several occupants (a player AND the tile, say) open
-  // a small picker with one column per type. If something is already
-  // "in movement mode" (a selected player, or a re-selected tile), the tap
-  // instead means "move it here" — except right after placing a fresh tile
-  // from the pioche, which lands selected too but in a non-movement mode so
-  // you can rotate it freely without an accidental tap sending it flying.
-  function onCellTap(row, col, clientX, clientY){
-    if (heldTile) {
-      if (placedTiles.some(t => t.row === row && t.col === col)) return; // one tile per cell
-      const newTile = {id:heldTile.cardId, row, col, rotation:0, flipped:false};
-      setPlacedTiles([...placedTiles, newTile]);
-      setHeldTile(null);
-      setSelectedTile({id:newTile.id, mode:'placed', clientX, clientY});
+  // Clicking the défausse's own top card selects/deselects it (toggle) —
+  // it never needs to flip since it's already shown face-up.
+  function toggleSelectDiscardCard(cardId){
+    setSelectedDiscardCardId(prev => prev === cardId ? null : cardId);
+    setSelectedTileId(null);
+  }
+
+  // Feeds the currently-selected card (a placed tile, or the défausse's top
+  // card) into a pile, at whichever end was chosen in the Dessus/Dessous menu.
+  function insertSelectedCardIntoPile(pileId, position){
+    let cardId = null;
+    if (selectedTileId) {
+      cardId = selectedTileId;
+      setPlacedTiles(placedTiles.filter(t => t.id !== selectedTileId));
+      setSelectedTileId(null);
+    } else if (selectedDiscardCardId) {
+      cardId = selectedDiscardCardId;
+      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
+      setSelectedDiscardCardId(null);
+    } else return;
+    setPiles(piles.map(p => p.id === pileId
+      ? {...p, cards: position === 'top' ? [...p.cards, {id:cardId}] : [{id:cardId}, ...p.cards]}
+      : p
+    ));
+  }
+
+  // Clears whatever card is selected (a placed tile or a défausse card) —
+  // wired to header/footer background clicks, so tapping anywhere outside
+  // the grid/piles also deselects, same spirit as every popup's "click
+  // elsewhere closes it" rule.
+  function clearCardSelection(){
+    setSelectedTileId(null);
+    setSelectedDiscardCardId(null);
+  }
+
+  // Player selection/movement: single click. A tile/monster under the
+  // clicked cell is never touched here — tiles use a double-click (see
+  // onContentDoubleClick) so the two gestures never compete for the same
+  // tap. Long-press is reserved for items (sorts/énergies) once those exist
+  // on the board — not implemented yet, nothing to select there today.
+  function handleSingleClick(clientX, clientY){
+    clearCardSelection();
+    const rect = contentRef.current.getBoundingClientRect();
+    const c = Math.floor((clientX - rect.left) / effectiveCell);
+    const r = Math.floor((clientY - rect.top) / effectiveCell);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+    if (visionMode) {
+      const here = players.filter(p => p.row === r && p.col === c);
+      if (here.length === 1) setVisionPlayerId(here[0].id);
+      else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
       return;
     }
 
     if (selectedId) {
       const sel = players.find(p => p.id === selectedId);
-      if (sel && sel.row === row && sel.col === col) { setSelectedId(null); return; }
-      commitPlayers(players.map(p => p.id === selectedId ? {...p, row, col} : p));
+      if (sel && sel.row === r && sel.col === c) { setSelectedId(null); return; }
+      commitPlayers(players.map(p => p.id === selectedId ? {...p, row:r, col:c} : p));
       setSelectedId(null);
       return;
     }
-
-    if (selectedTile && selectedTile.mode === 'moving') {
-      const t = placedTiles.find(x => x.id === selectedTile.id);
-      if (t && t.row === row && t.col === col) { setSelectedTile(null); return; }
-      if (placedTiles.some(x => x.row === row && x.col === col)) return; // blocked: another tile there
-      setPlacedTiles(placedTiles.map(x => x.id === selectedTile.id ? {...x, row, col} : x));
-      setSelectedTile(null);
-      return;
-    }
-    if (selectedTile && selectedTile.mode === 'placed') {
-      setSelectedTile(null);
-      // falls through — this same tap also selects whatever's at this cell
-    }
-
-    const here = players.filter(p => p.row === row && p.col === col);
-    const rawTile = placedTiles.find(t => t.row === row && t.col === col) || null;
-    const tile = here.length === 0 ? rawTile : null; // a tile under a player can't be manipulated
-    const total = here.length + (tile ? 1 : 0);
-
-    if (visionMode && here.length > 0) {
-      if (total === 1) { setVisionPlayerId(here[0].id); return; }
-      setCellPicker({clientX, clientY, players:here, tile, forVision:true});
-      return;
-    }
-
-    if (total === 0) return;
-    if (total === 1) {
-      if (here.length === 1) setSelectedId(here[0].id);
-      else setSelectedTile({id:tile.id, mode:'moving', clientX, clientY});
-      return;
-    }
-    setCellPicker({clientX, clientY, players:here, tile, forVision:false});
+    const here = players.filter(p => p.row === r && p.col === c);
+    if (here.length === 1) setSelectedId(here[0].id);
+    else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:false});
   }
+
+  // Distinguishing a single click (select/move a player) from a double-click
+  // (select the tuile under the cursor) on the same element requires a
+  // short delay: a native 'click' fires for BOTH clicks of a dblclick, so
+  // the first one is held back briefly — if a second click arrives in time
+  // it's cancelled and 'onContentDoubleClick' takes over instead.
+  const clickTimerRef = useRef(null);
 
   function onContentClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
+    const clientX = e.clientX, clientY = e.clientY;
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      return;
+    }
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
+      handleSingleClick(clientX, clientY);
+    }, 250);
+  }
+
+  function selectTileAt(r, c){
+    const tile = placedTiles.find(t => t.row === r && t.col === c);
+    if (!tile) return;
+    if (players.some(p => p.row === r && p.col === c)) return; // occupied: not selectable
+    setSelectedTileId(tile.id);
+    setSelectedDiscardCardId(null);
+  }
+
+  function onContentDoubleClick(e){
+    if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
+    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-    onCellTap(r, c, e.clientX, e.clientY);
+
+    if (heldTile) {
+      if (placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
+      setPlacedTiles([...placedTiles, {id:heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
+      setHeldTile(null);
+      return;
+    }
+
+    if (selectedDiscardCardId) {
+      if (placedTiles.some(t => t.row === r && t.col === c)) return;
+      const cardId = selectedDiscardCardId;
+      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
+      setPlacedTiles([...placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
+      setSelectedDiscardCardId(null);
+      return;
+    }
+
+    if (selectedTileId) {
+      const t = placedTiles.find(x => x.id === selectedTileId);
+      if (t && t.row === r && t.col === c) { setSelectedTileId(null); return; } // same tile: deselect
+      if (placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
+      setPlacedTiles(placedTiles.map(x => x.id === selectedTileId ? {...x, row:r, col:c} : x));
+      setSelectedTileId(null);
+      return;
+    }
+
+    selectTileAt(r, c);
   }
 
+  // Clicking a pile draws (flips its top card face-up and holds it) unless
+  // already holding a card FROM THIS SAME pile, in which case the click
+  // cancels the hold: the card goes back and the pile flips back to its
+  // back side. Holding a card from a different pile blocks further draws
+  // until that one is resolved (placed, discarded, or cancelled).
   function drawFromPile(pileId){
-    if (heldTile) return; // resolve the one you're holding before drawing another
+    if (heldTile) {
+      if (heldTile.fromPileId === pileId) {
+        const cardId = heldTile.cardId;
+        setPiles(piles.map(p => p.id === pileId ? {...p, cards:[...p.cards, {id:cardId}]} : p));
+        setHeldTile(null);
+      }
+      return;
+    }
     const pile = piles.find(p => p.id === pileId);
     if (!pile || pile.cards.length === 0) return;
     const card = pile.cards[pile.cards.length-1];
     setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
     setHeldTile({cardId:card.id, fromPileId:pileId});
+    setSelectedTileId(null);
+    setSelectedDiscardCardId(null);
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
@@ -683,7 +788,8 @@ export function PlateauPage({onBack}) {
     setPlacedTiles([]);
     setHeldTile(null);
     setArmedPileId(null);
-    setSelectedTile(null);
+    setSelectedTileId(null);
+    setSelectedDiscardCardId(null);
     setCellPicker(null);
     setVisionPlayerId(null);
     zoomRef.current = 1;
@@ -702,8 +808,9 @@ export function PlateauPage({onBack}) {
     (cellGroups[key] = cellGroups[key] || []).push(p);
   });
 
-  const selectedTileObj = selectedTile ? placedTiles.find(t => t.id === selectedTile.id) : null;
+  const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
+  const hasSelectedCard = !!(selectedTileId || selectedDiscardCardId);
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
@@ -713,8 +820,10 @@ export function PlateauPage({onBack}) {
     // the pile long-press menu popup rendered behind the grid viewport
     // despite its own z-index, since the header never won a stacking
     // context to lift it above the transformed (and therefore
-    // stacking-context-creating) grid content.
-    h('div', {style:{flexShrink:0, position:'relative',
+    // stacking-context-creating) grid content. Clicking the header's own
+    // background (not a button/pile, which stop propagation) clears any
+    // selected card, same "click elsewhere deselects" rule as the grid.
+    h('div', {onClick:clearCardSelection, style:{flexShrink:0, position:'relative',
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderBottom:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
       h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'12px 16px'}},
@@ -745,20 +854,26 @@ export function PlateauPage({onBack}) {
           piles[0]
             ? h(PileStack, {
                 pile:piles[0], holding: heldTile?.fromPileId === piles[0].id,
-                armedId:armedPileId, armedIdRef:armedPileIdRef,
+                armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard,
                 onArm:armPile, onDisarm:disarmPile,
-                onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto
+                onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+                onInsertSelected:insertSelectedCardIntoPile
               })
             : h('div', {style:{width:56, height:56}}),
-          h(DiscardSlot, {count:discardCards.length, armedId:armedPileId, armedIdRef:armedPileIdRef, onMergeInto:mergeArmedInto})
+          h(DiscardSlot, {
+            cards:discardCards, selectedId:selectedDiscardCardId,
+            armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedTile:!!selectedTileId,
+            onMergeInto:mergeArmedInto, onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
+          })
         ),
         piles.slice(1).map(p => h(PileStack, {
           key:p.id, pile:p, holding: heldTile?.fromPileId === p.id,
-          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard,
           onArm:armPile, onDisarm:disarmPile,
-          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto
+          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onInsertSelected:insertSelectedCardIntoPile
         })),
-        heldTile && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la tuile')
+        heldTile && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Double-clique une case pour poser la tuile')
       )
     ),
 
@@ -786,6 +901,7 @@ export function PlateauPage({onBack}) {
       h('div', {
         ref:contentRef,
         onClick:onContentClick,
+        onDoubleClick:onContentDoubleClick,
         style:{
           width:COLS*CELL, height:ROWS*CELL, position:'relative',
           transform:`scale(${zoom})`, transformOrigin:'0 0',
@@ -803,9 +919,9 @@ export function PlateauPage({onBack}) {
         placedTiles.map(t => h('div', {
           key:t.id,
           style:{
-            position:'absolute', left:t.col*CELL+2, top:t.row*CELL+2,
+            position:'absolute', left:t.col*CELL+2, top:t.row*CELL+2, borderRadius:6,
             transform:`rotate(${t.rotation}deg)`, pointerEvents:'none',
-            opacity: selectedTile?.id === t.id ? 0.25 : 1
+            boxShadow: selectedTileId === t.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : 'none'
           }
         }, h(CardFace, {showBack:t.flipped, size:CELL-4}))),
         Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
@@ -821,43 +937,40 @@ export function PlateauPage({onBack}) {
               boxShadow: selectedId===p.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
             }
           }, p.nom.slice(0,1).toUpperCase());
-        }))
+        })),
+
+        // SELECTED TILE CONTROLS — just the 3 option buttons around the
+        // tile's own in-grid position (no enlarged duplicate card): flip
+        // above, discard to the left, rotate to the right, all at the same
+        // radius from the tile's center so they read as one consistent set
+        // (an earlier version mixed edge-relative and center-relative
+        // offsets, which made the rotate button look out of place next to
+        // the other two). Rendered as children of the transformed content
+        // div (in-grid coordinates, not a separate fixed overlay) so they
+        // pan/zoom together with the tile — a z-index keeps them above
+        // sibling tiles despite the tile divs' own DOM order.
+        selectedTileObj && !selectedTileOccupied && [
+          h('div', {
+            key:'flip', onClick: e => { e.stopPropagation(); flipTile(selectedTileObj.id); },
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL/2, top:selectedTileObj.row*CELL-18}
+          }, '↕️'),
+          h('div', {
+            key:'discard', onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL-18, top:selectedTileObj.row*CELL+CELL/2, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
+          }, '✕'),
+          h('div', {
+            key:'rotate', onClick: e => { e.stopPropagation(); rotateTile(selectedTileObj.id); },
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL+18, top:selectedTileObj.row*CELL+CELL/2}
+          }, '⟳')
+        ]
       )
     ),
 
-    // SELECTED TILE FLOATING WINDOW — rendered OUTSIDE the transformed/
-    // scrollable content (fixed to the viewport instead), so it can't end
-    // up visually buried behind grid cells the way the old in-board rotate
-    // arrow could. Rotate (right), discard to défausse (left), flip to
-    // show the back (above); hidden if a player has since moved onto the
-    // tile's cell.
-    selectedTileObj && !selectedTileOccupied && h('div', {
-      style:{position:'fixed', left:selectedTile.clientX, top:selectedTile.clientY, transform:'translate(-50%,-50%)', zIndex:270}
-    },
-      h('div', {style:{position:'relative', width:CELL*2, height:CELL*2, display:'flex', alignItems:'center', justifyContent:'center'}},
-        h('div', {
-          onClick: e => { e.stopPropagation(); flipTile(selectedTileObj.id); },
-          style:{...selectedTileBtnStyle, left:'50%', top:-16, transform:'translate(-50%,-50%)'}
-        }, '↕️'),
-        h('div', {
-          onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
-          style:{...selectedTileBtnStyle, left:-16, top:'50%', transform:'translate(-50%,-50%)', color:'#f66', borderColor:'rgba(220,60,40,.5)'}
-        }, '✕'),
-        h('div', {style:{transform:`rotate(${selectedTileObj.rotation}deg)`}},
-          h(CardFace, {showBack:selectedTileObj.flipped, size:CELL*1.6})
-        ),
-        h('div', {
-          onClick: e => { e.stopPropagation(); rotateTile(selectedTileObj.id); },
-          style:{...selectedTileBtnStyle, left:'100%', top:'50%', transform:'translate(-50%,-50%)'}
-        }, '⟳')
-      )
-    ),
-
-    // MULTI-ENTITY CELL PICKER — several things sharing a cell (a player
-    // and the tile underneath it, say) means a plain tap can't tell which
-    // one you mean, so a small popup asks — one column per type present.
+    // MULTI-PLAYER CELL PICKER — several players sharing a cell means a
+    // single click can't tell which one you mean, so a small popup asks.
     // Positioned at the raw tap coordinates (outside the pannable/zoomed
-    // content, no transform math needed).
+    // content, no transform math needed). Tiles never appear here anymore:
+    // they're selected via double-click, an entirely separate gesture.
     cellPicker && h('div', {
       ref:cellPickerAnchorRef,
       style:{position:'fixed', left:cellPicker.clientX, top:cellPicker.clientY, zIndex:250}
@@ -865,29 +978,14 @@ export function PlateauPage({onBack}) {
       h(Popup, {
         onClose:()=>setCellPicker(null),
         anchorRef:cellPickerAnchorRef,
-        style:{left:0, top:0, padding:10, width:'auto'},
-        children: h('div', {style:{display:'flex', gap:18}},
-          cellPicker.players.length > 0 && h('div', {},
-            h('div', {style:{fontSize:9, color:'#666', marginBottom:6, textTransform:'uppercase'}}, 'Personnage'),
-            cellPicker.players.map(p => h('div', {
-              key:p.id, onClick:()=>pickFromCellPicker('player', p.id),
-              style:{display:'flex', alignItems:'center', gap:6, padding:'4px 6px', cursor:'pointer', borderRadius:4, whiteSpace:'nowrap'}
-            },
-              h('div', {style:{width:8, height:8, borderRadius:'50%', background:p.couleur, flexShrink:0}}),
-              h('span', {style:{fontSize:12, color:'#eee'}}, p.nom)
-            ))
-          ),
-          cellPicker.tile && h('div', {},
-            h('div', {style:{fontSize:9, color:'#666', marginBottom:6, textTransform:'uppercase'}}, 'Case'),
-            h('div', {
-              onClick:()=>pickFromCellPicker('tile', cellPicker.tile.id),
-              style:{display:'flex', alignItems:'center', gap:6, padding:'4px 6px', cursor:'pointer', borderRadius:4, whiteSpace:'nowrap'}
-            },
-              h(CardFace, {showBack:cellPicker.tile.flipped, size:18}),
-              h('span', {style:{fontSize:12, color:'#eee'}}, 'Tuile')
-            )
-          )
-        )
+        style:{left:0, top:0, width:160},
+        items: cellPicker.ids.map(id => {
+          const p = players.find(pl => pl.id === id);
+          return {
+            label:p.nom, dot:p.couleur,
+            onClick:() => { if (cellPicker.forVision) setVisionPlayerId(id); else setSelectedId(id); }
+          };
+        })
       })
     ),
 
@@ -929,8 +1027,9 @@ export function PlateauPage({onBack}) {
 
     // FOOTER (sticky) — dice / PV heart, with room left for sorts & énergies
     // (between dice and heart) once those exist, and the Vision mode toggle
-    // just left of the player-switch arrow
-    h('div', {style:{flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between',
+    // just left of the player-switch arrow. Clicking the footer's own
+    // background clears any selected card, same as the header.
+    h('div', {onClick:clearCardSelection, style:{flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between',
       padding:'10px 14px', background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
       h('button', {onClick:()=>switchPlayer(-1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
@@ -946,7 +1045,7 @@ export function PlateauPage({onBack}) {
             h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
           ),
           h('button', {onClick:()=>updatePv(current.id,1), style:pvBtnStyle(visionMode)}, '+')
-        ) : h('div', {onClick:addPlayer, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+        ) : h('div', {onClick:e=>{ e.stopPropagation(); addPlayer(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
       ),
 
       h('div', {style:{display:'flex', alignItems:'center', gap:8}},
@@ -973,8 +1072,9 @@ function navBtnStyle(enabled, vision){
 function pvBtnStyle(vision){
   return {background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(vision, '#444')}`, borderRadius:6, color:'#eee', width:24, height:24, fontSize:14, lineHeight:1};
 }
-const selectedTileBtnStyle = {
-  position:'absolute', width:30, height:30, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+const inGridBtnStyle = {
+  position:'absolute', width:26, height:26, borderRadius:'50%', background:'rgba(30,30,30,.95)',
   border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center',
-  fontSize:15, cursor:'pointer', color:'#eee', boxShadow:'0 2px 8px rgba(0,0,0,.5)'
+  fontSize:13, cursor:'pointer', color:'#eee', boxShadow:'0 2px 8px rgba(0,0,0,.5)',
+  transform:'translate(-50%,-50%)', zIndex:50, pointerEvents:'auto'
 };

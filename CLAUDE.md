@@ -170,40 +170,56 @@ qu'en un seul bloc (risque de régression difficile à isoler sinon) :
   chevauchent (cf. système de sélection par geste ci-dessous).
 
 ### Système de sélection par geste (résout l'ambiguïté multi-entités par case)
-**Design initial (double-tap/clic-droit/appui-prolongé par couche) remplacé** par un
-système plus simple, un seul geste pour tout : **un tap/clic simple sélectionne ce qu'il
-y a sur la case**. S'il n'y a qu'une seule entité (joueur, monstre, tuile, sort, énergie),
-elle est sélectionnée directement. **S'il y en a plusieurs**, une petite fenêtre de choix
-s'ouvre (`cellPicker`, positionnée aux coordonnées brutes du clic, hors du système de
-pan/zoom transformé) avec **une colonne par type présent** (Personnage/Monstre/Case/
-Sorts/Énergie — seuls les types réellement présents sur la case ont une colonne, donc 2
-entités du même type = 1 seule colonne à choix multiples, 2 types différents = 2
-colonnes). Se ferme comme toute popup au clic extérieur ou en sélectionnant autre chose.
-Logique dans `onCellTap(row, col, clientX, clientY)` (`PlateauPage.js`) :
-1. Une tuile tenue en main (`heldTile`) ? Ce tap la pose ici (si la case est libre).
-2. Un joueur déjà sélectionné (`selectedId`) ? Ce tap le déplace ici (ou le désélectionne
-   si c'est sa propre case).
-3. Une tuile en mode `'moving'` déjà sélectionnée ? Ce tap la déplace ici (bloqué si une
-   autre tuile occupe déjà la case cible — voir "Pioche et pose de tuiles" pour la
-   distinction `'placed'`/`'moving'`).
-4. Une tuile en mode `'placed'` ? Ce tap désélectionne seulement (jamais de déplacement
-   dans ce mode) — puis **retombe** dans la logique ci-dessous pour que ce même tap
-   sélectionne aussi ce qu'il y a sur cette nouvelle case.
-5. Sinon : on rassemble ce qu'il y a sur la case (joueurs + tuile — **une tuile sous un
-   joueur ne compte pas**, cf. règle d'occupation ci-dessous) ; une seule entité → sélection
-   directe ; plusieurs → ouverture du `cellPicker`.
+**Historique** : un premier design (double-tap/clic-droit/appui-prolongé *par couche*)
+a été remplacé un temps par un système à un seul geste ("un tap sélectionne tout ce
+qu'il y a sur la case, une fenêtre à colonnes départage s'il y a ambiguïté") — **Gus est
+revenu dessus après l'avoir testé** ("remet le principe de sélection d'avant") : le geste
+unique compliquait la suite (poser une tuile puis cliquer une pioche pour l'y ranger,
+sélectionner une carte de la défausse, etc.). Design actuel, **un geste distinct par
+type d'entité** (le plus fréquent = le geste le plus simple) :
+- **Clic/tap simple** → joueurs et monstres (`handleSingleClick`, via `onContentClick`,
+  qui retarde l'exécution de 250ms pour pouvoir l'annuler si un second clic arrive et
+  se révèle être un double-clic — voir plus bas).
+- **Double-clic/double-tap** → cases/tuiles (`onContentDoubleClick`, aussi bien pour
+  poser une tuile tenue en main que pour sélectionner/déplacer une tuile déjà posée).
+- **Appui long** → items (sorts/énergies), une fois qu'ils existeront sur le plateau
+  (Couche 3, pas encore commencée) — pas de collision avec l'appui long des *pioches*
+  dans le header (Diviser/Mélanger), qui est un geste séparé sur un élément différent.
+
+Un seul clic sur une case ne touche jamais aux tuiles, et un double-clic ne touche
+jamais aux joueurs — les deux gestes ne se disputent donc jamais le même tap. Distinguer
+un simple clic d'un double-clic sur le même élément demande un léger délai
+(`clickTimerRef`, 250ms) : un double-clic déclenche aussi deux évènements `click` natifs
+en plus du `dblclick`, donc le premier `click` est retenu brièvement — si un second
+arrive à temps il l'annule et laisse `onDoubleClick` agir seul à sa place.
+
+`onContentDoubleClick(row, col)` :
+1. Une tuile tenue en main (`heldTile`, piochée) ? Ce double-clic la pose ici (si la
+   case est libre).
+2. Une carte de la défausse sélectionnée (`selectedDiscardCardId`) ? Ce double-clic la
+   pose ici (retirée de la défausse).
+3. Une tuile déjà sélectionnée (`selectedTileId`) ? Ce double-clic la déplace ici (ou la
+   désélectionne si c'est sa propre case ; bloqué si une autre tuile occupe déjà la case
+   cible).
+4. Sinon : sélectionne la tuile posée sur cette case, s'il y en a une et qu'aucun joueur
+   n'est dessus (`selectTileAt` — voir règle d'occupation ci-dessous).
+
+`handleSingleClick(row, col)` (joueurs uniquement, inchangé par rapport à avant) déselectionne
+d'abord toute carte sélectionnée (`selectedTileId`/`selectedDiscardCardId`), puis gère
+la sélection/déplacement de joueur comme précédemment ; s'il y en a plusieurs sur la
+même case, ouvre `cellPicker` (une simple liste de noms désormais — plus besoin de
+colonnes par type puisque les tuiles ne passent plus jamais par ce picker).
+
+**Désélection d'une carte (tuile ou carte de défausse) — règle globale** : re-double-
+cliquer la même tuile, sélectionner autre chose (joueur, autre tuile), ou cliquer
+n'importe où dans le header/pied de page (`clearCardSelection`, câblé sur leur `onClick`
+de fond — les piles/défausse font `e.stopPropagation()` sur leur propre clic pour ne pas
+se faire annuler leur propre action par ce même handler) désélectionne. Même esprit que
+la fermeture au clic extérieur des popups.
 
 **Règle d'occupation tuile/joueur** (toujours en vigueur : "une tuile ne peut être
-manipulée que si aucun joueur n'est dessus") — **appliquée dès le rassemblement des
-entités dans `onCellTap`**, pas seulement à l'affichage de la fenêtre flottante de tuile
-sélectionnée : si un joueur est présent sur la case, la tuile qui s'y trouve est exclue du
-calcul (`tile = here.length === 0 ? rawTile : null`), donc jamais comptée dans le total,
-jamais proposée comme colonne du `cellPicker`, jamais sélectionnable directement. Bug
-corrigé dans cette passe : l'ancienne version ne faisait cette exclusion qu'au rendu de la
-fenêtre flottante (`selectedTileObj && !selectedTileOccupied`) — un joueur et une tuile sur
-la même case ouvraient quand même un `cellPicker` avec une colonne "Case" cliquable, qui
-sélectionnait la tuile (`selectedTile`) sans jamais afficher sa fenêtre (bloquée par cette
-même règle plus loin), un cul-de-sac silencieux sans aucun retour visuel.
+manipulée que si aucun joueur n'est dessus") : `selectTileAt` refuse de sélectionner une
+tuile si un joueur est présent sur la même case.
 
 ### Monstres traités comme des "joueurs"
 Les monstres suivent le même système de sélection/déplacement que les joueurs (pas de
@@ -219,33 +235,41 @@ mécanique séparée à coder). Flux d'une rencontre :
 **Visuel des cartes** (`CardFace` dans `PlateauPage.js`) : une vraie carte carrée à deux
 faces, dos tout noir / face blanche avec une croix noire, retournée via `rotateY` +
 `backfaceVisibility:'hidden'` (`transformStyle:'preserve-3d'`) — réutilisé partout : pile,
-tuile tenue en main, tuiles posées sur la grille, fenêtre flottante de tuile sélectionnée.
+tuile tenue en main, défausse (toujours face visible), tuiles posées sur la grille.
 La pioche affiche un effet de perspective (deux carrés légèrement décalés derrière la
-carte du dessus) et montre le dos tant qu'aucune carte n'est en main ; piocher retourne
-la carte du dessus (affiche sa face) jusqu'à ce qu'elle soit posée.
-1. Tap/clic simple sur une pioche → pioche la carte du dessus (reste "en main",
-   indicateur visible dans le header) jusqu'à ce qu'on clique une case pour la poser.
-   Une seule tuile en main à la fois (retaper la pioche pendant qu'on en tient déjà
-   une ne fait rien).
-2. Clic sur une case vide de la grille → pose la tuile là, et elle arrive **déjà
-   sélectionnée** (`selectedTile.mode:'placed'`, voir plus bas) pour pouvoir la tourner
-   tout de suite si besoin.
-3. Une tuile sélectionnée affiche une **fenêtre flottante au premier plan**
-   (`position:'fixed'`, en dehors du conteneur transformé/scrollable — donc jamais
-   invisible derrière d'autres cases, contrairement à une première version qui plaçait
-   la flèche de rotation directement dans la grille) avec la carte agrandie et **3
-   contrôles autour** : à droite ⟳ (rotation 90° sens horaire, cliquable/spammable), à
-   gauche ✕ rouge (défausse directement la tuile), au-dessus ↕️ (flip, affiche le dos).
-   Se ferme comme toute popup au clic extérieur.
-   - **Deux modes de sélection de tuile**, cruciaux pour ne pas envoyer valser une tuile
-     par erreur : `'placed'` (juste après la pose depuis la pioche — cliquer ailleurs sur
-     la grille désélectionne seulement, **ne déplace jamais** la tuile, pour pouvoir la
-     tourner tranquillement sans crainte d'un tap perdu) vs `'moving'` (tuile déjà posée
-     re-sélectionnée par un tap normal, ou choisie via le `cellPicker` — là, cliquer une
-     autre case **déplace** la tuile, bloqué si la case cible est déjà occupée par une
-     autre tuile).
+carte du dessus) et montre le dos tant qu'aucune carte n'est en main ; cliquer la pioche
+retourne la carte du dessus (affiche sa face) et la tient en main — **recliquer la
+même pioche pendant qu'on tient sa carte l'annule** : la carte retourne dans la pioche
+et se remet dos visible (`drawFromPile` compare `heldTile.fromPileId` à la pioche
+cliquée). Cliquer une AUTRE pioche pendant qu'on tient une carte ne fait rien (il faut
+d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
+1. Double-clic sur une case vide de la grille → pose la tuile tenue en main là (voir
+   "Système de sélection par geste" pour pourquoi c'est un double-clic et pas un
+   simple clic).
+2. Double-clic sur une tuile déjà posée (sans joueur dessus) → la sélectionne.
+3. Une tuile sélectionnée affiche **juste 3 petits boutons autour d'elle**, sans
+   agrandir la carte (une première version affichait une copie agrandie dans une
+   fenêtre flottante séparée — Gus a demandé de l'enlever, "juste les options qui
+   arrivent") : ↕️ au-dessus (flip, affiche le dos), ✕ rouge à gauche (défausse
+   directement la tuile), ⟳ à droite (rotation 90° sens horaire, cliquable/spammable).
+   Les 3 boutons sont positionnés au **même rayon** autour du centre de la tuile (une
+   version antérieure mélangeait des offsets relatifs au bord et au centre, ce qui
+   faisait paraître le bouton de rotation "pas aligné" avec les deux autres). Rendus
+   comme enfants du conteneur transformé (coordonnées `row*CELL`/`col*CELL`, pas une
+   fenêtre `position:fixed` séparée) donc ils suivent naturellement le pan/zoom — un
+   `zIndex` explicite les fait passer au-dessus des tuiles voisines malgré l'ordre du
+   DOM (voir le piège de fenêtre invisible ci-dessous, résolu différemment cette fois :
+   pas besoin de sortir du conteneur transformé, un simple z-index suffit puisque les
+   tuiles voisines n'en ont pas et qu'un élément positionné avec z-index > 0 passe
+   toujours au-dessus d'éléments positionnés à z-index:auto dans le même contexte
+   d'empilement, quel que soit l'ordre du DOM). Tuile sélectionnée = léger glow bleu
+   (même style que la sélection joueur), plutôt que la mise en évidence par opacité
+   réduite d'une version antérieure.
    - Une tuile ne peut être sélectionnée (et donc manipulée) que si aucun joueur n'est
      dessus — voir la règle d'occupation dans "Système de sélection par geste" ci-dessus.
+   - Cliquer une pioche pendant qu'une tuile (ou une carte de la défausse) est
+     sélectionnée n'y pioche pas — ça ouvre un mini menu Dessus/Dessous pour l'y
+     ranger, voir "Pioches et défausses" ci-dessous.
 - Deck actuel : **100 cartes identiques (placeholder)**, en attendant de brancher la
   vraie pioche dynamique — voir note "Pioches dynamiques depuis le catalogue" ci-dessous.
 - **Piège rencontré (fenêtre du menu pioche invisible)** : la mini-fenêtre Diviser/
@@ -273,9 +297,21 @@ la carte du dessus (affiche sa face) jusqu'à ce qu'elle soit posée.
   deck, mais empêchera à l'avenir de mélanger des piles de sorts et d'énergies). Seule
   exception : fusionner dans la défausse reste toujours permis (bac commun non typé,
   puisqu'il n'existe qu'un seul type de carte pour l'instant).
-- **Défausse = simple slot vide** (carré à bordure pointillée, jamais de dos de carte
-  affiché dessus) positionné **juste sous la pioche** dans le header, avec juste un
-  compteur en coin quand elle contient des cartes.
+- **Défausse = affiche sa carte du dessus, face visible** (jamais de dos — inutile de la
+  retourner puisqu'elle est déjà connue), positionnée **juste sous la pioche** dans le
+  header ; reste un carré à bordure pointillée seulement quand elle est vide. Cliquer sa
+  carte du dessus la **sélectionne** (glow bleu, bascule si on reclique) — de là, elle
+  peut être posée sur la grille (double-clic, comme une tuile tenue en main) ou renvoyée
+  dans une pioche (voir menu Dessus/Dessous ci-dessous). Sélectionner une tuile sur la
+  grille puis cliquer la défausse l'y envoie directement (équivalent au bouton ✕ de la
+  tuile sélectionnée, juste un second point d'entrée pour le même geste).
+- **Ranger une carte sélectionnée (tuile de la grille ou carte du dessus de la défausse)
+  dans une pioche** : cliquer une pioche pendant qu'une carte est sélectionnée ouvre un
+  mini menu **⬆️ Dessus / ⬇️ Dessous** (au lieu de piocher normalement) — le choix retire
+  la carte de sa source (grille ou défausse) et l'ajoute à l'extrémité choisie de la
+  pioche cible (`insertSelectedCardIntoPile`). Concrètement le seul geste qui, à ce
+  stade, permet de remettre une carte défaussée en jeu ailleurs que directement sur la
+  grille.
 - **Piège rencontré (fusion de piles)** : la fenêtre Diviser/Mélanger de la pioche armée
   se ferme au clic extérieur (règle globale des popups) — mais ce clic extérieur, c'est
   justement le clic sur la pioche CIBLE qui doit déclencher la fusion. Le listener
@@ -484,13 +520,16 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      voir "Pioche et pose de tuiles" et "Pioches et défausses" ci-dessus pour le détail
      complet (deck placeholder de 100 cartes identiques avec vrai visuel de carte
      recto/verso, diviser/mélanger/fusionner les piles — fusion réservée au même type —,
-     poser/tourner/flipper/déplacer/défausser une tuile via sa fenêtre flottante).
-     Le système de sélection par case a aussi été **entièrement simplifié** dans cette
-     passe : un seul tap sélectionne tout ce qu'il y a sur la case (voir "Système de
-     sélection par geste" ci-dessus), remplaçant l'ancien design à gestes distincts
-     (double-tap, appui prolongé, clic droit) qui n'a finalement pas été retenu. Reste :
-     brancher la vraie pioche dynamique depuis `data.cases` (voir "Pioches dynamiques
-     depuis le catalogue").
+     poser/tourner/flipper/déplacer/défausser une tuile via de simples boutons en place
+     autour d'elle, défausse à carte face visible et sélectionnable, menu Dessus/Dessous
+     pour ranger une carte sélectionnée dans une pioche). Le système de sélection par
+     case est passé par deux itérations : un premier essai à geste unique ("un tap
+     sélectionne tout ce qu'il y a sur la case") a été testé puis **abandonné par Gus**
+     au profit d'un retour au système à gestes distincts par type d'entité (clic simple
+     = joueurs/monstres, double-clic = cases/tuiles, appui long = items) — voir
+     "Système de sélection par geste" ci-dessus pour le détail actuel. Reste : brancher
+     la vraie pioche dynamique depuis `data.cases` (voir "Pioches dynamiques depuis le
+     catalogue").
    - Couche 3 (items/multi-sélection par case pour sorts/énergies au sol) et le
      contenu détaillé du mode Vision pour les cases/tuiles (Couche 4) : pas encore
      commencées. Undo/redo global au-delà de celui déjà en place pour les
