@@ -242,19 +242,47 @@ séparé — à évaluer techniquement selon la nature des actions de jeu (proba
 historique distinct de celui du mode édition, mais même pattern UI/logique réutilisable).
 
 ### Mode Vision (affichage détaillé d'une carte/entité)
-Bouton "œil" en bas à droite de l'écran. Une fois activé, toute sélection (case, perso,
-monstre, item) affiche le texte complet de la carte en grand plutôt que d'exécuter
-l'action normale associée à la sélection — ex: sélectionner un monstre en mode Vision
-affiche ses stats et récompenses en plein écran, au lieu du menu d'action habituel.
-Direction esthétique : overlay bleuté, effet glitch/matrix, inspiré du mode édition
-existant (réutiliser si possible la base de l'effet `useEditFlash` / classes
-`gridflash-in`/`gridflash-out` dans `index.html` plutôt que repartir de zéro — cohérence
-visuelle avec le glitch du mode édition, portails, sortie "Matrix").
+Bouton "œil" en bas à droite de l'écran (footer du Plateau, juste à gauche de la
+flèche `›`). Une fois activé, toute sélection (case, perso, monstre, item) affichera
+le texte complet de la carte en grand plutôt que d'exécuter l'action normale associée
+à la sélection — ex: sélectionner un monstre en mode Vision affichera ses stats et
+récompenses en plein écran, au lieu du menu d'action habituel. **Ce volet "révèle le
+contenu des cartes" n'est pas encore codé** (dépend des items/cartes-sur-case de la
+Couche 3, pas encore présents) ; en revanche l'**ambiance visuelle du toggle est
+implémentée** : overlay bleuté sur les lignes de la grille du Plateau (même dégradé
+répété que le fond de grille, teinté bleu par-dessus, cf. `visionGridStyle` dans
+`PlateauPage.js`), avec un effet glitch inspiré du mode édition à l'activation/
+désactivation. Contrairement au flash du mode édition (transitoire, retombe à 0),
+la teinte du mode Vision **reste visible tant qu'il est actif** : pic à 50% d'opacité
+pendant le clignotement d'entrée puis stabilisation à 25% en continu, glitch
+inverse (mêmes paliers que le clignotement de sortie du mode édition, adapté à ces
+valeurs) pour repasser à 0 à la désactivation. Nouveau hook dédié `useVisionFlash`
+dans `src/utils.js` (même schéma "classe fraîche à chaque bascule" que
+`useEditFlash`, mais sans le retomber-à-0 puisque l'état doit persister — pas de
+modification de `useEditFlash` lui-même). Classes CSS `visionflash-in`/
+`visionflash-out` dans `index.html`. Quelques traits fins blancs/gris de l'interface
+(bordures des boutons du header/pied de page) passent en bleu (`rgba(79,163,255,.5)`)
+tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` dans
+`PlateauPage.js`).
 
 ### Pan et zoom
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
   déplacer la vue ; pincer à deux doigts pour zoomer/dézoomer.
 - PC : cliquer-glisser pour déplacer la vue ; molette ou geste trackpad pour zoomer.
+- **Implémenté sur la Couche 1** (`PlateauPage.js`) : zoom via `effectiveCell = CELL *
+  zoom` (remplace `CELL` partout — taille du contenu, dégradés de grille, position des
+  jetons, calcul de la case cliquée), zoomé/dézoomé vers un point de focus (le point
+  sous la souris pour la molette, le milieu des deux doigts pour le pincement) en
+  recalculant `scrollLeft`/`scrollTop` après le redimensionnement du contenu (`requestAnimationFrame`,
+  le temps que React ait re-rendu à la nouvelle taille). Pincement tactile détecté via
+  Pointer Events (`pointersRef`, une `Map` de pointeurs actifs par `pointerId`) — ne
+  démarre qu'au **deuxième** doigt, laissant le scroll tactile natif à un seul doigt
+  intact ; `setPointerCapture` est protégé par un `try/catch` (peut échouer sans casser
+  le suivi du pincement). **Piège rencontré** : la molette (`onWheel` en prop React) est
+  attachée en écouteur *passif* par défaut, donc `preventDefault()` y échoue
+  silencieusement (le navigateur scrollait quand même en plus du zoom) — corrigé en
+  attachant l'écouteur `wheel` nous-mêmes via `addEventListener(..., {passive:false})`
+  dans un `useEffect`, plutôt que la prop JSX `onWheel`.
 
 ## Roadmap version jouable (multi-étapes)
 1. **Version hotseat locale** — un seul écran, les joueurs passent le tour à
@@ -304,7 +332,9 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
      via `EditText`, cœur rouge avec PV en coin, ✕ pour retirer) + bouton `+`
      (`AddBtn`) en bas de la colonne pour ajouter un joueur ("Joueur N" par
      défaut, PV de base = 3, apparaît au centre de la grille). Cliquer un
-     carré ouvre une fenêtre d'infos (`Popup` en mode `children`) qui
+     carré ouvre une fenêtre d'infos (`Popup` en mode `children`, ouverte vers
+     la **gauche** du carré puisque la colonne est collée au bord droit de
+     l'écran — sinon elle sortirait de l'écran) qui
      affichera plus tard les sorts/énergies du joueur — pour l'instant un
      simple message d'attente. Quand il n'y a aucun joueur, le texte "Ajoute
      un joueur" du pied de page est lui-même cliquable pour en créer un.
@@ -332,8 +362,14 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
      (roster à venir avec un visuel par personnage, images à uploader dans le
      repo, convention de nommage à définir avec Gus une fois les images
      prêtes) : simple carré/rond de couleur avec initiale en attendant.
-   - Couches 2 à 5 (pioche/pose de tuiles, items/multi-sélection, mode
-     Vision, pan/zoom + undo/redo global) : pas encore commencées.
+   - Pan/zoom (souris/molette, tactile/pincement) : **implémenté** en avance sur la
+     Couche 5, directement sur la Couche 1 — voir "Pan et zoom" ci-dessus.
+   - Mode Vision : **ambiance visuelle du toggle implémentée** en avance sur la
+     Couche 4 (overlay bleu + glitch), mais le volet "affiche le contenu détaillé
+     d'une carte/entité sélectionnée" attend les items de la Couche 3.
+   - Couches 2 à 4 (pioche/pose de tuiles, items/multi-sélection par case, contenu
+     du mode Vision) et undo/redo global (au-delà de celui déjà en place pour les
+     joueurs/PV/déplacements) : pas encore commencées.
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation

@@ -54,6 +54,25 @@ button,input,textarea{font-family:inherit;cursor:pointer}
   65.28% {opacity:.33;}
   100%   {opacity:0;}
 }
+/* Plateau's Vision mode: same glitch technique as the edit-mode flash
+   above, but the tint stays on (settles at .25 opacity) for as long as
+   Vision mode is active rather than fading back to 0 — see useVisionFlash
+   in src/utils.js for how the class hands off to the persistent base style. */
+.visionflash-in{ animation:visionFlashIn .4s both; }
+.visionflash-out{ animation:visionFlashOut .576s both; }
+@keyframes visionFlashIn{
+  0%   {opacity:0; animation-timing-function:ease-out;}
+  25%  {opacity:.5; animation-timing-function:ease-in;}
+  100% {opacity:.25;}
+}
+@keyframes visionFlashOut{
+  0%     {opacity:.25; animation-timing-function:steps(1,end);}
+  8.33%  {opacity:0; animation-timing-function:steps(1,end);}
+  47.22% {opacity:.5; animation-timing-function:steps(1,end);}
+  54.17% {opacity:0; animation-timing-function:steps(1,end);}
+  65.28% {opacity:.25;}
+  100%   {opacity:0;}
+}
 </style>
 </head>
 <body>

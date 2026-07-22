@@ -50,6 +50,31 @@ export function useEditFlash(editMode){
   return cls;
 }
 
+// Same fresh-class-per-toggle pattern as useEditFlash, for the Plateau's
+// Vision mode overlay. Unlike the edit-mode flash, Vision mode's tint is
+// meant to stay visible for as long as it's active (not fade back to 0) —
+// the caller keeps the overlay's base opacity in sync with `active` itself
+// (0 off / .25 on) and this class only drives the transient pulse/glitch
+// animation during the toggle moment, handing off seamlessly once it clears
+// since the animation's start/end opacity matches that base value.
+export function useVisionFlash(active){
+  const [cls, setCls] = useState('');
+  const wasActive = useRef(active);
+  const timer = useRef(null);
+
+  useEffect(() => {
+    if (active !== wasActive.current) {
+      wasActive.current = active;
+      clearTimeout(timer.current);
+      setCls(active ? 'visionflash-in' : 'visionflash-out');
+      timer.current = setTimeout(() => setCls(''), active ? 500 : 700);
+    }
+  }, [active]);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return cls;
+}
+
 // data.visuels used to be a fixed object ({general, boite, ...}); it's now a
 // user-extensible array of {id, label, content} so categories can be added,
 // renamed, reordered and removed. Converts old-shape data read from
