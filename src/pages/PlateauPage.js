@@ -25,21 +25,26 @@ function loadSession(){
   } catch { return null; }
 }
 
-function gridBgStyle(cell){
-  return {
-    background: `repeating-linear-gradient(0deg,transparent,transparent ${cell-1}px,rgba(255,255,255,.08) ${cell-1}px,rgba(255,255,255,.08) ${cell}px),`
-      + `repeating-linear-gradient(90deg,transparent,transparent ${cell-1}px,rgba(255,255,255,.08) ${cell-1}px,rgba(255,255,255,.08) ${cell}px),#161616`
-  };
-}
+// Grid background is drawn ONCE at the native CELL size and never
+// regenerated for zoom — the whole content div (background + tokens) is
+// scaled visually via a single CSS transform instead (see contentRef's
+// style below). Recomputing this repeating-gradient string at a new
+// fractional pixel size on every zoom tick was itself the cause of both
+// the jank (a big CSS background reparse/repaint per tick, on top of a
+// full React re-render) and the flickering lines (sub-pixel gradient stop
+// rounding at odd cell sizes) — scaling a single already-rendered layer is
+// both cheaper (GPU-composited) and artifact-free.
+const GRID_BG = {
+  background: `repeating-linear-gradient(0deg,transparent,transparent ${CELL-1}px,rgba(255,255,255,.08) ${CELL-1}px,rgba(255,255,255,.08) ${CELL}px),`
+    + `repeating-linear-gradient(90deg,transparent,transparent ${CELL-1}px,rgba(255,255,255,.08) ${CELL-1}px,rgba(255,255,255,.08) ${CELL}px),#161616`
+};
 
 // Vision mode overlay: same grid lines, tinted blue, layered on top of the
 // base grid (not replacing it) so the toggle can fade/glitch independently.
-function visionGridStyle(cell){
-  return {
-    background: `repeating-linear-gradient(0deg,transparent,transparent ${cell-1}px,rgba(120,180,255,.9) ${cell-1}px,rgba(120,180,255,.9) ${cell}px),`
-      + `repeating-linear-gradient(90deg,transparent,transparent ${cell-1}px,rgba(120,180,255,.9) ${cell-1}px,rgba(120,180,255,.9) ${cell}px)`
-  };
-}
+const VISION_GRID_BG = {
+  background: `repeating-linear-gradient(0deg,transparent,transparent ${CELL-1}px,rgba(120,180,255,.9) ${CELL-1}px,rgba(120,180,255,.9) ${CELL}px),`
+    + `repeating-linear-gradient(90deg,transparent,transparent ${CELL-1}px,rgba(120,180,255,.9) ${CELL-1}px,rgba(120,180,255,.9) ${CELL}px)`
+};
 
 function borderColor(vision, normal){
   return vision ? 'rgba(79,163,255,.5)' : normal;
@@ -447,27 +452,30 @@ export function PlateauPage({onBack}) {
       h('div', {
         ref:contentRef,
         onClick:onContentClick,
-        style:{width:COLS*effectiveCell, height:ROWS*effectiveCell, position:'relative', ...gridBgStyle(effectiveCell)}
+        style:{
+          width:COLS*CELL, height:ROWS*CELL, position:'relative',
+          transform:`scale(${zoom})`, transformOrigin:'0 0',
+          ...GRID_BG
+        }
       },
         h('div', {
           className: visionFlashCls,
           style:{
             position:'absolute', inset:0, pointerEvents:'none',
             opacity: visionMode ? 0.25 : 0,
-            ...visionGridStyle(effectiveCell)
+            ...VISION_GRID_BG
           }
         }),
         Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
-          const tokenSize = Math.min(40, Math.max(14, 26*zoom));
-          const cx = p.col*effectiveCell + effectiveCell/2 + (group.length>1 ? (i%2===0?-1:1)*(effectiveCell/5) : 0);
-          const cy = p.row*effectiveCell + effectiveCell/2 + (group.length>1 ? (i>=2?1:-1)*(effectiveCell/5) : 0);
+          const cx = p.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
+          const cy = p.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);
           return h('div', {
             key:p.id,
             style:{
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
-              width:tokenSize, height:tokenSize, borderRadius:'50%', background:p.couleur,
+              width:26, height:26, borderRadius:'50%', background:p.couleur,
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:tokenSize*0.42, fontWeight:700, color:'#fff', pointerEvents:'none',
+              fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none',
               boxShadow: selectedId===p.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
             }
           }, p.nom.slice(0,1).toUpperCase());

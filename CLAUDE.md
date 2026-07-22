@@ -269,11 +269,25 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
   déplacer la vue ; pincer à deux doigts pour zoomer/dézoomer.
 - PC : cliquer-glisser pour déplacer la vue ; molette ou geste trackpad pour zoomer.
-- **Implémenté sur la Couche 1** (`PlateauPage.js`) : zoom via `effectiveCell = CELL *
-  zoom` (remplace `CELL` partout — taille du contenu, dégradés de grille, position des
-  jetons, calcul de la case cliquée), zoomé/dézoomé vers un point de focus (le point
-  sous la souris pour la molette, le milieu des deux doigts pour le pincement). Pincement
-  tactile détecté via Pointer Events (`pointersRef`, une `Map` de pointeurs actifs par
+- **Implémenté sur la Couche 1** (`PlateauPage.js`) : zoomé/dézoomé vers un point de
+  focus (le point sous la souris pour la molette, le milieu des deux doigts pour le
+  pincement). Le zoom applique un simple **`transform:scale(zoom)`** (origine `0 0`) sur
+  le conteneur de contenu — celui-ci garde une taille CSS fixe (`COLS*CELL`×`ROWS*CELL`)
+  et un fond de grille calculé **une seule fois** (constante de module `GRID_BG`, jamais
+  régénéré) ; jetons et overlay Vision restent eux aussi en coordonnées `CELL` fixes,
+  tout est mis à l'échelle ensemble par le transform. Grosse simplification par rapport
+  à une première version qui recalculait une taille de cellule effective (`CELL * zoom`)
+  et régénérait le dégradé CSS de la grille à chaque tick de zoom : en plus d'être plus
+  cher (gros reparse/repaint du fond à chaque évènement, en plus du re-rendu React), ça
+  provoquait le vrai bug rapporté ("les traits de la grille clignotent/disparaissent") —
+  un `repeating-linear-gradient` régénéré à une taille de cellule fractionnaire (ex:
+  59.4px) produit des artefacts d'arrondi sous-pixel sur les jonctions du motif. Un
+  transform ne fait que mettre à l'échelle un rendu déjà calculé proprement (à 44px, une
+  taille "propre") — le navigateur s'en charge sur le GPU, aucun artefact, et le
+  `scrollWidth`/`scrollHeight` du conteneur scrollable s'ajuste automatiquement à la
+  taille visuelle transformée (confirmé empiriquement, pas besoin d'un conteneur
+  intermédiaire dédié à la taille mise à l'échelle). Pincement tactile détecté via
+  Pointer Events (`pointersRef`, une `Map` de pointeurs actifs par
   `pointerId`) — ne démarre qu'au **deuxième** doigt, laissant le scroll tactile natif à
   un seul doigt intact ; `setPointerCapture` est protégé par un `try/catch` (peut échouer
   sans casser le suivi du pincement). Pendant un pincement, le point-monde visé est capturé
