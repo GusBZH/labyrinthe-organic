@@ -231,11 +231,11 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     // CONTENT
     h('div', {style:{padding:'16px 16px 100px'}},
 
-      // WIP JOUER
-      h('div', {style:{background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)',
-        borderRadius:12, padding:16, marginBottom:20, textAlign:'center', cursor:'not-allowed'}},
-        h('div', {style:{fontSize:14, fontWeight:600, color:'#777'}}, '🎮 Jouer'),
-        h('div', {style:{fontSize:11, color:'#555', marginTop:4}}, 'WIP — bientôt disponible')
+      // JOUER
+      h('div', {onClick:()=>setPage('plateau'), style:{background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)',
+        borderRadius:12, padding:16, marginBottom:20, textAlign:'center', cursor:'pointer'}},
+        h('div', {style:{fontSize:14, fontWeight:600, color:'#eee'}}, '🎮 Jouer'),
+        h('div', {style:{fontSize:11, color:'#666', marginTop:4}}, 'Plateau hotseat (v1)')
       ),
 
       h('div', {ref:sectionsRef},

@@ -25,7 +25,7 @@ La logique tourne en `React.createElement` pur, découpée en modules ES natifs
 - `src/components/` — briques UI génériques réutilisées partout (Card, Section,
   EditText, ElemGroup, LvlGroup, BlockEditor, DragHandle, UndoRedo, EditableSection...)
 - `src/pages/` — écrans assemblés à partir des composants (HomePage,
-  SoireePage, IdeeVracPage)
+  SoireePage, IdeeVracPage, PlateauPage)
 - `data.json` — toutes les données du jeu (source de vérité, lu/écrit via l'API GitHub)
 - `manifest.json` — PWA manifest
 
@@ -225,7 +225,9 @@ mécanique séparée à coder). Flux d'une rencontre :
 
 ### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu)
 - Appui long / clic maintenu sur une pioche → la divise en deux (mécanique de jeu à
-  part entière).
+  part entière, pas juste un utilitaire d'affichage). Une fois divisée, les deux
+  moitiés doivent être mélangées séparément (chacune re-brassée après la division,
+  pas juste coupée en deux paquets ordonnés).
 - Double-tap / double-clic sur une pioche OU une défausse → mélange.
 
 ### Undo/redo global
@@ -255,6 +257,28 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
    tour de rôle. Objectif : valider que les mécaniques digitalisées marchent
    avant d'ajouter la couche réseau. Voir section "Système de jeu — plateau
    interactif" ci-dessus pour le détail complet du design validé.
+   - **Couche 1 (grille + sélection/déplacement perso) : implémentée**, page
+     `src/pages/PlateauPage.js`, accessible depuis le bouton "🎮 Jouer" de la
+     home page (n'est plus un WIP désactivé). Grille configurable (défaut 9×9,
+     steppers +/-), joueurs ajoutés à la volée (nom + couleur auto-assignée
+     depuis une palette fixe), sélection par tap/clic simple (glow bleu),
+     second tap = déplacement libre sans limite ni calcul de coût, PV manuel
+     par joueur (+1/-1, y compris sur un autre joueur), bouton dé (d6).
+     Volontairement **pas de multi-sélection par case pour l'instant** (si
+     plusieurs joueurs sont sur la même case, le tap simple sélectionne le
+     premier trouvé) — la fenêtre de choix joueurs/monstres décrite dans
+     "Système de sélection par geste" est prévue pour la Couche 3, pas encore
+     codée. État de partie (joueurs, position, PV, taille de grille) persisté
+     en **`localStorage`** (clé `labyrinthe_organic_plateau_v1`), volontairement
+     **hors `data.json`** : c'est un état de session de jeu local à l'appareil
+     (hotseat = un seul écran), pas une donnée de catalogue partagée via
+     GitHub — évite de spammer des commits à chaque déplacement/tir de dé et
+     évite les conflits si data.json est édité en parallèle. Pas encore de
+     visuels de personnages (roster à venir avec un visuel par personnage,
+     images à uploader dans le repo) : simple rond de couleur avec initiale
+     en attendant.
+   - Couches 2 à 5 (pioche/pose de tuiles, items/multi-sélection, mode
+     Vision, pan/zoom + undo/redo global) : pas encore commencées.
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation
@@ -281,7 +305,6 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
 - Corriger l'affichage de l'icône power sur mobile
-- Rendre le bouton "Jouer WIP" plus visible
 - Mode simulation de playtest jouable dans l'app
 - Bots / IA pour tester les mécaniques en solo
 - Mode d'affichage/jeu de cartes façon playingcards.io

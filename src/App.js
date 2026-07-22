@@ -4,6 +4,7 @@ import { INIT } from "./data/initialData.js";
 import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
+import { PlateauPage } from "./pages/PlateauPage.js";
 import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder } from "./utils.js";
 
 const MAX_HISTORY = 50;
@@ -156,6 +157,8 @@ export function App() {
     value:data.ideeEnVrac, onChange:v=>upd({...data,ideeEnVrac:v}), editMode, setEditMode,
     canUndo, canRedo, onUndo:undo, onRedo:redo, onBack:()=>setPage('home')
   });
+
+  if (page === 'plateau') return h(PlateauPage, {onBack:()=>setPage('home')});
 
   return h(HomePage, {
     data, editMode, setEditMode, saving, saveErr,
