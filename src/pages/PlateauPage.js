@@ -12,6 +12,7 @@ import { UndoRedo } from "../components/UndoRedo.js";
 const STORAGE_KEY = 'labyrinthe_organic_plateau_v1';
 const PALETTE = ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22','#1abc9c','#95a5a6'];
 const ROWS = 100, COLS = 100, CELL = 44;
+const CENTER_ROW = Math.floor(ROWS/2), CENTER_COL = Math.floor(COLS/2);
 const MAX_HISTORY = 50;
 const DEFAULT_PV = 3;
 
@@ -75,11 +76,12 @@ export function PlateauPage({onBack}) {
   const [players, setPlayers] = useState(saved?.players || []);
   const [currentIndex, setCurrentIndex] = useState(saved?.currentIndex || 0);
   const [selectedId, setSelectedId] = useState(null);
-  const [dice, setDice] = useState(null);
+  const [showReset, setShowReset] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
+  const resetAnchorRef = useRef(null);
 
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
@@ -89,6 +91,16 @@ export function PlateauPage({onBack}) {
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex})); } catch {}
   }, [players, currentIndex]);
+
+  // Grid starts centered on (0,0) — the middle of the board, so there's
+  // equal room to move in every direction from where players spawn —
+  // rather than the native top-left scroll origin.
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2;
+    vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2;
+  }, []);
 
   function commitPlayers(next){
     pastRef.current.push(players);
@@ -123,7 +135,7 @@ export function PlateauPage({onBack}) {
   }
 
   function addPlayer(){
-    commitPlayers([...players, {id:uid(), nom:`Joueur ${players.length+1}`, couleur:nextColor(), pv:DEFAULT_PV, row:0, col:0}]);
+    commitPlayers([...players, {id:uid(), nom:`Joueur ${players.length+1}`, couleur:nextColor(), pv:DEFAULT_PV, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
   }
 
   function removePlayer(id){
@@ -190,13 +202,29 @@ export function PlateauPage({onBack}) {
     window.addEventListener('pointerup', onUp);
   }
 
-  function rollDice(){
-    setDice(1 + Math.floor(Math.random() * 6));
+  // Each player keeps their own last roll — not pushed through
+  // commitPlayers, a re-roll isn't meaningful to undo.
+  function rollDice(id){
+    const value = 1 + Math.floor(Math.random() * 6);
+    setPlayers(players.map(p => p.id === id ? {...p, dice:value} : p));
   }
 
   function switchPlayer(delta){
     if (players.length === 0) return;
     setCurrentIndex((currentIndex + delta + players.length) % players.length);
+  }
+
+  function resetBoard(){
+    pastRef.current = [];
+    futureRef.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+    setSelectedId(null);
+    setCurrentIndex(0);
+    setPlayers([]);
+    setShowReset(false);
+    const vp = viewportRef.current;
+    if (vp) { vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2; vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2; }
   }
 
   const current = players[currentIndex] || null;
@@ -209,18 +237,34 @@ export function PlateauPage({onBack}) {
     (cellGroups[key] = cellGroups[key] || []).push(p);
   });
 
-  return h('div', {style:{height:'100vh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
+  return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
     // HEADER (sticky) — future home of tile draw/discard piles
     h('div', {style:{flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 16px',
       background:'rgba(20,20,20,.97)', borderBottom:'1px solid rgba(255,255,255,.08)', zIndex:20}},
       h('button', {onClick:onBack, style:{background:'none', border:'1px solid #333', borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
-      h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau')
+      h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
+      h('div', {ref:resetAnchorRef, style:{position:'relative'}},
+        h('button', {onClick:()=>setShowReset(!showReset), style:{background:'none', border:'1px solid #333', borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
+        showReset && h(Popup, {
+          onClose:()=>setShowReset(false),
+          anchorRef:resetAnchorRef,
+          style:{right:0, top:'100%', marginTop:8, width:200},
+          children: h('div', {},
+            h('div', {style:{fontSize:12, color:'#eee', marginBottom:10}}, 'Réinitialiser tout le plateau ?'),
+            h('div', {style:{display:'flex', gap:8}},
+              h('button', {onClick:resetBoard, style:{flex:1, background:'rgba(220,60,40,.15)', border:'1px solid rgba(220,60,40,.4)', borderRadius:6, color:'#f88', padding:'6px 0', fontSize:12}}, 'Oui'),
+              h('button', {onClick:()=>setShowReset(false), style:{flex:1, background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:6, color:'#eee', padding:'6px 0', fontSize:12}}, 'Non')
+            )
+          )
+        })
+      ),
+      h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
     ),
 
-    // LEFT SIDEBAR — player roster (sticky, vertically centered)
+    // RIGHT SIDEBAR — player roster (sticky, vertically centered)
     h('div', {style:{
-      position:'fixed', left:8, top:'50%', transform:'translateY(-50%)',
+      position:'fixed', right:8, top:'50%', transform:'translateY(-50%)',
       display:'flex', flexDirection:'column', gap:8, zIndex:15
     }},
       players.map((p,i) => h(PlayerSquare, {
@@ -258,16 +302,16 @@ export function PlateauPage({onBack}) {
       )
     ),
 
-    // FOOTER (sticky) — dice / PV heart / undo-redo, with room left for
-    // sorts & énergies (between dice and heart) once those exist
+    // FOOTER (sticky) — dice / PV heart, with room left for sorts & énergies
+    // (between dice and heart) once those exist
     h('div', {style:{flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between',
       padding:'10px 14px', background:'rgba(20,20,20,.97)', borderTop:'1px solid rgba(255,255,255,.08)', zIndex:20}},
       h('button', {onClick:()=>switchPlayer(-1), disabled:players.length<2, style:navBtnStyle(players.length>1)}, '‹'),
 
       h('div', {style:{display:'flex', alignItems:'center', gap:10}},
-        h('button', {onClick:rollDice, style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
-          dice ? `🎲 ${dice}` : '🎲'
-        ),
+        current ? h('button', {onClick:()=>rollDice(current.id), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
+          current.dice ? `🎲 ${current.dice}` : '🎲'
+        ) : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, color:'#444', padding:'6px 12px', fontSize:13}}, '🎲'),
         current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
           h('button', {onClick:()=>updatePv(current.id,-1), style:pvBtnStyle}, '−'),
           h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
@@ -275,8 +319,7 @@ export function PlateauPage({onBack}) {
             h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
           ),
           h('button', {onClick:()=>updatePv(current.id,1), style:pvBtnStyle}, '+')
-        ) : h('div', {style:{fontSize:11, color:'#555'}}, 'Ajoute un joueur'),
-        h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
+        ) : h('div', {onClick:addPlayer, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
       ),
 
       h('button', {onClick:()=>switchPlayer(1), disabled:players.length<2, style:navBtnStyle(players.length>1)}, '›')

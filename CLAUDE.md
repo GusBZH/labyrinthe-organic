@@ -264,12 +264,24 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
    - **Couche 1 (grille + sélection/déplacement perso) : implémentée**, page
      `src/pages/PlateauPage.js`, accessible depuis le bouton "🎮 Jouer" de la
      home page (n'est plus un WIP désactivé). Présentation façon jeu vidéo :
-     header sticky en haut (← Retour + titre "Plateau" — accueillera plus tard
-     les pioches/défausses de tuiles), pied de page sticky en bas (dé, cœur de
-     PV avec −/+, undo/redo, flèches ‹/› géantes en coins extrêmes pour changer
-     de "joueur courant"), et une grille **grande (100×100 cases, 44px/case)**
-     entre les deux, dans son propre conteneur `overflow:auto` scrollable/
-     pannable indépendamment du reste (le header/footer ne bougent jamais).
+     header sticky en haut (← Retour, titre "Plateau", puis à droite un bouton
+     "⟲ Reset" et les boutons undo/redo — le header accueillera plus tard les
+     pioches/défausses de tuiles), pied de page sticky en bas (flèches ‹/›
+     géantes dans les coins extrêmes pour changer de "joueur courant", puis au
+     centre : dé, cœur de PV avec −/+), et une grille **grande (100×100 cases,
+     44px/case) entre les deux**, dans son propre conteneur `overflow:auto`
+     scrollable/pannable indépendamment du reste (le header/footer ne bougent
+     jamais). La page utilise `height:100dvh` (pas `100vh`) sur son conteneur
+     racine : sur mobile, `100vh` inclut la zone que la barre d'adresse du
+     navigateur occupe/libère en scrollant, ce qui faisait apparaître/
+     disparaître le header et le pied de page selon que la barre d'adresse
+     était visible ou non — `dvh` (dynamic viewport height) suit la vraie
+     hauteur visible et corrige ça.
+     Origine de la grille recentrée : les joueurs apparaissent au centre du
+     tableau (case `(50,50)` sur 100×100) plutôt qu'en haut à gauche, et la vue
+     défile automatiquement pour centrer ce point au chargement — autant
+     d'espace pour se déplacer dans les 4 directions dès le départ, plutôt que
+     de n'avoir de la place qu'en bas/à droite.
      Rendu perf : pas de 10 000 `<div>` de cellule — la grille est un simple
      fond CSS en dégradés répétés (même technique que `editBgStyle`) et les
      jetons joueurs sont positionnés en absolu par calcul (`row*CELL`,
@@ -286,21 +298,31 @@ visuelle avec le glitch du mode édition, portails, sortie "Matrix").
      sont sur la même case, le tap simple sélectionne le premier trouvé) — la
      fenêtre de choix joueurs/monstres de "Système de sélection par geste" est
      prévue pour la Couche 3, pas encore codée.
-     Barre des joueurs façon "groupe Dofus" : colonne sticky à gauche de
-     l'écran, centrée verticalement, un carré par joueur (fond = couleur du
+     Barre des joueurs façon "groupe Dofus" : colonne sticky collée à **droite**
+     de l'écran, centrée verticalement, un carré par joueur (fond = couleur du
      joueur en attendant un visuel par personnage, nom éditable par double-clic
      via `EditText`, cœur rouge avec PV en coin, ✕ pour retirer) + bouton `+`
      (`AddBtn`) en bas de la colonne pour ajouter un joueur ("Joueur N" par
-     défaut, PV de base = 3). Cliquer un carré ouvre une fenêtre d'infos
-     (`Popup` en mode `children`) qui affichera plus tard les sorts/énergies du
-     joueur — pour l'instant un simple message d'attente. Les flèches ‹/› du
-     pied de page changent quel joueur est "courant" (celui dont le cœur/PV
-     s'affiche dans le pied de page, et plus tard ses sorts/énergies) — c'est
-     indépendant de la sélection de déplacement sur la grille. Undo/redo du
-     pied de page : historique séparé de celui du mode édition (pile locale à
-     `PlateauPage`, même pattern que `App.js`), capture chaque ajout/retrait de
-     joueur, changement de PV et déplacement (pas les tirs de dé ni le
-     changement de joueur courant, non significatifs à annuler).
+     défaut, PV de base = 3, apparaît au centre de la grille). Cliquer un
+     carré ouvre une fenêtre d'infos (`Popup` en mode `children`) qui
+     affichera plus tard les sorts/énergies du joueur — pour l'instant un
+     simple message d'attente. Quand il n'y a aucun joueur, le texte "Ajoute
+     un joueur" du pied de page est lui-même cliquable pour en créer un.
+     Le dé est **par joueur** (`player.dice`, pas un état global partagé) : le
+     pied de page affiche et fait lancer le dé du joueur courant uniquement,
+     donc passer au joueur suivant (flèches ‹/›) affiche son propre dernier
+     lancer (ou aucun s'il n'a pas encore lancé), indépendamment des autres.
+     Les flèches ‹/› changent quel joueur est "courant" (celui dont le cœur/PV
+     et le dé s'affichent dans le pied de page, et plus tard ses sorts/
+     énergies) — c'est indépendant de la sélection de déplacement sur la
+     grille. Bouton Reset dans le header : ouvre une popup de confirmation
+     (Oui/Non) avant de vider tous les joueurs et l'historique — jamais de
+     reset silencieux. Undo/redo (header, à droite) : historique séparé de
+     celui du mode édition (pile locale à `PlateauPage`, même pattern que
+     `App.js`), capture chaque ajout/retrait de joueur, changement de PV et
+     déplacement (pas les tirs de dé, ni le changement de joueur courant, ni
+     le reset — non significatifs à annuler, et le reset a déjà sa propre
+     confirmation).
      État de partie (joueurs, joueur courant) persisté en **`localStorage`**
      (clé `labyrinthe_organic_plateau_v1`), volontairement **hors `data.json`** :
      c'est un état de session de jeu local à l'appareil (hotseat = un seul
