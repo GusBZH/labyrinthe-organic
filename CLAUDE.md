@@ -186,40 +186,53 @@ type d'entité** (le plus fréquent = le geste le plus simple) :
   (Couche 3, pas encore commencée) — pas de collision avec l'appui long des *pioches*
   dans le header (Diviser/Mélanger), qui est un geste séparé sur un élément différent.
 
-Un seul clic sur une case ne touche jamais aux tuiles, et un double-clic ne touche
-jamais aux joueurs — les deux gestes ne se disputent donc jamais le même tap. Distinguer
+Un double-clic ne touche jamais aux joueurs — il sert **exclusivement** à ramasser une
+tuile déjà posée (`selectTileAt`, dans `onContentDoubleClick`), rien d'autre. Distinguer
 un simple clic d'un double-clic sur le même élément demande un léger délai
 (`clickTimerRef`, 250ms) : un double-clic déclenche aussi deux évènements `click` natifs
 en plus du `dblclick`, donc le premier `click` est retenu brièvement — si un second
 arrive à temps il l'annule et laisse `onDoubleClick` agir seul à sa place.
 
-`onContentDoubleClick(row, col)` :
-1. Une tuile tenue en main (`heldTile`, piochée) ? Ce double-clic la pose ici (si la
-   case est libre).
-2. Une carte de la défausse sélectionnée (`selectedDiscardCardId`) ? Ce double-clic la
-   pose ici (retirée de la défausse).
-3. Une tuile déjà sélectionnée (`selectedTileId`) ? Ce double-clic la déplace ici (ou la
+**Une fois qu'une carte est "en main" d'une façon ou d'une autre — tuile tenue depuis
+une pioche (`heldTile`), carte prise dans la défausse (`selectedDiscardCardId`), ou
+tuile ramassée par double-clic (`selectedTileId`) — un seul tap suffit pour la poser/
+déplacer.** Gus est revenu sur une première version où ce second geste était aussi un
+double-clic ("2 tap c'est juste pour sélectionner la carte") : sur une grille où on
+bouge très souvent d'une seule case, le double-clic de déplacement retombait 3 fois sur
+4 pile sur les 3 boutons d'option flottant à côté de la tuile (voir plus bas), qui
+bloquaient alors le tap. Un simple clic les évite presque toujours. `handleSingleClick`
+(via `onContentClick`) gère donc, dans cet ordre :
+1. Mode Vision actif ? Bloque toute manipulation de carte (rien ne bouge tant qu'il est
+   actif — voir plus bas) et ne gère que l'inspection de joueurs.
+2. Une tuile tenue en main (`heldTile`) ? Ce tap la pose ici (si la case est libre).
+3. Une carte de défausse sélectionnée (`selectedDiscardCardId`) ? Ce tap la pose ici
+   (retirée de la défausse).
+4. Une tuile déjà sélectionnée (`selectedTileId`) ? Ce tap la déplace ici (ou la
    désélectionne si c'est sa propre case ; bloqué si une autre tuile occupe déjà la case
    cible).
-4. Sinon : sélectionne la tuile posée sur cette case, s'il y en a une et qu'aucun joueur
-   n'est dessus (`selectTileAt` — voir règle d'occupation ci-dessous).
+5. Sinon : sélection/déplacement de joueur, inchangé par rapport à avant ; plusieurs
+   joueurs sur la même case → `cellPicker` (une simple liste de noms — plus besoin de
+   colonnes par type puisque les tuiles ne passent plus jamais par ce picker).
 
-`handleSingleClick(row, col)` (joueurs uniquement, inchangé par rapport à avant) déselectionne
-d'abord toute carte sélectionnée (`selectedTileId`/`selectedDiscardCardId`), puis gère
-la sélection/déplacement de joueur comme précédemment ; s'il y en a plusieurs sur la
-même case, ouvre `cellPicker` (une simple liste de noms désormais — plus besoin de
-colonnes par type puisque les tuiles ne passent plus jamais par ce picker).
-
-**Désélection d'une carte (tuile ou carte de défausse) — règle globale** : re-double-
-cliquer la même tuile, sélectionner autre chose (joueur, autre tuile), ou cliquer
-n'importe où dans le header/pied de page (`clearCardSelection`, câblé sur leur `onClick`
-de fond — les piles/défausse font `e.stopPropagation()` sur leur propre clic pour ne pas
-se faire annuler leur propre action par ce même handler) désélectionne. Même esprit que
-la fermeture au clic extérieur des popups.
+**Désélection d'une carte (tuile ou carte de défausse) — règle globale** : re-taper la
+même tuile, sélectionner autre chose (joueur, autre tuile), ou cliquer n'importe où dans
+le header/pied de page (`clearCardSelection`, câblé sur leur `onClick` de fond — les
+piles/défausse font `e.stopPropagation()` sur leur propre clic pour ne pas se faire
+annuler leur propre action par ce même handler) désélectionne. Même esprit que la
+fermeture au clic extérieur des popups.
 
 **Règle d'occupation tuile/joueur** (toujours en vigueur : "une tuile ne peut être
 manipulée que si aucun joueur n'est dessus") : `selectTileAt` refuse de sélectionner une
 tuile si un joueur est présent sur la même case.
+
+**Mode Vision = inspection pure, aucune carte ne bouge tant qu'il est actif** :
+`onContentDoubleClick` et le bloc carte de `handleSingleClick` sont tous deux court-
+circuités pendant que `visionMode` est vrai — impossible de ramasser une nouvelle tuile
+ou de déplacer/poser celle déjà en main. `toggleVisionMode` désélectionne aussi
+`selectedTileId`/`selectedDiscardCardId` à l'entrée (même geste que pour `selectedId`
+déjà en place) pour ne pas laisser un glow de sélection sans aucun moyen d'agir dessus.
+Une tuile *tenue* depuis une pioche (`heldTile`) n'est volontairement pas annulée à
+l'entrée en mode Vision : elle attend simplement, non posable, jusqu'à la sortie du mode.
 
 ### Monstres traités comme des "joueurs"
 Les monstres suivent le même système de sélection/déplacement que les joueurs (pas de
@@ -243,23 +256,32 @@ même pioche pendant qu'on tient sa carte l'annule** : la carte retourne dans la
 et se remet dos visible (`drawFromPile` compare `heldTile.fromPileId` à la pioche
 cliquée). Cliquer une AUTRE pioche pendant qu'on tient une carte ne fait rien (il faut
 d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
-1. Double-clic sur une case vide de la grille → pose la tuile tenue en main là (voir
-   "Système de sélection par geste" pour pourquoi c'est un double-clic et pas un
-   simple clic).
-2. Double-clic sur une tuile déjà posée (sans joueur dessus) → la sélectionne.
+1. Un tap (clic simple) sur une case vide de la grille → pose la tuile tenue en main
+   là — **un seul tap suffit**, pas un double-clic (voir "Système de sélection par
+   geste" : Gus est revenu sur une version où poser/déplacer une carte en main prenait
+   aussi un double-clic).
+2. Double-clic sur une tuile déjà posée (sans joueur dessus) → la sélectionne. C'est le
+   **seul** geste qui prend deux taps ici — une fois sélectionnée, la déplacer à
+   nouveau ne prend plus qu'un tap (voir "Système de sélection par geste").
 3. Une tuile sélectionnée affiche **juste 3 petits boutons autour d'elle**, sans
    agrandir la carte (une première version affichait une copie agrandie dans une
    fenêtre flottante séparée — Gus a demandé de l'enlever, "juste les options qui
-   arrivent") : ↕️ au-dessus (flip, affiche le dos), ✕ rouge à gauche (défausse
-   directement la tuile), ⟳ à droite (rotation 90° sens horaire, cliquable/spammable).
-   Les 3 boutons sont positionnés au **même rayon** autour du centre de la tuile (une
-   version antérieure mélangeait des offsets relatifs au bord et au centre, ce qui
-   faisait paraître le bouton de rotation "pas aligné" avec les deux autres). Rendus
-   comme enfants du conteneur transformé (coordonnées `row*CELL`/`col*CELL`, pas une
-   fenêtre `position:fixed` séparée) donc ils suivent naturellement le pan/zoom — un
-   `zIndex` explicite les fait passer au-dessus des tuiles voisines malgré l'ordre du
-   DOM (voir le piège de fenêtre invisible ci-dessous, résolu différemment cette fois :
-   pas besoin de sortir du conteneur transformé, un simple z-index suffit puisque les
+   arrivent") : ↕️ (flip, affiche le dos), ⟳ (rotation 90° sens horaire, cliquable/
+   spammable), ✕ rouge (défausse directement la tuile). Positionnés sur les **coins**
+   de la tuile (haut-gauche, haut-droit, bas-droit) plutôt que sur ses arêtes
+   cardinales (haut/gauche/droite) — une première version au milieu des arêtes plaçait
+   les boutons quasiment pile sur le centre de la case voisine dans ces 3 directions,
+   or déplacer d'une case (le mouvement de très loin le plus fréquent) vise justement ce
+   centre-là, donc 3 fois sur 4 le tap de déplacement tombait sur un bouton au lieu de la
+   grille. Le coin d'une case est à distance égale (une demi-diagonale, ~31px à
+   CELL=44) de son propre centre ET du centre de n'importe laquelle des cases
+   adjacentes (orthogonales ou diagonales) — le déplacement le plus courant ne peut donc
+   jamais tomber pile sur un bouton, quelle que soit la direction prise. Rendus comme
+   enfants du conteneur transformé (coordonnées `row*CELL`/`col*CELL`, pas une fenêtre
+   `position:fixed` séparée) donc ils suivent naturellement le pan/zoom — un `zIndex`
+   explicite les fait passer au-dessus des tuiles voisines malgré l'ordre du DOM (voir
+   le piège de fenêtre invisible ci-dessous, résolu différemment cette fois : pas
+   besoin de sortir du conteneur transformé, un simple z-index suffit puisque les
    tuiles voisines n'en ont pas et qu'un élément positionné avec z-index > 0 passe
    toujours au-dessus d'éléments positionnés à z-index:auto dans le même contexte
    d'empilement, quel que soit l'ordre du DOM). Tuile sélectionnée = léger glow bleu
@@ -470,7 +492,7 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      sélectionner ; se ferme comme toute popup au clic extérieur. La fenêtre
      de choix joueurs/**monstres** (deux colonnes) de "Système de sélection
      par geste" attend toujours les monstres de la Couche 3.
-     Barre des joueurs façon "groupe Dofus" : colonne sticky collée à **droite**
+     Barre des joueurs façon "groupe Dofus" : colonne collée à **droite**
      de l'écran, centrée verticalement, un carré par joueur (fond = couleur du
      joueur en attendant un visuel par personnage, nom éditable par double-clic
      via `EditText`, cœur rouge avec PV en coin, ✕ pour retirer) + bouton `+`
@@ -482,6 +504,16 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      affichera plus tard les sorts/énergies du joueur — pour l'instant un
      simple message d'attente. Quand il n'y a aucun joueur, le texte "Ajoute
      un joueur" du pied de page est lui-même cliquable pour en créer un.
+     **Bornée à l'espace entre header et pied de page** (`sidebarBounds`,
+     mesuré via `viewportRef.getBoundingClientRect()` — la grille occupe déjà
+     exactement cet espace, pas besoin de refs séparées sur le header/footer) :
+     une première version centrait la colonne sur `top:'50%'` de tout
+     l'écran, sans tenir compte de la hauteur réelle du header ni du nombre de
+     joueurs — avec assez de joueurs, la colonne débordait par-dessus le
+     header en haut et carrément hors écran en bas. Les carrés rétrécissent
+     maintenant dynamiquement (`squareSize`, plancher 40px) pour tenir dans
+     l'espace mesuré, et si même le plancher ne suffit pas, la colonne devient
+     scrollable (`overflowY:'auto'`) plutôt que de continuer à déborder.
      Le dé est **par joueur** (`player.dice`, pas un état global partagé) : le
      pied de page affiche et fait lancer le dé du joueur courant uniquement,
      donc passer au joueur suivant (flèches ‹/›) affiche son propre dernier

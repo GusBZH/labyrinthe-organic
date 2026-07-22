@@ -218,30 +218,35 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
   );
 }
 
-function PlayerSquare({player, isCurrent, onRemove, onRename}) {
+// `size` shrinks the whole square (and every sub-element proportionally)
+// when the sidebar doesn't have enough vertical room for everyone at the
+// default 64px — see sizing logic in PlateauPage, right below the header/
+// footer height measurement.
+function PlayerSquare({player, isCurrent, size=64, onRemove, onRename}) {
   const [showInfo, setShowInfo] = useState(false);
   const anchorRef = useRef(null);
+  const scale = size/64;
 
   return h('div', {ref:anchorRef, style:{position:'relative'}},
     h('div', {
       onClick: () => setShowInfo(!showInfo),
       style: {
-        width:64, height:64, borderRadius:10, background:player.couleur,
+        width:size, height:size, borderRadius:10*scale, background:player.couleur,
         display:'flex', alignItems:'center', justifyContent:'center',
         position:'relative', cursor:'pointer', overflow:'hidden',
         boxShadow: isCurrent ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 2px 6px rgba(0,0,0,.4)'
       }
     },
-      h('div', {style:{fontSize:26, fontWeight:700, color:'rgba(255,255,255,.85)'}}, player.nom.slice(0,1).toUpperCase()),
+      h('div', {style:{fontSize:26*scale, fontWeight:700, color:'rgba(255,255,255,.85)'}}, player.nom.slice(0,1).toUpperCase()),
       h('div', {
         onClick: e => { e.stopPropagation(); onRemove(); },
-        style:{position:'absolute', top:2, left:2, width:15, height:15, borderRadius:'50%', background:'rgba(0,0,0,.55)',
-          color:'#ccc', fontSize:9, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer'}
+        style:{position:'absolute', top:2, left:2, width:15*scale, height:15*scale, borderRadius:'50%', background:'rgba(0,0,0,.55)',
+          color:'#ccc', fontSize:9*scale, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer'}
       }, '✕'),
-      h('div', {style:{position:'absolute', top:-2, right:-4, fontSize:22}}, '❤️'),
-      h('div', {style:{position:'absolute', top:2, right:2, fontSize:10, fontWeight:700, color:'#fff', minWidth:14, textAlign:'center'}}, player.pv),
+      h('div', {style:{position:'absolute', top:-2, right:-4, fontSize:22*scale}}, '❤️'),
+      h('div', {style:{position:'absolute', top:2, right:2, fontSize:10*scale, fontWeight:700, color:'#fff', minWidth:14*scale, textAlign:'center'}}, player.pv),
       h('div', {style:{position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,.6)', padding:'2px 4px'}},
-        h('div', {style:{fontSize:9, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}},
+        h('div', {style:{fontSize:9*scale, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}},
           h(EditText, {value:player.nom, onChange:onRename, editMode:true})
         )
       )
@@ -317,6 +322,29 @@ export function PlateauPage({onBack}) {
     if (!vp) return;
     vp.scrollLeft = CENTER_COL*effectiveCell - vp.clientWidth/2;
     vp.scrollTop = CENTER_ROW*effectiveCell - vp.clientHeight/2;
+  }, []);
+
+  // The player sidebar used to be centered on the FULL viewport height
+  // (top:'50%') regardless of how tall the header/footer actually are —
+  // with enough players (or just a header that grew a second row of
+  // piles), the column's own height could push its top past the header's
+  // bottom edge, overlapping it, or push players off the bottom of the
+  // screen entirely, with nothing to catch the overflow. The grid viewport
+  // sits in exactly the space between header and footer already, so its
+  // own bounding rect gives us that space for free — no separate header/
+  // footer refs needed. Re-measured on resize (and once after mount, since
+  // fonts/first layout can nudge header height by a pixel or two).
+  const [sidebarBounds, setSidebarBounds] = useState({top:0, bottom:0});
+  useEffect(() => {
+    function measure(){
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const rect = vp.getBoundingClientRect();
+      setSidebarBounds({top:rect.top, bottom: window.innerHeight - rect.bottom});
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, []);
 
   // Applies a pending scroll correction right after React has committed a
@@ -521,22 +549,61 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
   }
 
-  // Player selection/movement: single click. A tile/monster under the
-  // clicked cell is never touched here — tiles use a double-click (see
-  // onContentDoubleClick) so the two gestures never compete for the same
-  // tap. Long-press is reserved for items (sorts/énergies) once those exist
-  // on the board — not implemented yet, nothing to select there today.
+  // Single click: player selection/movement, AND finishing whatever card
+  // is currently in hand (a held pile draw, a selected défausse card, or a
+  // tile already picked up via double-click) — placing/moving those only
+  // ever needs one more tap once they're "in hand", double-click is
+  // reserved purely for the initial pickup of an untouched placed tile
+  // (see onContentDoubleClick/selectTileAt), so the two gestures never
+  // compete for the same tap. Long-press is reserved for items (sorts/
+  // énergies) once those exist on the board — not implemented yet, nothing
+  // to select there today.
   function handleSingleClick(clientX, clientY){
-    clearCardSelection();
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((clientX - rect.left) / effectiveCell);
     const r = Math.floor((clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
+    // Vision mode is inspect-only: no card ever moves while it's active (a
+    // held/selected card just waits, untouched, until Vision is turned back
+    // off) — only players can be inspected here.
     if (visionMode) {
       const here = players.filter(p => p.row === r && p.col === c);
       if (here.length === 1) setVisionPlayerId(here[0].id);
       else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
+      return;
+    }
+
+    // A card already "in hand" (drawn from a pile, taken from the défausse,
+    // or a tile selected via double-click) only ever needed ONE gesture to
+    // get there — so a single tap is enough to finish the job (place/move
+    // it), same cell taps it back down/deselects. Double-click is reserved
+    // purely for the initial "pick an already-placed tile up" gesture (see
+    // onContentDoubleClick/selectTileAt) — moving a fifth of the time
+    // trades off with re-selecting, on a grid where 1-cell moves are the
+    // overwhelming majority, made this asymmetry the right one.
+    if (heldTile) {
+      if (placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
+      setPlacedTiles([...placedTiles, {id:heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
+      setHeldTile(null);
+      return;
+    }
+
+    if (selectedDiscardCardId) {
+      if (placedTiles.some(t => t.row === r && t.col === c)) return;
+      const cardId = selectedDiscardCardId;
+      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
+      setPlacedTiles([...placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
+      setSelectedDiscardCardId(null);
+      return;
+    }
+
+    if (selectedTileId) {
+      const t = placedTiles.find(x => x.id === selectedTileId);
+      if (t && t.row === r && t.col === c) { setSelectedTileId(null); return; } // same tile: deselect
+      if (placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
+      setPlacedTiles(placedTiles.map(x => x.id === selectedTileId ? {...x, row:r, col:c} : x));
+      setSelectedTileId(null);
       return;
     }
 
@@ -584,36 +651,11 @@ export function PlateauPage({onBack}) {
   function onContentDoubleClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
+    if (visionMode) return; // inspect-only: no new tile selection while Vision is active
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-
-    if (heldTile) {
-      if (placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
-      setPlacedTiles([...placedTiles, {id:heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
-      setHeldTile(null);
-      return;
-    }
-
-    if (selectedDiscardCardId) {
-      if (placedTiles.some(t => t.row === r && t.col === c)) return;
-      const cardId = selectedDiscardCardId;
-      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
-      setPlacedTiles([...placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
-      setSelectedDiscardCardId(null);
-      return;
-    }
-
-    if (selectedTileId) {
-      const t = placedTiles.find(x => x.id === selectedTileId);
-      if (t && t.row === r && t.col === c) { setSelectedTileId(null); return; } // same tile: deselect
-      if (placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
-      setPlacedTiles(placedTiles.map(x => x.id === selectedTileId ? {...x, row:r, col:c} : x));
-      setSelectedTileId(null);
-      return;
-    }
-
     selectTileAt(r, c);
   }
 
@@ -765,12 +807,18 @@ export function PlateauPage({onBack}) {
     setCurrentIndex((currentIndex + delta + players.length) % players.length);
   }
 
-  // Entering Vision mode clears any pending movement selection — a
+  // Entering Vision mode clears any pending movement/card selection — a
   // lingering blue glow from before the toggle would otherwise sit there
   // with no way to clear it, since grid clicks in Vision mode open the
-  // detail window instead of touching selectedId at all.
+  // detail window instead of touching selection state at all. A held tile
+  // (drawn from a pile) is deliberately left alone here — Vision just
+  // blocks placing it for as long as it's active, it doesn't cancel it.
   function toggleVisionMode(){
-    if (!visionMode) setSelectedId(null);
+    if (!visionMode) {
+      setSelectedId(null);
+      setSelectedTileId(null);
+      setSelectedDiscardCardId(null);
+    }
     setVisionMode(!visionMode);
   }
 
@@ -811,6 +859,17 @@ export function PlateauPage({onBack}) {
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
   const hasSelectedCard = !!(selectedTileId || selectedDiscardCardId);
+
+  // Shrinks the player squares (down to a 40px floor) once there isn't
+  // enough room between header and footer to fit them all at the default
+  // 64px — the sidebar itself stays vertically centered in that space and
+  // scrolls if even the floor size doesn't fit everyone.
+  const SIDEBAR_GAP = 8, SIDEBAR_DEFAULT_SIZE = 64, SIDEBAR_MIN_SIZE = 40;
+  const sidebarAvailH = Math.max(0, (typeof window !== 'undefined' ? window.innerHeight : 800) - sidebarBounds.top - sidebarBounds.bottom - SIDEBAR_GAP*2);
+  const sidebarItemCount = players.length + 1; // +1 for the "add player" button
+  const sidebarDesiredH = sidebarItemCount*SIDEBAR_DEFAULT_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
+  const squareSize = sidebarDesiredH <= sidebarAvailH ? SIDEBAR_DEFAULT_SIZE
+    : Math.max(SIDEBAR_MIN_SIZE, Math.floor((sidebarAvailH - (sidebarItemCount-1)*SIDEBAR_GAP) / sidebarItemCount));
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
@@ -873,20 +932,25 @@ export function PlateauPage({onBack}) {
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile
         })),
-        heldTile && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Double-clique une case pour poser la tuile')
+        heldTile && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la tuile')
       )
     ),
 
-    // RIGHT SIDEBAR — player roster (sticky, vertically centered)
+    // RIGHT SIDEBAR — player roster, confined to the space between header
+    // and footer (see sidebarBounds/squareSize above) so it can never
+    // overlap the header or spill off-screen — centered within that space,
+    // scrollable as a last resort if even the smallest square size doesn't
+    // fit everyone.
     h('div', {style:{
-      position:'fixed', right:8, top:'50%', transform:'translateY(-50%)',
-      display:'flex', flexDirection:'column', gap:8, zIndex:15
+      position:'fixed', right:8, top:sidebarBounds.top+SIDEBAR_GAP, bottom:sidebarBounds.bottom+SIDEBAR_GAP,
+      display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'flex-end',
+      gap:SIDEBAR_GAP, overflowY:'auto', zIndex:15
     }},
       players.map((p,i) => h(PlayerSquare, {
-        key:p.id, player:p, isCurrent:i===currentIndex,
+        key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
         onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v)
       })),
-      h('div', {style:{width:64}}, h(AddBtn, {onClick:addPlayer}))
+      h('div', {style:{width:squareSize}}, h(AddBtn, {onClick:addPlayer}))
     ),
 
     // GRID VIEWPORT (scrollable / pannable / zoomable)
@@ -940,28 +1004,34 @@ export function PlateauPage({onBack}) {
         })),
 
         // SELECTED TILE CONTROLS — just the 3 option buttons around the
-        // tile's own in-grid position (no enlarged duplicate card): flip
-        // above, discard to the left, rotate to the right, all at the same
-        // radius from the tile's center so they read as one consistent set
-        // (an earlier version mixed edge-relative and center-relative
-        // offsets, which made the rotate button look out of place next to
-        // the other two). Rendered as children of the transformed content
-        // div (in-grid coordinates, not a separate fixed overlay) so they
-        // pan/zoom together with the tile — a z-index keeps them above
-        // sibling tiles despite the tile divs' own DOM order.
+        // tile's own in-grid position (no enlarged duplicate card), placed
+        // on its CORNERS rather than its cardinal edges. A first version put
+        // them at the edge midpoints (top/left/right), which sat almost
+        // exactly on the neighboring cell's center — since moving by one
+        // cell (the overwhelming majority of moves) targets that center, a
+        // move in any of those 3 directions landed on a button instead of
+        // the grid 3 times out of 4. A cell's corner is equidistant (a half
+        // diagonal, ~31px at CELL=44) from its own center AND from every
+        // orthogonally- or diagonally-adjacent cell's center alike, so
+        // corner placement can't be biased toward colliding with whichever
+        // direction the player moves most. Rendered as children of the
+        // transformed content div (in-grid coordinates, not a separate
+        // fixed overlay) so they pan/zoom together with the tile — a
+        // z-index keeps them above sibling tiles despite the tile divs'
+        // own DOM order.
         selectedTileObj && !selectedTileOccupied && [
           h('div', {
             key:'flip', onClick: e => { e.stopPropagation(); flipTile(selectedTileObj.id); },
-            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL/2, top:selectedTileObj.row*CELL-18}
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL, top:selectedTileObj.row*CELL}
           }, '↕️'),
           h('div', {
-            key:'discard', onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
-            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL-18, top:selectedTileObj.row*CELL+CELL/2, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
-          }, '✕'),
-          h('div', {
             key:'rotate', onClick: e => { e.stopPropagation(); rotateTile(selectedTileObj.id); },
-            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL+18, top:selectedTileObj.row*CELL+CELL/2}
-          }, '⟳')
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL, top:selectedTileObj.row*CELL}
+          }, '⟳'),
+          h('div', {
+            key:'discard', onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
+            style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL, top:selectedTileObj.row*CELL+CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
+          }, '✕')
         ]
       )
     ),
