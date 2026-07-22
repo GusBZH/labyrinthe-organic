@@ -101,9 +101,13 @@ export function PlateauPage({onBack}) {
   const [zoom, setZoom] = useState(1);
   const [scrollTick, setScrollTick] = useState(0);
   const [visionMode, setVisionMode] = useState(false);
+  const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids, forVision}
+  const [visionPlayerId, setVisionPlayerId] = useState(null);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
   const resetAnchorRef = useRef(null);
+  const cellPickerAnchorRef = useRef(null);
+  const visionModalAnchorRef = useRef(null);
   const zoomRef = useRef(1);
   const pinchRef = useRef(null);
 
@@ -283,6 +287,16 @@ export function PlateauPage({onBack}) {
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
+    // Vision mode: selecting a token shows its detail window instead of
+    // doing the normal action (here: movement selection) — never falls
+    // through to the movement logic below.
+    if (visionMode) {
+      const here = players.filter(p => p.row === r && p.col === c);
+      if (here.length === 1) setVisionPlayerId(here[0].id);
+      else if (here.length > 1) setCellPicker({clientX:e.clientX, clientY:e.clientY, ids:here.map(p=>p.id), forVision:true});
+      return;
+    }
+
     if (selectedId) {
       const sel = players.find(p => p.id === selectedId);
       if (sel && sel.row === r && sel.col === c) {
@@ -294,7 +308,17 @@ export function PlateauPage({onBack}) {
       return;
     }
     const here = players.filter(p => p.row === r && p.col === c);
-    if (here.length >= 1) setSelectedId(here[0].id);
+    if (here.length === 1) {
+      setSelectedId(here[0].id);
+    } else if (here.length > 1) {
+      setCellPicker({clientX:e.clientX, clientY:e.clientY, ids:here.map(p=>p.id), forVision:false});
+    }
+  }
+
+  function pickFromCellPicker(id){
+    if (cellPicker?.forVision) setVisionPlayerId(id);
+    else setSelectedId(id);
+    setCellPicker(null);
   }
 
   // Mouse click-drag panning (desktop). Touch single-finger panning is
@@ -375,6 +399,15 @@ export function PlateauPage({onBack}) {
   function switchPlayer(delta){
     if (players.length === 0) return;
     setCurrentIndex((currentIndex + delta + players.length) % players.length);
+  }
+
+  // Entering Vision mode clears any pending movement selection — a
+  // lingering blue glow from before the toggle would otherwise sit there
+  // with no way to clear it, since grid clicks in Vision mode open the
+  // detail window instead of touching selectedId at all.
+  function toggleVisionMode(){
+    if (!visionMode) setSelectedId(null);
+    setVisionMode(!visionMode);
   }
 
   function resetBoard(){
@@ -483,6 +516,61 @@ export function PlateauPage({onBack}) {
       )
     ),
 
+    // MULTI-PLAYER CELL PICKER — several players sharing a cell means a
+    // plain click can't tell which one you mean, so a small popup asks.
+    // Positioned at the raw click coordinates (outside the pannable/zoomed
+    // content, no transform math needed).
+    cellPicker && h('div', {
+      ref:cellPickerAnchorRef,
+      style:{position:'fixed', left:cellPicker.clientX, top:cellPicker.clientY, zIndex:250}
+    },
+      h(Popup, {
+        onClose:()=>setCellPicker(null),
+        anchorRef:cellPickerAnchorRef,
+        style:{left:0, top:0},
+        items: cellPicker.ids.map(id => {
+          const p = players.find(pl => pl.id === id);
+          return {label:p.nom, dot:p.couleur, onClick:()=>pickFromCellPicker(id)};
+        })
+      })
+    ),
+
+    // VISION MODE — clicking a token opens its full detail window instead
+    // of selecting it for movement. Same "closes on outside click" rule as
+    // every other popup, plus an explicit red ✕ since it's a big window.
+    // This is the future home of the player's sorts/énergies cards.
+    visionPlayerId && (() => {
+      const p = players.find(pl => pl.id === visionPlayerId);
+      if (!p) return null;
+      return h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:260, display:'flex', alignItems:'center', justifyContent:'center'}},
+        h('div', {ref:visionModalAnchorRef, style:{position:'relative'}},
+          h(Popup, {
+            onClose:()=>setVisionPlayerId(null),
+            anchorRef:visionModalAnchorRef,
+            style:{position:'relative', width:'min(90vw,380px)', maxHeight:'80vh', overflow:'auto', padding:20},
+            children: h('div', {},
+              h('div', {
+                onClick:()=>setVisionPlayerId(null),
+                style:{position:'absolute', top:8, right:8, width:26, height:26, borderRadius:'50%',
+                  background:'rgba(220,60,40,.2)', border:'1px solid rgba(220,60,40,.5)', color:'#f66',
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14}
+              }, '✕'),
+              h('div', {style:{fontSize:18, fontWeight:700, color:'#eee', marginBottom:14, paddingRight:30}}, p.nom),
+              h('div', {style:{display:'flex', alignItems:'center', gap:10, marginBottom:16}},
+                h('div', {style:{position:'relative', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}},
+                  h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
+                  h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
+                ),
+                h('span', {style:{fontSize:12, color:'#888'}}, 'Points de vie')
+              ),
+              h('hr', {style:{border:'none', borderTop:'1px solid rgba(255,255,255,.1)', margin:'12px 0'}}),
+              h('div', {style:{fontSize:12, color:'#666'}}, 'Sorts & Énergies — bientôt disponible')
+            )
+          })
+        )
+      );
+    })(),
+
     // FOOTER (sticky) — dice / PV heart, with room left for sorts & énergies
     // (between dice and heart) once those exist, and the Vision mode toggle
     // just left of the player-switch arrow
@@ -507,7 +595,7 @@ export function PlateauPage({onBack}) {
 
       h('div', {style:{display:'flex', alignItems:'center', gap:8}},
         h('button', {
-          onClick:()=>setVisionMode(!visionMode),
+          onClick:toggleVisionMode,
           title:'Mode Vision',
           style:{
             background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',

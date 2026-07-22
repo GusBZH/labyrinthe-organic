@@ -358,11 +358,14 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      souris au-delà d'un petit seuil (3px) est mémorisé (`wasDraggingRef`) pour
      que le clic de relâchement qui suit ne déclenche pas un déplacement de
      perso non désiré. Sélection/déplacement perso inchangés (tap simple =
-     sélection avec glow bleu, second tap = déplacement libre). Volontairement
-     **pas de multi-sélection par case pour l'instant** (si plusieurs joueurs
-     sont sur la même case, le tap simple sélectionne le premier trouvé) — la
-     fenêtre de choix joueurs/monstres de "Système de sélection par geste" est
-     prévue pour la Couche 3, pas encore codée.
+     sélection avec glow bleu, second tap = déplacement libre). **Multi-sélection
+     par case : implémentée pour les joueurs** — si plusieurs joueurs sont sur
+     la même case, une petite popup (`cellPicker`, positionnée aux coordonnées
+     brutes du clic, hors du système de pan/zoom transformé) liste leurs noms
+     (avec la couleur en pastille) pour choisir explicitement lequel
+     sélectionner ; se ferme comme toute popup au clic extérieur. La fenêtre
+     de choix joueurs/**monstres** (deux colonnes) de "Système de sélection
+     par geste" attend toujours les monstres de la Couche 3.
      Barre des joueurs façon "groupe Dofus" : colonne sticky collée à **droite**
      de l'écran, centrée verticalement, un carré par joueur (fond = couleur du
      joueur en attendant un visuel par personnage, nom éditable par double-clic
@@ -401,9 +404,14 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      prêtes) : simple carré/rond de couleur avec initiale en attendant.
    - Pan/zoom (souris/molette, tactile/pincement) : **implémenté** en avance sur la
      Couche 5, directement sur la Couche 1 — voir "Pan et zoom" ci-dessus.
-   - Mode Vision : **ambiance visuelle du toggle implémentée** en avance sur la
-     Couche 4 (overlay bleu + glitch), mais le volet "affiche le contenu détaillé
-     d'une carte/entité sélectionnée" attend les items de la Couche 3.
+   - Mode Vision : **ambiance visuelle du toggle + affichage détaillé des joueurs
+     implémentés**, en avance sur la Couche 4. Cliquer un jeton en mode Vision
+     ouvre une grande fenêtre (nom, cœur de PV, section Sorts & Énergies —
+     placeholder pour l'instant) au lieu de sélectionner pour déplacement ;
+     croix rouge en haut à droite pour fermer (en plus de la fermeture au clic
+     extérieur, comme toute popup). C'est la future base d'affichage des
+     cartes sort/énergie. Le volet "affiche le contenu détaillé d'une
+     case/tuile" attend toujours les items de la Couche 3.
    - Couches 2 à 4 (pioche/pose de tuiles, items/multi-sélection par case, contenu
      du mode Vision) et undo/redo global (au-delà de celui déjà en place pour les
      joueurs/PV/déplacements) : pas encore commencées.
