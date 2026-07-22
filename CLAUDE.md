@@ -170,36 +170,40 @@ qu'en un seul bloc (risque de régression difficile à isoler sinon) :
   chevauchent (cf. système de sélection par geste ci-dessous).
 
 ### Système de sélection par geste (résout l'ambiguïté multi-entités par case)
-Une case peut contenir simultanément : un ou plusieurs joueurs/monstres, une ou
-plusieurs cartes/items au sol, et la case du labyrinthe elle-même. Le geste détermine
-quelle couche on sélectionne, trié par fréquence d'usage (le plus fréquent = le geste
-le plus simple) :
+**Design initial (double-tap/clic-droit/appui-prolongé par couche) remplacé** par un
+système plus simple, un seul geste pour tout : **un tap/clic simple sélectionne ce qu'il
+y a sur la case**. S'il n'y a qu'une seule entité (joueur, monstre, tuile, sort, énergie),
+elle est sélectionnée directement. **S'il y en a plusieurs**, une petite fenêtre de choix
+s'ouvre (`cellPicker`, positionnée aux coordonnées brutes du clic, hors du système de
+pan/zoom transformé) avec **une colonne par type présent** (Personnage/Monstre/Case/
+Sorts/Énergie — seuls les types réellement présents sur la case ont une colonne, donc 2
+entités du même type = 1 seule colonne à choix multiples, 2 types différents = 2
+colonnes). Se ferme comme toute popup au clic extérieur ou en sélectionnant autre chose.
+Logique dans `onCellTap(row, col, clientX, clientY)` (`PlateauPage.js`) :
+1. Une tuile tenue en main (`heldTile`) ? Ce tap la pose ici (si la case est libre).
+2. Un joueur déjà sélectionné (`selectedId`) ? Ce tap le déplace ici (ou le désélectionne
+   si c'est sa propre case).
+3. Une tuile en mode `'moving'` déjà sélectionnée ? Ce tap la déplace ici (bloqué si une
+   autre tuile occupe déjà la case cible — voir "Pioche et pose de tuiles" pour la
+   distinction `'placed'`/`'moving'`).
+4. Une tuile en mode `'placed'` ? Ce tap désélectionne seulement (jamais de déplacement
+   dans ce mode) — puis **retombe** dans la logique ci-dessous pour que ce même tap
+   sélectionne aussi ce qu'il y a sur cette nouvelle case.
+5. Sinon : on rassemble ce qu'il y a sur la case (joueurs + tuile — **une tuile sous un
+   joueur ne compte pas**, cf. règle d'occupation ci-dessous) ; une seule entité → sélection
+   directe ; plusieurs → ouverture du `cellPicker`.
 
-**Mobile :**
-- Tap simple → sélectionne les joueurs/monstres présents sur la case
-- Tap prolongé (maintenu) → sélectionne un item au sol (sorts/énergies)
-- Double-tap → sélectionne la case/tuile du labyrinthe
-
-**PC :**
-- Clic simple → joueurs/monstres
-- Clic droit → item au sol
-- Double-clic → case/tuile
-
-Seuil de précision géré nativement par la grille (pas de calcul pixel arbitraire) :
-- Rester sur la même case > 1 seconde → geste "prolongé"
-- Relâcher sans changer de case → tap/clic simple
-- Traverser plusieurs cases pendant le contact → interprété comme un pan/déplacement de
-  vue, pas une sélection. Cas ambigu accepté : en dézoomé avec petites cases, un léger
-  glissement peut être confondu avec un pan — jugé acceptable car l'intention réelle du
-  joueur dans ce contexte (dézoomé) est justement de naviguer, pas d'agir précisément ;
-  et quand precision est recherchée, le joueur est zoomé, donc les cases sont grandes et
-  le seuil d'une case entière est facile à respecter.
-
-**S'il y a plusieurs entités de la couche sélectionnée sur la même case** (ex: 2 joueurs,
-ou plusieurs items), une fenêtre de choix s'ouvre :
-- Pour joueurs/monstres : **joueurs à gauche, monstres à droite**
-- Pour items : **sorts à gauche, énergies à droite**
-- Fermeture de n'importe quelle fenêtre : cliquer/tap ailleurs, ou sélectionner autre chose
+**Règle d'occupation tuile/joueur** (toujours en vigueur : "une tuile ne peut être
+manipulée que si aucun joueur n'est dessus") — **appliquée dès le rassemblement des
+entités dans `onCellTap`**, pas seulement à l'affichage de la fenêtre flottante de tuile
+sélectionnée : si un joueur est présent sur la case, la tuile qui s'y trouve est exclue du
+calcul (`tile = here.length === 0 ? rawTile : null`), donc jamais comptée dans le total,
+jamais proposée comme colonne du `cellPicker`, jamais sélectionnable directement. Bug
+corrigé dans cette passe : l'ancienne version ne faisait cette exclusion qu'au rendu de la
+fenêtre flottante (`selectedTileObj && !selectedTileOccupied`) — un joueur et une tuile sur
+la même case ouvraient quand même un `cellPicker` avec une colonne "Case" cliquable, qui
+sélectionnait la tuile (`selectedTile`) sans jamais afficher sa fenêtre (bloquée par cette
+même règle plus loin), un cul-de-sac silencieux sans aucun retour visuel.
 
 ### Monstres traités comme des "joueurs"
 Les monstres suivent le même système de sélection/déplacement que les joueurs (pas de
@@ -212,26 +216,45 @@ mécanique séparée à coder). Flux d'une rencontre :
    clique sur la défausse pour le défausser.
 
 ### Pioche et pose de tuiles (labyrinthe) — Couche 2, implémentée
+**Visuel des cartes** (`CardFace` dans `PlateauPage.js`) : une vraie carte carrée à deux
+faces, dos tout noir / face blanche avec une croix noire, retournée via `rotateY` +
+`backfaceVisibility:'hidden'` (`transformStyle:'preserve-3d'`) — réutilisé partout : pile,
+tuile tenue en main, tuiles posées sur la grille, fenêtre flottante de tuile sélectionnée.
+La pioche affiche un effet de perspective (deux carrés légèrement décalés derrière la
+carte du dessus) et montre le dos tant qu'aucune carte n'est en main ; piocher retourne
+la carte du dessus (affiche sa face) jusqu'à ce qu'elle soit posée.
 1. Tap/clic simple sur une pioche → pioche la carte du dessus (reste "en main",
    indicateur visible dans le header) jusqu'à ce qu'on clique une case pour la poser.
    Une seule tuile en main à la fois (retaper la pioche pendant qu'on en tient déjà
    une ne fait rien).
-2. Clic sur une case vide de la grille → pose la tuile là.
-3. **Double-clic** sur une case avec une tuile posée (et sans joueur dessus) → la
-   sélectionne, faisant apparaître une flèche circulaire de rotation juste à sa droite
-   (rotation 90° sens horaire, cliquable/spammable). Pas de bouton de validation séparé
-   — la pose elle-même vaut confirmation, contrairement à une version antérieure du
-   design qui prévoyait un menu rotation+validation.
-   Distinguer clic simple (sélection perso/pose) de double-clic (sélection tuile) sur
-   le même élément demande un léger délai (`clickTimerRef`, 250ms) : un double-clic
-   déclenche aussi deux évènements `click` natifs, donc le premier clic est retenu
-   brièvement — si un second arrive à temps il annule le premier et laisse `onDoubleClick`
-   agir seul à sa place.
-- Une tuile ne peut être sélectionnée (et donc tournée) que si aucun joueur n'est dessus.
-- Pas encore implémenté : défausser/déplacer une tuile déjà posée (seule la rotation
-  existe pour l'instant sur une tuile posée) — pas demandé dans cette passe.
+2. Clic sur une case vide de la grille → pose la tuile là, et elle arrive **déjà
+   sélectionnée** (`selectedTile.mode:'placed'`, voir plus bas) pour pouvoir la tourner
+   tout de suite si besoin.
+3. Une tuile sélectionnée affiche une **fenêtre flottante au premier plan**
+   (`position:'fixed'`, en dehors du conteneur transformé/scrollable — donc jamais
+   invisible derrière d'autres cases, contrairement à une première version qui plaçait
+   la flèche de rotation directement dans la grille) avec la carte agrandie et **3
+   contrôles autour** : à droite ⟳ (rotation 90° sens horaire, cliquable/spammable), à
+   gauche ✕ rouge (défausse directement la tuile), au-dessus ↕️ (flip, affiche le dos).
+   Se ferme comme toute popup au clic extérieur.
+   - **Deux modes de sélection de tuile**, cruciaux pour ne pas envoyer valser une tuile
+     par erreur : `'placed'` (juste après la pose depuis la pioche — cliquer ailleurs sur
+     la grille désélectionne seulement, **ne déplace jamais** la tuile, pour pouvoir la
+     tourner tranquillement sans crainte d'un tap perdu) vs `'moving'` (tuile déjà posée
+     re-sélectionnée par un tap normal, ou choisie via le `cellPicker` — là, cliquer une
+     autre case **déplace** la tuile, bloqué si la case cible est déjà occupée par une
+     autre tuile).
+   - Une tuile ne peut être sélectionnée (et donc manipulée) que si aucun joueur n'est
+     dessus — voir la règle d'occupation dans "Système de sélection par geste" ci-dessus.
 - Deck actuel : **100 cartes identiques (placeholder)**, en attendant de brancher la
   vraie pioche dynamique — voir note "Pioches dynamiques depuis le catalogue" ci-dessous.
+- **Piège rencontré (fenêtre du menu pioche invisible)** : la mini-fenêtre Diviser/
+  Mélanger de l'appui long sur une pioche s'affichait derrière la grille malgré son
+  propre `zIndex`. Cause : le header n'avait aucun `position` explicite (donc `static`
+  par défaut), et un élément `static` **ignore totalement son `zIndex`** — ajouter
+  `position:'relative'` au header suffit à faire gagner sa pile d'empilement (et donc
+  celle de ses popups enfants) au-dessus de la grille transformée (qui crée sa propre
+  pile d'empilement via `transform`).
 
 ### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu) — implémentée pour les tuiles
 - Tap/clic simple sur une pioche → pioche la carte du dessus (défausse non piochable).
@@ -244,6 +267,15 @@ mécanique séparée à coder). Flux d'une rencontre :
   résultat (contrairement à Diviser). C'est comme ça qu'on peut diviser une pioche en
   deux puis les rassembler plus tard. La défausse elle-même n'est pas armable/divisible
   (elle n'est qu'une cible de fusion) — pas de menu long-press pour elle.
+- **Fusion réservée au même type de carte** (`pile.type`, ex: `'case'` pour l'unique
+  deck existant aujourd'hui) : `mergeArmedInto` refuse la fusion entre deux piles si
+  leurs types diffèrent (pas de souci pratique tant qu'il n'y a qu'un seul type de
+  deck, mais empêchera à l'avenir de mélanger des piles de sorts et d'énergies). Seule
+  exception : fusionner dans la défausse reste toujours permis (bac commun non typé,
+  puisqu'il n'existe qu'un seul type de carte pour l'instant).
+- **Défausse = simple slot vide** (carré à bordure pointillée, jamais de dos de carte
+  affiché dessus) positionné **juste sous la pioche** dans le header, avec juste un
+  compteur en coin quand elle contient des cartes.
 - **Piège rencontré (fusion de piles)** : la fenêtre Diviser/Mélanger de la pioche armée
   se ferme au clic extérieur (règle globale des popups) — mais ce clic extérieur, c'est
   justement le clic sur la pioche CIBLE qui doit déclencher la fusion. Le listener
@@ -448,12 +480,17 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      extérieur, comme toute popup). C'est la future base d'affichage des
      cartes sort/énergie. Le volet "affiche le contenu détaillé d'une
      case/tuile" attend toujours les items de la Couche 3.
-   - **Couche 2 (pioche/pose/rotation de tuiles) : implémentée** — voir "Pioche et
-     pose de tuiles" et "Pioches et défausses" ci-dessus pour le détail complet
-     (deck placeholder de 100 cartes identiques, diviser/mélanger/fusionner les
-     piles, poser et tourner une tuile). Reste : brancher la vraie pioche
-     dynamique depuis `data.cases` (voir "Pioches dynamiques depuis le catalogue"),
-     et défausser/déplacer une tuile déjà posée.
+   - **Couche 2 (pioche/pose/rotation/déplacement/défausse de tuiles) : implémentée** —
+     voir "Pioche et pose de tuiles" et "Pioches et défausses" ci-dessus pour le détail
+     complet (deck placeholder de 100 cartes identiques avec vrai visuel de carte
+     recto/verso, diviser/mélanger/fusionner les piles — fusion réservée au même type —,
+     poser/tourner/flipper/déplacer/défausser une tuile via sa fenêtre flottante).
+     Le système de sélection par case a aussi été **entièrement simplifié** dans cette
+     passe : un seul tap sélectionne tout ce qu'il y a sur la case (voir "Système de
+     sélection par geste" ci-dessus), remplaçant l'ancien design à gestes distincts
+     (double-tap, appui prolongé, clic droit) qui n'a finalement pas été retenu. Reste :
+     brancher la vraie pioche dynamique depuis `data.cases` (voir "Pioches dynamiques
+     depuis le catalogue").
    - Couche 3 (items/multi-sélection par case pour sorts/énergies au sol) et le
      contenu détaillé du mode Vision pour les cases/tuiles (Couche 4) : pas encore
      commencées. Undo/redo global au-delà de celui déjà en place pour les
