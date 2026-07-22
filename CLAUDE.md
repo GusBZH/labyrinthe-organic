@@ -272,17 +272,40 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
 - **Implémenté sur la Couche 1** (`PlateauPage.js`) : zoom via `effectiveCell = CELL *
   zoom` (remplace `CELL` partout — taille du contenu, dégradés de grille, position des
   jetons, calcul de la case cliquée), zoomé/dézoomé vers un point de focus (le point
-  sous la souris pour la molette, le milieu des deux doigts pour le pincement) en
-  recalculant `scrollLeft`/`scrollTop` après le redimensionnement du contenu (`requestAnimationFrame`,
-  le temps que React ait re-rendu à la nouvelle taille). Pincement tactile détecté via
-  Pointer Events (`pointersRef`, une `Map` de pointeurs actifs par `pointerId`) — ne
-  démarre qu'au **deuxième** doigt, laissant le scroll tactile natif à un seul doigt
-  intact ; `setPointerCapture` est protégé par un `try/catch` (peut échouer sans casser
-  le suivi du pincement). **Piège rencontré** : la molette (`onWheel` en prop React) est
-  attachée en écouteur *passif* par défaut, donc `preventDefault()` y échoue
-  silencieusement (le navigateur scrollait quand même en plus du zoom) — corrigé en
-  attachant l'écouteur `wheel` nous-mêmes via `addEventListener(..., {passive:false})`
-  dans un `useEffect`, plutôt que la prop JSX `onWheel`.
+  sous la souris pour la molette, le milieu des deux doigts pour le pincement). Pincement
+  tactile détecté via Pointer Events (`pointersRef`, une `Map` de pointeurs actifs par
+  `pointerId`) — ne démarre qu'au **deuxième** doigt, laissant le scroll tactile natif à
+  un seul doigt intact ; `setPointerCapture` est protégé par un `try/catch` (peut échouer
+  sans casser le suivi du pincement). Pendant un pincement, le point-monde visé est capturé
+  **une seule fois** au début du geste (`pinchRef.current.world`, via `worldPointAt()`) et
+  réutilisé à chaque `pointermove` — recalculer ce point à partir du milieu courant des
+  deux doigts à *chaque* évènement dériverait, car un pincement réel envoie le déplacement
+  de chaque doigt comme un `pointermove` séparé (pas simultané), donc un recalcul à chaud
+  lirait transitoirement une paire de doigts "à moitié mise à jour".
+  **Piège rencontré (x2)** :
+  1. La molette (`onWheel` en prop React) est attachée en écouteur *passif* par défaut,
+     donc `preventDefault()` y échoue silencieusement (le navigateur scrollait quand même
+     en plus du zoom) — corrigé en attachant l'écouteur `wheel` nous-mêmes via
+     `addEventListener(..., {passive:false})` dans un `useEffect`, plutôt que la prop JSX
+     `onWheel`.
+  2. Le recalcul de `scrollLeft`/`scrollTop` après un changement de zoom était fait via
+     `requestAnimationFrame` (le temps que React re-rende à la nouvelle taille) — bug réel
+     découvert en testant une rafale rapprochée d'évènements tactiles (ex: un pincement
+     réel, où chaque doigt déclenche son propre `pointermove`) : React regroupe plusieurs
+     mises à jour de zoom survenues dans le même tick en un **seul** re-rendu, qui peut se
+     produire *après* que tous les callbacks `requestAnimationFrame` déjà programmés se
+     soient exécutés. Chacun lisait/écrivait alors `scrollLeft` contre la taille **encore
+     ancienne** du contenu, donc le navigateur bornait silencieusement la valeur au max de
+     scroll d'avant — la vue "sautait" à cette position bornée et y restait une fois le
+     redimensionnement enfin appliqué (symptôme observé : "ça se déplace dans tous les
+     sens" pendant un pincement). Corrigé en remplaçant le `requestAnimationFrame` par un
+     `useLayoutEffect` (nécessite `useLayoutEffect` dans `src/react.js`, ajouté aux exports)
+     déclenché par un compteur dédié `scrollTick` (pas directement `zoom` : une fois le zoom
+     bloqué à `MIN_ZOOM`/`MAX_ZOOM`, des appels répétés passent la même valeur et React
+     n'aurait pas re-rendu, donc pas déclenché l'effet, alors que le point du pincement peut
+     continuer à dériver même une fois le zoom saturé) — un effet de layout ne s'exécute
+     qu'après que le DOM reflète déjà le nouveau `effectiveCell`, donc `scrollWidth`/
+     `scrollHeight` sont toujours à jour et rien n'est borné par erreur.
 
 ## Roadmap version jouable (multi-étapes)
 1. **Version hotseat locale** — un seul écran, les joueurs passent le tour à

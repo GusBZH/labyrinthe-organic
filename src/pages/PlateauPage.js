@@ -1,4 +1,4 @@
-import { h, useState, useEffect, useRef } from "../react.js";
+import { h, useState, useEffect, useLayoutEffect, useRef } from "../react.js";
 import { uid, useVisionFlash } from "../utils.js";
 import { EditText } from "../components/EditText.js";
 import { AddBtn } from "../components/AddBtn.js";
@@ -94,6 +94,7 @@ export function PlateauPage({onBack}) {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [scrollTick, setScrollTick] = useState(0);
   const [visionMode, setVisionMode] = useState(false);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -105,6 +106,7 @@ export function PlateauPage({onBack}) {
   const contentRef = useRef(null);
   const dragRef = useRef(null);
   const wasDraggingRef = useRef(false);
+  const pendingScrollRef = useRef(null);
   const visionFlashCls = useVisionFlash(visionMode);
 
   const effectiveCell = CELL * zoom;
@@ -123,10 +125,38 @@ export function PlateauPage({onBack}) {
     vp.scrollTop = CENTER_ROW*effectiveCell - vp.clientHeight/2;
   }, []);
 
-  // Zooms toward a focus point (defaults to viewport center) — recomputes
-  // scroll so the same world position stays under that point after the
-  // content div resizes. Deferred to a frame since the new size only
-  // exists once React has re-rendered with the updated effectiveCell.
+  // Applies a pending scroll correction right after React has committed a
+  // zoom-triggered re-render — i.e. once the content div's dimensions
+  // already reflect the new effectiveCell. This used to be done via
+  // requestAnimationFrame instead of a layout effect, which had a real bug:
+  // when several zoom updates land in the same tick (e.g. a burst of
+  // pinch touchmove events, or even just two pointermove events — one per
+  // finger — for a single pinch step), React batches them into ONE
+  // re-render that can commit *after* all those rAF callbacks have already
+  // fired. Each one then read/wrote scrollLeft against the still-OLD
+  // (smaller) content size, so the browser silently clamped it to the old
+  // max scroll — the view would snap to that clamped position and stay
+  // there once the resize finally landed, which is exactly the
+  // "jumps around in every direction" symptom. A layout effect only ever
+  // runs after the matching DOM update, so scrollWidth/scrollHeight are
+  // already correct and nothing gets clamped. Keyed on a dedicated
+  // `scrollTick` counter rather than `zoom` itself: once zoom is clamped at
+  // MIN/MAX, repeated calls pass the same value and React bails out of
+  // re-rendering (skipping the effect) — but the pinch midpoint can still
+  // be drifting (panning) even while clamped, so the trigger needs to fire
+  // on every call regardless of whether the zoom value actually changed.
+  useLayoutEffect(() => {
+    const vp = viewportRef.current;
+    const pending = pendingScrollRef.current;
+    if (vp && pending) {
+      vp.scrollLeft = pending.left;
+      vp.scrollTop = pending.top;
+    }
+  }, [scrollTick]);
+
+  // Zooms toward a focus point (defaults to viewport center) — computes
+  // the scroll needed to keep the same world position under that point,
+  // applied by the layout effect above once the resize has landed.
   function applyZoom(newZoomRaw, clientX, clientY){
     const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoomRaw));
     const vp = viewportRef.current;
@@ -139,17 +169,44 @@ export function PlateauPage({onBack}) {
     const worldX = (vp.scrollLeft + focusX) / oldCell;
     const worldY = (vp.scrollTop + focusY) / oldCell;
     zoomRef.current = newZoom;
+    pendingScrollRef.current = { left: worldX*newCell - focusX, top: worldY*newCell - focusY };
     setZoom(newZoom);
-    requestAnimationFrame(() => {
-      vp.scrollLeft = worldX*newCell - focusX;
-      vp.scrollTop = worldY*newCell - focusY;
-    });
+    setScrollTick(t => t+1);
   }
 
   function onWheel(e){
     e.preventDefault();
     const factor = Math.exp(-e.deltaY * 0.001);
     applyZoom(zoomRef.current * factor, e.clientX, e.clientY);
+  }
+
+  function worldPointAt(clientX, clientY){
+    const vp = viewportRef.current;
+    const rect = vp.getBoundingClientRect();
+    const cell = CELL * zoomRef.current;
+    return {
+      x: (vp.scrollLeft + (clientX - rect.left)) / cell,
+      y: (vp.scrollTop + (clientY - rect.top)) / cell,
+    };
+  }
+
+  // Same idea as applyZoom, but for an ongoing pinch: the world point is
+  // captured ONCE at the start of the gesture and passed in on every move,
+  // rather than re-derived from the viewport's current scrollLeft/scrollTop
+  // each time — a pinch reports each finger's movement as a separate
+  // pointermove, so re-deriving the world point from a "half-updated"
+  // finger pair on every single event would drift.
+  function zoomToWorldPoint(newZoomRaw, worldX, worldY, clientX, clientY){
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoomRaw));
+    const vp = viewportRef.current;
+    if (!vp) { zoomRef.current = newZoom; setZoom(newZoom); return; }
+    const rect = vp.getBoundingClientRect();
+    const focusX = clientX - rect.left, focusY = clientY - rect.top;
+    const newCell = CELL * newZoom;
+    zoomRef.current = newZoom;
+    pendingScrollRef.current = { left: worldX*newCell - focusX, top: worldY*newCell - focusY };
+    setZoom(newZoom);
+    setScrollTick(t => t+1);
   }
 
   // React's onWheel prop is attached passively, so preventDefault inside it
@@ -275,9 +332,10 @@ export function PlateauPage({onBack}) {
         try { e.target.setPointerCapture?.(e.pointerId); } catch {}
         const pts = [...pointersRef.current.values()];
         const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+        const midX = (pts[0].x+pts[1].x)/2, midY = (pts[0].y+pts[1].y)/2;
         pinchRef.current = {
           startDist: dist, startZoom: zoomRef.current,
-          midX:(pts[0].x+pts[1].x)/2, midY:(pts[0].y+pts[1].y)/2
+          world: worldPointAt(midX, midY)
         };
       }
     }
@@ -291,7 +349,8 @@ export function PlateauPage({onBack}) {
       const pts = [...pointersRef.current.values()];
       const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
       const ratio = dist / pinchRef.current.startDist;
-      applyZoom(pinchRef.current.startZoom * ratio, pinchRef.current.midX, pinchRef.current.midY);
+      const midX = (pts[0].x+pts[1].x)/2, midY = (pts[0].y+pts[1].y)/2;
+      zoomToWorldPoint(pinchRef.current.startZoom * ratio, pinchRef.current.world.x, pinchRef.current.world.y, midX, midY);
     }
   }
 
