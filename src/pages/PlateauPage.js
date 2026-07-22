@@ -183,38 +183,76 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
 }
 
 // The défausse: shows its top card face-up (it's already known, no flip
-// needed) instead of an empty slot. Click either merges an armed pile into
-// it, discards the currently-selected grid tile into it, selects/deselects
-// its own top card (to place it back on the grid or feed it into a pile),
-// or does nothing if it's empty.
-function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, onMergeInto, onDiscardSelectedTile, onToggleSelect}) {
+// needed) instead of an empty slot. A quick tap either merges an armed
+// pile into it, discards the currently-selected grid tile into it,
+// selects/deselects its own top card (to place it back on the grid or
+// feed it into a pile), or does nothing if it's empty. Long-press arms
+// the WHOLE défausse instead (same blue glow as an armed pile, using the
+// same shared `armPile('discard')`/`armedIdRef` mechanism) — clicking a
+// pioche afterward reshuffles the whole défausse into it, letting you
+// recycle discarded cards back into circulation without picking them up
+// one at a time. Mirrors PileStack's own long-press-to-arm structure.
+function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+  const anchorRef = useRef(null);
+  const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
+  const [showMenu, setShowMenu] = useState(false);
   const topCard = cards.length ? cards[cards.length-1] : null;
   const isSelected = topCard && selectedId === topCard.id;
+  const isArmed = armedId === 'discard';
+
   function onPointerDown(){
     pendingArmedRef.current = armedIdRef.current;
+    startPress();
+  }
+  function startPress(){
+    if (cards.length === 0 || hasSelectedTile) return; // nothing to arm / a quick tap here means "discard the selection" instead
+    pressTimer.current = setTimeout(() => {
+      setShowMenu(true);
+      onArm('discard');
+    }, 500);
+  }
+  function cancelPress(){
+    clearTimeout(pressTimer.current);
   }
   function handleClick(e){
     e.stopPropagation();
+    if (showMenu) return; // the click that follows a long-press shouldn't also act
     const armed = pendingArmedRef.current;
     if (armed) { onMergeInto(armed, 'discard'); return; }
     if (hasSelectedTile) { onDiscardSelectedTile(); return; }
     if (topCard) onToggleSelect(topCard.id);
   }
-  return h('div', {
-    onPointerDown, onClick:handleClick,
-    style:{
-      width:56, height:56, borderRadius:8, cursor:'pointer', position:'relative', flexShrink:0,
-      border: topCard ? 'none' : '2px dashed #444',
-      display:'flex', alignItems:'center', justifyContent:'center',
-      boxShadow: isSelected ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
-      outline: isSelected ? '2px solid #4fa3ff' : 'none',
-      transition:'box-shadow .2s, outline-color .2s'
-    }
-  },
-    topCard && h(CardFace, {showBack:false, size:52}),
-    cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
-      background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
+  function closeMenu(){
+    setShowMenu(false);
+    onDisarm();
+  }
+
+  return h('div', {ref:anchorRef, style:{position:'relative', flexShrink:0}},
+    h('div', {
+      onPointerDown, onPointerUp:cancelPress, onPointerLeave:cancelPress, onPointerCancel:cancelPress,
+      onClick:handleClick,
+      style:{
+        width:56, height:56, borderRadius:8, cursor:'pointer', position:'relative',
+        border: topCard ? 'none' : '2px dashed #444',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        boxShadow: (isSelected || isArmed) ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
+        outline: (isSelected || isArmed) ? '2px solid #4fa3ff' : 'none',
+        transition:'box-shadow .2s, outline-color .2s'
+      }
+    },
+      topCard && h(CardFace, {showBack:false, size:52}),
+      cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
+        background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
+    ),
+    showMenu && h(Popup, {
+      onClose:closeMenu,
+      anchorRef,
+      style:{left:0, top:'100%', marginTop:6, width:150, zIndex:280},
+      items:[
+        {label:'🔀 Mélanger', onClick:onShuffleInPlace},
+      ]
+    })
   );
 }
 
@@ -284,6 +322,20 @@ export function PlateauPage({onBack}) {
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [selectedDiscardCardId, setSelectedDiscardCardId] = useState(null);
   const armedPileIdRef = useRef(null);
+  // handleSingleClick can run from a setTimeout scheduled well before its
+  // own execution (the click/double-click debounce below) — by the time it
+  // fires, a DIFFERENT click that arrived in between may already have
+  // updated state (e.g. selecting a player). A `setTimeout` callback's
+  // closure is fixed at creation time and never "sees" later re-renders,
+  // so reading `selectedId`/`players`/etc. directly inside it can act on
+  // data that's already stale by the time it actually runs. `liveRef` is
+  // refreshed every render (no dependency array) and read from instead,
+  // exactly like `armedPileIdRef` above solves the same problem for pile
+  // arming/merging.
+  const liveRef = useRef({});
+  useEffect(() => {
+    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedId, players, placedTiles, discardCards };
+  });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
   const resetAnchorRef = useRef(null);
@@ -443,7 +495,12 @@ export function PlateauPage({onBack}) {
   });
 
   function commitPlayers(next){
-    pastRef.current.push(players);
+    // Reads from liveRef rather than the `players` closure directly — this
+    // can be called from handleSingleClick after it's been resumed from a
+    // stale setTimeout closure (see liveRef's own comment above), and
+    // pushing THAT closure's stale `players` onto the undo history would
+    // silently corrupt undo/redo with an outdated snapshot.
+    pastRef.current.push(liveRef.current.players ?? players);
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
     setCanUndo(true);
@@ -564,11 +621,22 @@ export function PlateauPage({onBack}) {
     const r = Math.floor((clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
+    // Reads everything through liveRef (always current), not the closure
+    // variables directly — this can run from a setTimeout scheduled up to
+    // 250ms earlier (see clickTimerRef below), and by execution time a
+    // DIFFERENT click that landed in between may have already changed
+    // selectedId/selectedTileId/etc. A stale closure read here was exactly
+    // the "player AND a tile both stay selected" bug: the queued single
+    // click ran using the pre-selection snapshot, so it re-selected the
+    // player instead of moving it, leaving both it and an unrelated tile
+    // selected for the next tap to stumble into.
+    const live = liveRef.current;
+
     // Vision mode is inspect-only: no card ever moves while it's active (a
     // held/selected card just waits, untouched, until Vision is turned back
     // off) — only players can be inspected here.
-    if (visionMode) {
-      const here = players.filter(p => p.row === r && p.col === c);
+    if (live.visionMode) {
+      const here = live.players.filter(p => p.row === r && p.col === c);
       if (here.length === 1) setVisionPlayerId(here[0].id);
       else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
       return;
@@ -582,39 +650,39 @@ export function PlateauPage({onBack}) {
     // onContentDoubleClick/selectTileAt) — moving a fifth of the time
     // trades off with re-selecting, on a grid where 1-cell moves are the
     // overwhelming majority, made this asymmetry the right one.
-    if (heldTile) {
-      if (placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
-      setPlacedTiles([...placedTiles, {id:heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
+    if (live.heldTile) {
+      if (live.placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
+      setPlacedTiles([...live.placedTiles, {id:live.heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
       setHeldTile(null);
       return;
     }
 
-    if (selectedDiscardCardId) {
-      if (placedTiles.some(t => t.row === r && t.col === c)) return;
-      const cardId = selectedDiscardCardId;
-      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
-      setPlacedTiles([...placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
+    if (live.selectedDiscardCardId) {
+      if (live.placedTiles.some(t => t.row === r && t.col === c)) return;
+      const cardId = live.selectedDiscardCardId;
+      setDiscardCards(live.discardCards.filter(cd => cd.id !== cardId));
+      setPlacedTiles([...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
       setSelectedDiscardCardId(null);
       return;
     }
 
-    if (selectedTileId) {
-      const t = placedTiles.find(x => x.id === selectedTileId);
+    if (live.selectedTileId) {
+      const t = live.placedTiles.find(x => x.id === live.selectedTileId);
       if (t && t.row === r && t.col === c) { setSelectedTileId(null); return; } // same tile: deselect
-      if (placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
-      setPlacedTiles(placedTiles.map(x => x.id === selectedTileId ? {...x, row:r, col:c} : x));
+      if (live.placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
+      setPlacedTiles(live.placedTiles.map(x => x.id === live.selectedTileId ? {...x, row:r, col:c} : x));
       setSelectedTileId(null);
       return;
     }
 
-    if (selectedId) {
-      const sel = players.find(p => p.id === selectedId);
+    if (live.selectedId) {
+      const sel = live.players.find(p => p.id === live.selectedId);
       if (sel && sel.row === r && sel.col === c) { setSelectedId(null); return; }
-      commitPlayers(players.map(p => p.id === selectedId ? {...p, row:r, col:c} : p));
+      commitPlayers(live.players.map(p => p.id === live.selectedId ? {...p, row:r, col:c} : p));
       setSelectedId(null);
       return;
     }
-    const here = players.filter(p => p.row === r && p.col === c);
+    const here = live.players.filter(p => p.row === r && p.col === c);
     if (here.length === 1) setSelectedId(here[0].id);
     else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:false});
   }
@@ -623,21 +691,49 @@ export function PlateauPage({onBack}) {
   // (select the tuile under the cursor) on the same element requires a
   // short delay: a native 'click' fires for BOTH clicks of a dblclick, so
   // the first one is held back briefly — if a second click arrives in time
-  // it's cancelled and 'onContentDoubleClick' takes over instead.
+  // it's cancelled and 'onContentDoubleClick' takes over instead. Stores
+  // {timer, row, col, clientX, clientY} rather than just the timer, so a
+  // second click can tell whether it's really a double-click on the SAME
+  // cell (cancel and hand off to onContentDoubleClick) or an unrelated
+  // click on a DIFFERENT cell (see bug fix below).
   const clickTimerRef = useRef(null);
 
+  // Bug fixed here: the previous version cancelled ANY pending single
+  // click whenever a second click arrived within 250ms, regardless of
+  // where — so a normal, fast "select a player, then tap where they
+  // should go" always risked losing the first tap (its action silently
+  // never ran) whenever the two taps landed under 250ms apart, which is a
+  // completely ordinary pace during real play, not just a mis-click.
+  // Symptom Gus hit: the player never actually moved, so it stayed
+  // selected — and since a tile happened to be selected too from some
+  // earlier action, the NEXT tap moved the tile instead of the player.
+  // Fix: only treat a second click as "this might be a double-click" (and
+  // let onContentDoubleClick decide) when it lands on the SAME cell as the
+  // pending one. A second click on a DIFFERENT cell can't be part of the
+  // same double-click gesture, so instead of dropping the first click, we
+  // run it immediately (flush it) and then schedule the new one normally.
   function onContentClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     const clientX = e.clientX, clientY = e.clientY;
+    const rect = contentRef.current.getBoundingClientRect();
+    const col = Math.floor((clientX - rect.left) / effectiveCell);
+    const row = Math.floor((clientY - rect.top) / effectiveCell);
+
     if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
+      const pending = clickTimerRef.current;
+      clearTimeout(pending.timer);
       clickTimerRef.current = null;
-      return;
+      if (pending.row === row && pending.col === col) return; // genuine double-click: let onContentDoubleClick handle it alone
+      handleSingleClick(pending.clientX, pending.clientY); // different cell: the earlier click was real, run it now instead of dropping it
     }
-    clickTimerRef.current = setTimeout(() => {
-      clickTimerRef.current = null;
-      handleSingleClick(clientX, clientY);
-    }, 250);
+
+    clickTimerRef.current = {
+      row, col, clientX, clientY,
+      timer: setTimeout(() => {
+        clickTimerRef.current = null;
+        handleSingleClick(clientX, clientY);
+      }, 250)
+    };
   }
 
   function selectTileAt(r, c){
@@ -650,7 +746,7 @@ export function PlateauPage({onBack}) {
 
   function onContentDoubleClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
-    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
+    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current.timer); clickTimerRef.current = null; }
     if (visionMode) return; // inspect-only: no new tile selection while Vision is active
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
@@ -708,9 +804,21 @@ export function PlateauPage({onBack}) {
   // runs, the source pile's own popup has already disarmed it via the
   // outside-click listener (which fires on the target's pointerdown,
   // earlier than this click), so re-deriving the source from that ref at
-  // this point would already read back null too.
+  // this point would already read back null too. The défausse can now be
+  // armed too (long-press, see DiscardSlot) — `sourceId === 'discard'`
+  // pulls from `discardCards` instead of `piles`, and (same as the
+  // existing merge-INTO-discard exception) skips the same-type check since
+  // the défausse doesn't track a type of its own.
   function mergeArmedInto(sourceId, targetPileId){
     if (!sourceId || sourceId === targetPileId) return;
+    if (sourceId === 'discard') {
+      const target = piles.find(p => p.id === targetPileId);
+      if (!target) return;
+      setPiles(piles.map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...discardCards])} : p));
+      setDiscardCards([]);
+      disarmPile();
+      return;
+    }
     const source = piles.find(p => p.id === sourceId);
     if (!source) return;
     if (targetPileId === 'discard') {
@@ -725,6 +833,10 @@ export function PlateauPage({onBack}) {
       );
     }
     disarmPile();
+  }
+
+  function shuffleDiscardInPlace(){
+    setDiscardCards(shuffle(discardCards));
   }
 
   // Mouse click-drag panning (desktop). Touch single-finger panning is
@@ -922,7 +1034,9 @@ export function PlateauPage({onBack}) {
           h(DiscardSlot, {
             cards:discardCards, selectedId:selectedDiscardCardId,
             armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedTile:!!selectedTileId,
-            onMergeInto:mergeArmedInto, onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
+            onArm:armPile, onDisarm:disarmPile,
+            onMergeInto:mergeArmedInto, onShuffleInPlace:shuffleDiscardInPlace,
+            onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
           })
         ),
         piles.slice(1).map(p => h(PileStack, {
@@ -1048,7 +1162,13 @@ export function PlateauPage({onBack}) {
       h(Popup, {
         onClose:()=>setCellPicker(null),
         anchorRef:cellPickerAnchorRef,
-        style:{left:0, top:0, width:160},
+        style:{left:0, top:0, width:220},
+        // Bigger tap targets than the default .popup-item — this picker
+        // exists specifically to make an easy, unambiguous choice when a
+        // cell has several players on it, so it should be the easiest
+        // popup in the app to hit, not the default compact size shared
+        // with menus like Diviser/Mélanger.
+        itemStyle:{padding:'12px 14px', fontSize:15, gap:10},
         items: cellPicker.ids.map(id => {
           const p = players.find(pl => pl.id === id);
           return {

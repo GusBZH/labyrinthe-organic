@@ -191,7 +191,30 @@ tuile déjà posée (`selectTileAt`, dans `onContentDoubleClick`), rien d'autre.
 un simple clic d'un double-clic sur le même élément demande un léger délai
 (`clickTimerRef`, 250ms) : un double-clic déclenche aussi deux évènements `click` natifs
 en plus du `dblclick`, donc le premier `click` est retenu brièvement — si un second
-arrive à temps il l'annule et laisse `onDoubleClick` agir seul à sa place.
+arrive à temps **sur la même case**, il l'annule et laisse `onDoubleClick` agir seul à
+sa place ; sur une case **différente**, ce n'est pas un double-clic possible, donc le
+premier clic est exécuté immédiatement (au lieu d'être silencieusement perdu) avant de
+programmer normalement le second. `clickTimerRef` retient donc `{row, col, ...}` en plus
+du timer, pas juste le timer seul.
+- **Bug corrigé (joueur ET tuile restaient sélectionnés en même temps)** : Gus tapait un
+  joueur puis une case d'arrivée assez vite (moins de 250ms d'écart, un rythme de jeu
+  normal) — le second tap **annulait silencieusement** le premier (peu importe la case,
+  la version précédente ne vérifiait pas qu'il s'agissait de la même case), donc le
+  joueur ne bougeait jamais et restait sélectionné ; le tap suivant retombait alors sur
+  la logique de tuile/carte au lieu de la logique joueur. Le check same-cell ci-dessus
+  règle le symptôme, mais exécuter le premier clic "en avance" (avant l'expiration du
+  timer) a révélé un second piège React classique : `handleSingleClick` planifié via
+  `setTimeout` ferme sur les variables d'état de SON rendu d'origine — si un clic
+  intercalé change `selectedId`/`selectedTileId`/etc. entre la programmation et
+  l'exécution du timer, le callback différé lit quand même les **anciennes** valeurs
+  (une fonction JS capturée par closure ne se "rafraîchit" jamais toute seule, même
+  après un re-render). Fixé avec `liveRef`, un objet ref réhydraté à **chaque** rendu
+  (`useEffect` sans tableau de dépendances) et lu par `handleSingleClick` à la place des
+  variables d'état directes — contrairement à une closure, un ref est un objet mutable
+  partagé, donc même un `handleSingleClick` "périmé" (capturé par un timer d'un rendu
+  précédent) lit sa valeur `.current` à jour au moment de l'exécution. `commitPlayers`
+  lit aussi `liveRef.current.players` plutôt que sa propre closure `players`, pour la
+  même raison (sinon l'historique undo/redo pourrait pousser un ancien instantané).
 
 **Une fois qu'une carte est "en main" d'une façon ou d'une autre — tuile tenue depuis
 une pioche (`heldTile`), carte prise dans la défausse (`selectedDiscardCardId`), ou
@@ -212,7 +235,14 @@ bloquaient alors le tap. Un simple clic les évite presque toujours. `handleSing
    cible).
 5. Sinon : sélection/déplacement de joueur, inchangé par rapport à avant ; plusieurs
    joueurs sur la même case → `cellPicker` (une simple liste de noms — plus besoin de
-   colonnes par type puisque les tuiles ne passent plus jamais par ce picker).
+   colonnes par type puisque les tuiles ne passent plus jamais par ce picker). Cette
+   popup est volontairement **plus grande que le style de popup par défaut**
+   (`.popup-item`) : elle existe justement pour trancher facilement une ambiguïté, donc
+   ses cibles de tap doivent être les plus faciles de l'appli à toucher, pas la taille
+   compacte partagée avec les menus Diviser/Mélanger. `Popup` accepte maintenant un
+   `itemStyle` optionnel (fusionné sur le style de chaque item, en plus de la classe
+   partagée) pour ce genre de cas — sans toucher à `.popup-item` globalement, qui reste
+   la taille par défaut pour tous les autres popups de l'appli.
 
 **Désélection d'une carte (tuile ou carte de défausse) — règle globale** : re-taper la
 même tuile, sélectionner autre chose (joueur, autre tuile), ou cliquer n'importe où dans
@@ -311,8 +341,19 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
 - Au lieu d'utiliser le menu, cliquer une **autre** pioche (ou la défausse) pendant
   qu'une pioche est armée fusionne celle-ci dans la cible — et là ça **rebrasse** le
   résultat (contrairement à Diviser). C'est comme ça qu'on peut diviser une pioche en
-  deux puis les rassembler plus tard. La défausse elle-même n'est pas armable/divisible
-  (elle n'est qu'une cible de fusion) — pas de menu long-press pour elle.
+  deux puis les rassembler plus tard.
+- **La défausse elle-même est aussi armable par appui long** (glow bleu, même mécanisme
+  partagé `armPile('discard')`/`armedIdRef` que les pioches) — ouvre une mini fenêtre
+  avec juste **🔀 Mélanger** (pas de Diviser : la défausse n'a pas de notion de "moitié"
+  à séparer). Cliquer une pioche pendant que la défausse est armée fusionne **toute la
+  défausse** dans cette pioche (rebrassée), permettant de recycler des cartes défaussées
+  en un geste plutôt qu'une par une via le menu Dessus/Dessous. `mergeArmedInto` traite
+  `sourceId === 'discard'` comme un cas à part (puise dans `discardCards` plutôt que
+  dans `piles`, vide `discardCards` après fusion) — même exception de type que la
+  fusion *vers* la défausse : aucune vérification de type, puisque la défausse ne suit
+  pas de type par carte individuelle. Un appui long ne s'arme pas si la défausse est
+  vide, ni si une tuile est déjà sélectionnée sur la grille (le tap rapide y aurait un
+  autre sens : la défausser directement).
 - **Fusion réservée au même type de carte** (`pile.type`, ex: `'case'` pour l'unique
   deck existant aujourd'hui) : `mergeArmedInto` refuse la fusion entre deux piles si
   leurs types diffèrent (pas de souci pratique tant qu'il n'y a qu'un seul type de

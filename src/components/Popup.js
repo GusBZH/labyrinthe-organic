@@ -9,7 +9,12 @@ import { h, useEffect } from "../react.js";
 // closes automatically when another selection is made elsewhere too.
 // Pass either `items` (selection list, original mode) or `children`
 // (free-form content, e.g. the player info window on the Plateau page).
-export function Popup({items, children, onClose, anchorRef, style}) {
+// `itemStyle` optionally overrides each item's inline style on top of the
+// shared `.popup-item` CSS class — used by callers that need bigger tap
+// targets (e.g. the Plateau's multi-entity cell picker) without touching
+// that class globally, since most callers (pile menus, etc.) want to keep
+// the compact default size.
+export function Popup({items, children, onClose, anchorRef, style, itemStyle}) {
   useEffect(() => {
     function handlePointerDown(e){
       if (anchorRef?.current && !anchorRef.current.contains(e.target)) onClose();
@@ -24,7 +29,7 @@ export function Popup({items, children, onClose, anchorRef, style}) {
 
   return h('div', {className:'popup', style},
     items.map((item,i) => h('div', {
-      key: i, className:'popup-item',
+      key: i, className:'popup-item', style:itemStyle,
       onClick: () => { item.onClick(); onClose(); }
     },
       item.dot && h('div', {style:{width:8,height:8,borderRadius:'50%',background:item.dot}}),
