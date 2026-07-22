@@ -230,9 +230,19 @@ bloquaient alors le tap. Un simple clic les évite presque toujours. `handleSing
 2. Une tuile tenue en main (`heldTile`) ? Ce tap la pose ici (si la case est libre).
 3. Une carte de défausse sélectionnée (`selectedDiscardCardId`) ? Ce tap la pose ici
    (retirée de la défausse).
-4. Une tuile déjà sélectionnée (`selectedTileId`) ? Ce tap la déplace ici (ou la
-   désélectionne si c'est sa propre case ; bloqué si une autre tuile occupe déjà la case
-   cible).
+4. Une tuile déjà sélectionnée (`selectedTileId`) ? Selon son **mode**
+   (`selectedTileMode`, `'placed'` ou `'moving'`) :
+   - `'moving'` (tuile déjà posée re-sélectionnée par double-clic) : ce tap la déplace
+     ici (ou la désélectionne si c'est sa propre case ; bloqué si une autre tuile
+     occupe déjà la case cible) — comportement inchangé.
+   - `'placed'` (tuile qui vient juste d'être posée depuis une pioche/défausse par ce
+     même geste) : **n'importe quel tap désélectionne seulement, ne déplace jamais**.
+     Idée de Gus : ce mode "n'autorise que la rotation" — juste le bouton rotation et
+     le glow bleu, pas flip/défausse, pas de déplacement au clic ailleurs — pour
+     pouvoir orienter une tuile qu'on vient de poser sans risquer de l'envoyer ailleurs
+     par un tap perdu. Posé une seule fois (`setSelectedTileMode('placed')` juste après
+     la pose), la tuile repasse en mode normal (`'moving'`, tous les boutons) dès
+     qu'elle est re-sélectionnée plus tard par double-clic.
 5. Sinon : sélection/déplacement de joueur, inchangé par rapport à avant ; plusieurs
    joueurs sur la même case → `cellPicker` (une simple liste de noms — plus besoin de
    colonnes par type puisque les tuiles ne passent plus jamais par ce picker). Cette
@@ -254,6 +264,17 @@ fermeture au clic extérieur des popups.
 **Règle d'occupation tuile/joueur** (toujours en vigueur : "une tuile ne peut être
 manipulée que si aucun joueur n'est dessus") : `selectTileAt` refuse de sélectionner une
 tuile si un joueur est présent sur la même case.
+
+**Une seule chose sélectionnée à la fois** : sélectionner une tuile (`selectTileAt`),
+piocher une carte (`drawFromPile`), ou sélectionner une carte de la défausse
+(`toggleSelectDiscardCard`) désélectionne aussi un joueur en cours de sélection
+(`setSelectedId(null)`), et inversement sélectionner un joueur retombe toujours dans une
+branche de `handleSingleClick` déjà garantie sans tuile/carte sélectionnée (ces cas sont
+vérifiés — et sortent avec `return` — plus tôt dans la même fonction). Ajouté après que
+Gus a suggéré cette règle comme piste pour le bug ci-dessus : sans elle, double-cliquer
+une tuile pendant qu'un joueur était sélectionné ailleurs laissait légitimement les DEUX
+sélectionnés en même temps (pas un bug à proprement parler, juste un état jamais prévu
+comme normal) — source probable de confusion ("je sais plus ce qui est sélectionné").
 
 **Mode Vision = inspection pure, aucune carte ne bouge tant qu'il est actif** :
 `onContentDoubleClick` et le bloc carte de `handleSingleClick` sont tous deux court-
@@ -293,11 +314,18 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
 2. Double-clic sur une tuile déjà posée (sans joueur dessus) → la sélectionne. C'est le
    **seul** geste qui prend deux taps ici — une fois sélectionnée, la déplacer à
    nouveau ne prend plus qu'un tap (voir "Système de sélection par geste").
-3. Une tuile sélectionnée affiche **juste 3 petits boutons autour d'elle**, sans
+3. Une tuile sélectionnée affiche **juste les boutons pertinents autour d'elle**, sans
    agrandir la carte (une première version affichait une copie agrandie dans une
    fenêtre flottante séparée — Gus a demandé de l'enlever, "juste les options qui
-   arrivent") : ↕️ (flip, affiche le dos), ⟳ (rotation 90° sens horaire, cliquable/
-   spammable), ✕ rouge (défausse directement la tuile). Positionnés sur les **coins**
+   arrivent") : icône flip fine (affiche le dos), icône rotation fine (rotation 90°
+   sens horaire, cliquable/spammable), ✕ rouge (défausse directement la tuile) — ces
+   deux derniers seulement en mode `'moving'`, voir "Système de sélection par geste"
+   pour le mode `'placed'` qui n'affiche que la rotation. Icônes flip/rotation en SVG
+   trait fin (`FlipIcon`/`RotateIcon`) plutôt qu'en emoji (⟳/↕️) : un glyph emoji n'est
+   pas centré de la même façon dans sa propre boîte de caractère selon la police/OS,
+   ce qui rendait la flèche de rotation visiblement décentrée dans son cercle — un SVG
+   avec un `viewBox` explicite est toujours centré à l'identique partout,
+   `stroke:'currentColor'` pour hériter la couleur du bouton. Positionnés sur les **coins**
    de la tuile (haut-gauche, haut-droit, bas-droit) plutôt que sur ses arêtes
    cardinales (haut/gauche/droite) — une première version au milieu des arêtes plaçait
    les boutons quasiment pile sur le centre de la case voisine dans ces 3 directions,
@@ -331,6 +359,27 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   `position:'relative'` au header suffit à faire gagner sa pile d'empilement (et donc
   celle de ses popups enfants) au-dessus de la grille transformée (qui crée sa propre
   pile d'empilement via `transform`).
+- **Piège rencontré (le même symptôme est revenu après ce fix)** : Gus a revu la
+  fenêtre cachée derrière la grille malgré le fix ci-dessus. Cause réelle, différente
+  cette fois : la rangée de pioches dans le header a `overflowX:'auto'` (pour scroller
+  horizontalement s'il y a beaucoup de pioches) — et la spec CSS overflow **force
+  silencieusement `overflow-y` à `'auto'` aussi** dès que `overflow-x` n'est pas
+  `'visible'` (impossible d'avoir l'un scrollable et l'autre visible en même temps).
+  La mini-fenêtre (positionnée `top:'100%'` par rapport à sa pioche, donc DANS cette
+  rangée) était donc invisiblement rognée par ce `overflow-y:'auto'` implicite dès
+  qu'elle dépassait la hauteur de la rangée — un problème de *clipping*, pas de
+  z-index, donc totalement indépendant du fix `position:relative` précédent (qui
+  réglait une couche différente : header vs grille, pas rangée-de-pioches vs
+  contenu-qui-déborde-en-dessous). Fix : les 3 popups concernées (Diviser/Mélanger
+  des pioches, Mélanger de la défausse, Dessus/Dessous) passent maintenant en
+  `position:'fixed'` avec des coordonnées écran calculées en JS
+  (`anchorRef.current.getBoundingClientRect()` au moment de l'ouverture, stockées
+  dans un state `menuPos`) au lieu du positionnement CSS relatif `top:'100%'` — un
+  élément `position:fixed` échappe au clipping `overflow` de ses ancêtres (tant
+  qu'aucun d'eux n'a de `transform`, ce qui n'est pas le cas ici), exactement comme
+  `cellPicker`/la modale Vision le font déjà avec succès. `anchorRef` reste inchangé
+  (toujours nécessaire pour la fermeture au clic extérieur de `Popup`, indépendante
+  du positionnement visuel).
 
 ### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu) — implémentée pour les tuiles
 - Tap/clic simple sur une pioche → pioche la carte du dessus (défausse non piochable).
@@ -399,14 +448,34 @@ Modifier une quantité dans le catalogue et relancer une partie change directeme
 composition de la pioche, sans code à toucher. Même principe prévu plus tard pour les
 pioches de sorts et d'énergies (`data.sorts`/`data.energies`).
 
-### Undo/redo global
-Boutons retour/avancer pour annuler des actions accidentelles (ex: mélange non
-désiré). Réutiliser si possible le composant `UndoRedo` déjà construit pour le mode
-édition (`src/components/UndoRedo.js`) plutôt que redévelopper un système d'historique
-séparé — à évaluer techniquement selon la nature des actions de jeu (probablement un
-historique distinct de celui du mode édition, mais même pattern UI/logique réutilisable).
-Pas encore fait pour les actions de tuiles/pioches (piocher, poser, tourner, diviser,
-mélanger, fusionner) — seul l'undo des joueurs/PV/déplacements existe pour l'instant.
+### Undo/redo global — implémenté pour tout l'état persisté du plateau
+Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
+`src/components/UndoRedo.js`, mais historique **séparé** — `pastRef`/`futureRef` locaux
+à `PlateauPage`, remis à zéro par `resetBoard`). À l'origine seul l'undo des joueurs
+existait (déplacer/ajouter/retirer un joueur, PV) ; Gus a signalé que **déplacer une
+tuile ne s'annulait pas** alors qu'ajouter/retirer un joueur oui — généralisé depuis à
+**toutes** les mutations du plateau (piocher/poser n'est PAS undoable en soi, voir
+plus bas, mais déplacer/tourner/flipper/défausser une tuile, diviser/mélanger/fusionner
+une pioche ou la défausse, et insérer une carte Dessus/Dessous, le sont désormais tous).
+- **Un seul historique combiné** (`commitBoard(updates)`) plutôt que 4 piles séparées :
+  chaque action pousse un instantané de **tout** l'état persisté à la fois
+  (`{players, piles, discardCards, placedTiles, heldTile}`, lu depuis `liveRef` — voir
+  "Système de sélection par geste" pour pourquoi `liveRef` et pas les variables d'état
+  directes), puis applique seulement les clés fournies dans `updates`. `undo`/`redo`
+  restaurent les 5 clés ensemble. `commitPlayers(next)` n'est plus qu'un fin wrapper
+  `commitBoard({players:next})`, gardé pour ne pas retoucher tous ses appelants.
+- **`heldTile` fait partie de l'instantané** même s'il est par ailleurs traité comme un
+  état transitoire non-undoable (voir point suivant) : c'est ce qui permet à l'undo
+  d'une POSE de remettre la carte "en main" plutôt que de la faire disparaître (le
+  snapshot pris juste avant la pose montre déjà cette carte comme tenue — la restaurer
+  revient exactement à "la reprendre en main").
+- **Piocher/annuler une pioche n'est PAS undoable en soi** (reste un `setState` direct,
+  sans passer par `commitBoard`) : c'est plutôt une sélection en attente qu'une action
+  validée, même logique que sélectionner un joueur qui n'est pas undoable non plus (seul
+  le déplacement qui suit l'est). Ça reste correct de bout en bout grâce au point
+  précédent : annuler la POSE qui suit une pioche redonne la carte, sans avoir besoin
+  d'un second `undo` séparé pour "annuler aussi la pioche" — et pour annuler une pioche
+  seule (sans la poser), le geste dédié existe déjà (re-cliquer la même pioche).
 
 ### Mode Vision (affichage détaillé d'une carte/entité)
 Bouton "œil" en bas à droite de l'écran (footer du Plateau, juste à gauche de la
@@ -537,14 +606,19 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      de l'écran, centrée verticalement, un carré par joueur (fond = couleur du
      joueur en attendant un visuel par personnage, nom éditable par double-clic
      via `EditText`, cœur rouge avec PV en coin, ✕ pour retirer) + bouton `+`
-     (`AddBtn`) en bas de la colonne pour ajouter un joueur ("Joueur N" par
-     défaut, PV de base = 3, apparaît au centre de la grille). Cliquer un
+     (`AddBtn`) en bas de la colonne pour ajouter un joueur (PV de base = 3,
+     apparaît au centre de la grille). Cliquer un
      carré ouvre une fenêtre d'infos (`Popup` en mode `children`, ouverte vers
      la **gauche** du carré puisque la colonne est collée au bord droit de
      l'écran — sinon elle sortirait de l'écran) qui
      affichera plus tard les sorts/énergies du joueur — pour l'instant un
      simple message d'attente. Quand il n'y a aucun joueur, le texte "Ajoute
      un joueur" du pied de page est lui-même cliquable pour en créer un.
+     Nom par défaut "Joueur N" via `nextPlayerName()` : cherche le plus petit N
+     **non utilisé** parmi les joueurs existants plutôt que `players.length+1`
+     — avec ce dernier, supprimer un joueur du milieu (ex: "Joueur 1" sur 4)
+     puis en rajouter un donnait un doublon ("Joueur 4" existait déjà) au lieu
+     de réutiliser le nom libéré.
      **Bornée à l'espace entre header et pied de page** (`sidebarBounds`,
      mesuré via `viewportRef.getBoundingClientRect()` — la grille occupe déjà
      exactement cet espace, pas besoin de refs séparées sur le header/footer) :
@@ -555,6 +629,16 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      maintenant dynamiquement (`squareSize`, plancher 40px) pour tenir dans
      l'espace mesuré, et si même le plancher ne suffit pas, la colonne devient
      scrollable (`overflowY:'auto'`) plutôt que de continuer à déborder.
+     **Piège rencontré (zone invisible qui bloquait les clics sur la grille)** :
+     la colonne garde toujours la hauteur PLEINE header-à-footer (elle est
+     centrée par flexbox, pas dimensionnée à son contenu) — avec peu de
+     joueurs (voire aucun), la majeure partie de cette boîte est de l'espace
+     vide sans rien de visible dedans, mais elle recevait quand même tous les
+     clics qui y tombaient au lieu de les laisser atteindre la case de la
+     grille en dessous. Fix : `pointerEvents:'none'` sur le conteneur de la
+     colonne, `pointerEvents:'auto'` explicitement sur chaque carré joueur et
+     sur le bouton `+` — seule la zone réellement visible reste cliquable, le
+     reste laisse passer le clic vers la grille.
      Le dé est **par joueur** (`player.dice`, pas un état global partagé) : le
      pied de page affiche et fait lancer le dé du joueur courant uniquement,
      donc passer au joueur suivant (flèches ‹/›) affiche son propre dernier

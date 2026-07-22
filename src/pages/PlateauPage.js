@@ -50,6 +50,27 @@ function borderColor(vision, normal){
   return vision ? 'rgba(79,163,255,.5)' : normal;
 }
 
+// Thin-stroke SVG icons for the tile controls, replacing emoji (⟳/↕️): an
+// emoji glyph's visual weight isn't centered in its own character box the
+// same way across fonts/platforms, which is why the rotate button's arrow
+// looked off-center inside its circle — an SVG with an explicit viewBox is
+// always centered exactly the same way everywhere. `currentColor` picks up
+// the button's own `color` style, so the red discard button's icon (if it
+// ever needs one) would tint automatically too.
+function RotateIcon(){
+  return h('svg', {width:14, height:14, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.4, strokeLinecap:'round', strokeLinejoin:'round'},
+    h('path', {d:'M21 12a9 9 0 1 1-3-6.7'}),
+    h('polyline', {points:'21 3 21 9 15 9'})
+  );
+}
+function FlipIcon(){
+  return h('svg', {width:14, height:14, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.4, strokeLinecap:'round', strokeLinejoin:'round'},
+    h('line', {x1:12, y1:2, x2:12, y2:22}),
+    h('polyline', {points:'7 7 12 2 17 7'}),
+    h('polyline', {points:'7 17 12 22 17 17'})
+  );
+}
+
 function shuffle(arr){
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) {
@@ -103,6 +124,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
   const pendingArmedRef = useRef(null);
   const [showSplitMenu, setShowSplitMenu] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const isArmed = armedId === pile.id;
 
   // Captures "what's armed right now" at pointerdown time, not click time.
@@ -120,9 +142,16 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
     pendingArmedRef.current = armedIdRef.current;
     startPress();
   }
+  // Captures the anchor's on-screen position when a menu opens, so the
+  // popup can render `position:fixed` there (see the render below for why).
+  function menuPosNow(){
+    const r = anchorRef.current.getBoundingClientRect();
+    return {left:r.left, top:r.bottom+6};
+  }
   function startPress(){
     if (hasSelectedCard) return; // a quick click here means "insert", not "arm"
     pressTimer.current = setTimeout(() => {
+      setMenuPos(menuPosNow());
       setShowSplitMenu(true);
       onArm(pile.id);
     }, 500);
@@ -135,7 +164,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
     if (showSplitMenu) return; // the click that follows a long-press shouldn't also draw
     const armed = pendingArmedRef.current;
     if (armed && armed !== pile.id) { onMergeInto(armed, pile.id); return; }
-    if (hasSelectedCard) { setShowInsertMenu(true); return; }
+    if (hasSelectedCard) { setMenuPos(menuPosNow()); setShowInsertMenu(true); return; }
     onDraw(pile.id);
   }
   function closeSplitMenu(){
@@ -161,10 +190,25 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
       h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, pile.cards.length)
     ),
+    // `position:'fixed'` (overriding the shared .popup class's own
+    // `position:absolute`) at a JS-computed screen position, instead of
+    // anchor-relative `top:'100%'`: the header's pile row sets
+    // `overflowX:'auto'` for horizontal scrolling when there are many
+    // piles, and per the CSS overflow spec, setting overflow-x to anything
+    // other than 'visible' silently forces overflow-y to 'auto' too (the
+    // browser refuses the "mixed" combination) — so this popup, anchored
+    // *inside* that row and extending below it, was being invisibly
+    // clipped by the row's own now-vertical overflow, exactly like an
+    // ordinary z-index problem but untouched by the earlier header
+    // `position:relative`/z-index fix (that fix was for a different
+    // layer — grid vs. header — not this overflow clipping). `fixed`
+    // positioning escapes ancestor overflow clipping entirely (as long as
+    // no ancestor has a `transform`, which none here do), the same
+    // technique already used for the cellPicker/Vision modal.
     showSplitMenu && h(Popup, {
       onClose:closeSplitMenu,
       anchorRef,
-      style:{left:0, top:'100%', marginTop:6, width:130, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:130, zIndex:280},
       items:[
         {label:'✂️ Diviser', onClick:()=>onSplit(pile.id)},
         {label:'🔀 Mélanger', onClick:()=>onShuffle(pile.id)},
@@ -173,7 +217,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
     showInsertMenu && h(Popup, {
       onClose:()=>setShowInsertMenu(false),
       anchorRef,
-      style:{left:0, top:'100%', marginTop:6, width:150, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
       items:[
         {label:'⬆️ Dessus', onClick:()=>onInsertSelected(pile.id, 'top')},
         {label:'⬇️ Dessous', onClick:()=>onInsertSelected(pile.id, 'bottom')},
@@ -197,6 +241,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const topCard = cards.length ? cards[cards.length-1] : null;
   const isSelected = topCard && selectedId === topCard.id;
   const isArmed = armedId === 'discard';
@@ -208,6 +253,8 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
   function startPress(){
     if (cards.length === 0 || hasSelectedTile) return; // nothing to arm / a quick tap here means "discard the selection" instead
     pressTimer.current = setTimeout(() => {
+      const r = anchorRef.current.getBoundingClientRect();
+      setMenuPos({left:r.left, top:r.bottom+6});
       setShowMenu(true);
       onArm('discard');
     }, 500);
@@ -245,10 +292,14 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
       cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
     ),
+    // See PileStack's identical comment: `position:'fixed'` at a
+    // JS-computed screen position, not anchor-relative `top:'100%'` —
+    // otherwise the header pile row's `overflowX:'auto'` (which forces
+    // overflow-y to 'auto' too, per spec) invisibly clips this menu.
     showMenu && h(Popup, {
       onClose:closeMenu,
       anchorRef,
-      style:{left:0, top:'100%', marginTop:6, width:150, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
       items:[
         {label:'🔀 Mélanger', onClick:onShuffleInPlace},
       ]
@@ -265,7 +316,7 @@ function PlayerSquare({player, isCurrent, size=64, onRemove, onRename}) {
   const anchorRef = useRef(null);
   const scale = size/64;
 
-  return h('div', {ref:anchorRef, style:{position:'relative'}},
+  return h('div', {ref:anchorRef, style:{position:'relative', pointerEvents:'auto'}},
     h('div', {
       onClick: () => setShowInfo(!showInfo),
       style: {
@@ -320,6 +371,14 @@ export function PlateauPage({onBack}) {
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
   const [selectedTileId, setSelectedTileId] = useState(null);
+  // 'placed' (right after placing a fresh tile) only allows rotating it —
+  // no flip/discard buttons, and tapping elsewhere just deselects instead
+  // of moving it, so a stray tap right after placement can't send it flying
+  // before you've had a chance to orient it. 'moving' (a tile picked up via
+  // double-click, or re-selected) behaves as before: all 3 buttons, and a
+  // tap elsewhere moves it. Kept in sync with selectedTileId everywhere
+  // that's set/cleared — see clearTileSelection below.
+  const [selectedTileMode, setSelectedTileMode] = useState(null);
   const [selectedDiscardCardId, setSelectedDiscardCardId] = useState(null);
   const armedPileIdRef = useRef(null);
   // handleSingleClick can run from a setTimeout scheduled well before its
@@ -334,7 +393,7 @@ export function PlateauPage({onBack}) {
   // arming/merging.
   const liveRef = useRef({});
   useEffect(() => {
-    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedId, players, placedTiles, discardCards };
+    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -494,36 +553,73 @@ export function PlateauPage({onBack}) {
     return () => vp.removeEventListener('wheel', onWheel);
   });
 
-  function commitPlayers(next){
-    // Reads from liveRef rather than the `players` closure directly — this
-    // can be called from handleSingleClick after it's been resumed from a
-    // stale setTimeout closure (see liveRef's own comment above), and
-    // pushing THAT closure's stale `players` onto the undo history would
-    // silently corrupt undo/redo with an outdated snapshot.
-    pastRef.current.push(liveRef.current.players ?? players);
+  // Snapshots the board's full persisted state (players + piles + défausse
+  // + placed tiles + whatever's currently held from a pile) as ONE combined
+  // history entry, then applies `updates` (any subset of those five keys).
+  // Previously only `players` was tracked (via the old commitPlayers),
+  // which is why undo worked for adding/removing players but not for
+  // moving/rotating/discarding a tile — this generalizes the same pattern
+  // to cover every board mutation with a single shared undo/redo stack.
+  // Reads the "before" snapshot from liveRef rather than the closure
+  // variables directly, since this can be called from handleSingleClick
+  // after it's resumed from a stale setTimeout closure (see liveRef's own
+  // comment above) — pushing a stale snapshot would silently corrupt
+  // undo/redo. `heldTile` is included even though it's otherwise treated
+  // as transient, non-undoable UI state (drawing/cancelling a card doesn't
+  // itself push a history entry): capturing it here is what makes undoing
+  // a PLACEMENT put the card back in hand instead of leaking it — the
+  // snapshot taken right before a placement naturally already shows that
+  // card as held, so restoring it is exactly "pick it back up".
+  function commitBoard(updates){
+    const live = liveRef.current;
+    pastRef.current.push({
+      players: live.players, piles: live.piles, discardCards: live.discardCards,
+      placedTiles: live.placedTiles, heldTile: live.heldTile
+    });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
     setCanUndo(true);
     setCanRedo(false);
-    setPlayers(next);
+    if ('players' in updates) setPlayers(updates.players);
+    if ('piles' in updates) setPiles(updates.piles);
+    if ('discardCards' in updates) setDiscardCards(updates.discardCards);
+    if ('placedTiles' in updates) setPlacedTiles(updates.placedTiles);
+    if ('heldTile' in updates) setHeldTile(updates.heldTile);
+  }
+
+  function commitPlayers(next){
+    commitBoard({players:next});
+  }
+
+  function applySnapshot(snap){
+    setPlayers(snap.players);
+    setPiles(snap.piles);
+    setDiscardCards(snap.discardCards);
+    setPlacedTiles(snap.placedTiles);
+    setHeldTile(snap.heldTile);
+  }
+
+  function currentSnapshot(){
+    const live = liveRef.current;
+    return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile };
   }
 
   function undo(){
     if (pastRef.current.length === 0) return;
     const prev = pastRef.current.pop();
-    futureRef.current.push(players);
+    futureRef.current.push(currentSnapshot());
     setCanUndo(pastRef.current.length > 0);
     setCanRedo(true);
-    setPlayers(prev);
+    applySnapshot(prev);
   }
 
   function redo(){
     if (futureRef.current.length === 0) return;
     const next = futureRef.current.pop();
-    pastRef.current.push(players);
+    pastRef.current.push(currentSnapshot());
     setCanRedo(futureRef.current.length > 0);
     setCanUndo(true);
-    setPlayers(next);
+    applySnapshot(next);
   }
 
   function nextColor(){
@@ -531,8 +627,22 @@ export function PlateauPage({onBack}) {
     return PALETTE.find(c => !used.has(c)) || PALETTE[players.length % PALETTE.length];
   }
 
+  // `players.length+1` collided with an existing name once a player in the
+  // middle got removed (4 players, remove #1, add one → 3 left named
+  // 2/3/4, but length+1 still said "4" too) — find the lowest "Joueur N"
+  // not currently in use instead of just counting how many players remain.
+  function nextPlayerName(){
+    const used = new Set(players.map(p => {
+      const m = p.nom.match(/^Joueur (\d+)$/);
+      return m ? parseInt(m[1], 10) : null;
+    }).filter(n => n !== null));
+    let n = 1;
+    while (used.has(n)) n++;
+    return `Joueur ${n}`;
+  }
+
   function addPlayer(){
-    commitPlayers([...players, {id:uid(), nom:`Joueur ${players.length+1}`, couleur:nextColor(), pv:DEFAULT_PV, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
+    commitPlayers([...players, {id:uid(), nom:nextPlayerName(), couleur:nextColor(), pv:DEFAULT_PV, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
   }
 
   function removePlayer(id){
@@ -550,21 +660,31 @@ export function PlateauPage({onBack}) {
     commitPlayers(players.map(p => p.id === id ? {...p, pv: p.pv + delta} : p));
   }
 
+  function clearTileSelection(){
+    setSelectedTileId(null);
+    setSelectedTileMode(null);
+  }
+
   function rotateTile(tileId){
-    setPlacedTiles(placedTiles.map(t => t.id === tileId ? {...t, rotation:(t.rotation+90)%360} : t));
+    const live = liveRef.current;
+    commitBoard({placedTiles: live.placedTiles.map(t => t.id === tileId ? {...t, rotation:(t.rotation+90)%360} : t)});
   }
 
   function flipTile(tileId){
-    setPlacedTiles(placedTiles.map(t => t.id === tileId ? {...t, flipped:!t.flipped} : t));
+    const live = liveRef.current;
+    commitBoard({placedTiles: live.placedTiles.map(t => t.id === tileId ? {...t, flipped:!t.flipped} : t)});
   }
 
   // Sends a placed tile to the défausse — always face-up there regardless
   // of the tile's own flipped state at the time (the défausse never stores
   // or tracks `flipped`, it just always renders face-up).
   function discardTile(tileId){
-    setPlacedTiles(placedTiles.filter(t => t.id !== tileId));
-    setDiscardCards([...discardCards, {id:tileId}]);
-    setSelectedTileId(null);
+    const live = liveRef.current;
+    commitBoard({
+      placedTiles: live.placedTiles.filter(t => t.id !== tileId),
+      discardCards: [...live.discardCards, {id:tileId}]
+    });
+    clearTileSelection();
   }
 
   function discardSelectedTile(){
@@ -575,26 +695,30 @@ export function PlateauPage({onBack}) {
   // it never needs to flip since it's already shown face-up.
   function toggleSelectDiscardCard(cardId){
     setSelectedDiscardCardId(prev => prev === cardId ? null : cardId);
-    setSelectedTileId(null);
+    clearTileSelection();
+    setSelectedId(null); // only one thing selected at a time
   }
 
   // Feeds the currently-selected card (a placed tile, or the défausse's top
   // card) into a pile, at whichever end was chosen in the Dessus/Dessous menu.
   function insertSelectedCardIntoPile(pileId, position){
+    const live = liveRef.current;
     let cardId = null;
-    if (selectedTileId) {
-      cardId = selectedTileId;
-      setPlacedTiles(placedTiles.filter(t => t.id !== selectedTileId));
-      setSelectedTileId(null);
-    } else if (selectedDiscardCardId) {
-      cardId = selectedDiscardCardId;
-      setDiscardCards(discardCards.filter(cd => cd.id !== cardId));
-      setSelectedDiscardCardId(null);
+    const updates = {};
+    if (live.selectedTileId) {
+      cardId = live.selectedTileId;
+      updates.placedTiles = live.placedTiles.filter(t => t.id !== live.selectedTileId);
+    } else if (live.selectedDiscardCardId) {
+      cardId = live.selectedDiscardCardId;
+      updates.discardCards = live.discardCards.filter(cd => cd.id !== cardId);
     } else return;
-    setPiles(piles.map(p => p.id === pileId
+    updates.piles = live.piles.map(p => p.id === pileId
       ? {...p, cards: position === 'top' ? [...p.cards, {id:cardId}] : [{id:cardId}, ...p.cards]}
       : p
-    ));
+    );
+    commitBoard(updates);
+    clearTileSelection();
+    setSelectedDiscardCardId(null);
   }
 
   // Clears whatever card is selected (a placed tile or a défausse card) —
@@ -602,7 +726,7 @@ export function PlateauPage({onBack}) {
   // the grid/piles also deselects, same spirit as every popup's "click
   // elsewhere closes it" rule.
   function clearCardSelection(){
-    setSelectedTileId(null);
+    clearTileSelection();
     setSelectedDiscardCardId(null);
   }
 
@@ -652,26 +776,40 @@ export function PlateauPage({onBack}) {
     // overwhelming majority, made this asymmetry the right one.
     if (live.heldTile) {
       if (live.placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
-      setPlacedTiles([...live.placedTiles, {id:live.heldTile.cardId, row:r, col:c, rotation:0, flipped:false}]);
-      setHeldTile(null);
+      commitBoard({placedTiles: [...live.placedTiles, {id:live.heldTile.cardId, row:r, col:c, rotation:0, flipped:false}], heldTile: null});
+      // Lands in 'placed' mode — rotate-only, see the mode's own comment
+      // above selectedTileMode's declaration — so it can be turned freely
+      // right after placing without a stray tap sending it elsewhere.
+      setSelectedTileId(live.heldTile.cardId);
+      setSelectedTileMode('placed');
       return;
     }
 
     if (live.selectedDiscardCardId) {
       if (live.placedTiles.some(t => t.row === r && t.col === c)) return;
       const cardId = live.selectedDiscardCardId;
-      setDiscardCards(live.discardCards.filter(cd => cd.id !== cardId));
-      setPlacedTiles([...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]);
+      commitBoard({
+        discardCards: live.discardCards.filter(cd => cd.id !== cardId),
+        placedTiles: [...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]
+      });
       setSelectedDiscardCardId(null);
+      setSelectedTileId(cardId);
+      setSelectedTileMode('placed');
       return;
     }
 
     if (live.selectedTileId) {
+      if (live.selectedTileMode === 'placed') {
+        // Rotate-only mode: ANY tap just deselects (finalizing the
+        // placement) — it never moves the tile, unlike 'moving' below.
+        clearTileSelection();
+        return;
+      }
       const t = live.placedTiles.find(x => x.id === live.selectedTileId);
-      if (t && t.row === r && t.col === c) { setSelectedTileId(null); return; } // same tile: deselect
+      if (t && t.row === r && t.col === c) { clearTileSelection(); return; } // same tile: deselect
       if (live.placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
-      setPlacedTiles(live.placedTiles.map(x => x.id === live.selectedTileId ? {...x, row:r, col:c} : x));
-      setSelectedTileId(null);
+      commitBoard({placedTiles: live.placedTiles.map(x => x.id === live.selectedTileId ? {...x, row:r, col:c} : x)});
+      clearTileSelection();
       return;
     }
 
@@ -741,7 +879,9 @@ export function PlateauPage({onBack}) {
     if (!tile) return;
     if (players.some(p => p.row === r && p.col === c)) return; // occupied: not selectable
     setSelectedTileId(tile.id);
+    setSelectedTileMode('moving');
     setSelectedDiscardCardId(null);
+    setSelectedId(null); // only one thing selected at a time
   }
 
   function onContentDoubleClick(e){
@@ -760,6 +900,15 @@ export function PlateauPage({onBack}) {
   // cancels the hold: the card goes back and the pile flips back to its
   // back side. Holding a card from a different pile blocks further draws
   // until that one is resolved (placed, discarded, or cancelled).
+  // Drawing/cancelling a hold is deliberately NOT pushed onto the undo
+  // history (direct setState, no commitBoard) — it's better treated as a
+  // pending selection than a committed action, exactly like selecting a
+  // player isn't itself undoable either (only the eventual move is). This
+  // stays fully correct even so: `heldTile` is part of every commitBoard
+  // snapshot (see its own comment), so undoing the PLACEMENT that follows
+  // a draw still puts the card back in your hand — nothing is ever lost,
+  // there's just no separate undo step for the draw itself, matching how
+  // "click the same pile again" already cancels a draw directly.
   function drawFromPile(pileId){
     if (heldTile) {
       if (heldTile.fromPileId === pileId) {
@@ -774,24 +923,27 @@ export function PlateauPage({onBack}) {
     const card = pile.cards[pile.cards.length-1];
     setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
     setHeldTile({cardId:card.id, fromPileId:pileId});
-    setSelectedTileId(null);
+    clearTileSelection();
     setSelectedDiscardCardId(null);
+    setSelectedId(null); // only one thing selected at a time
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
   // to deal from either half separately, not to re-randomize.
   function splitPile(pileId){
-    const pile = piles.find(p => p.id === pileId);
+    const live = liveRef.current;
+    const pile = live.piles.find(p => p.id === pileId);
     if (!pile || pile.cards.length < 2) return;
     const mid = Math.floor(pile.cards.length/2);
-    setPiles(piles.flatMap(p => p.id === pileId
+    commitBoard({piles: live.piles.flatMap(p => p.id === pileId
       ? [{...p, cards:p.cards.slice(0, mid)}, {id:uid(), type:p.type, cards:p.cards.slice(mid)}]
       : [p]
-    ));
+    )});
   }
 
   function shufflePile(pileId){
-    setPiles(piles.map(p => p.id === pileId ? {...p, cards:shuffle(p.cards)} : p));
+    const live = liveRef.current;
+    commitBoard({piles: live.piles.map(p => p.id === pileId ? {...p, cards:shuffle(p.cards)} : p)});
   }
 
   // Merging two piles together (unlike splitting) does shuffle the result —
@@ -810,33 +962,38 @@ export function PlateauPage({onBack}) {
   // existing merge-INTO-discard exception) skips the same-type check since
   // the défausse doesn't track a type of its own.
   function mergeArmedInto(sourceId, targetPileId){
+    const live = liveRef.current;
     if (!sourceId || sourceId === targetPileId) return;
     if (sourceId === 'discard') {
-      const target = piles.find(p => p.id === targetPileId);
+      const target = live.piles.find(p => p.id === targetPileId);
       if (!target) return;
-      setPiles(piles.map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...discardCards])} : p));
-      setDiscardCards([]);
+      commitBoard({
+        piles: live.piles.map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...live.discardCards])} : p),
+        discardCards: []
+      });
       disarmPile();
       return;
     }
-    const source = piles.find(p => p.id === sourceId);
+    const source = live.piles.find(p => p.id === sourceId);
     if (!source) return;
     if (targetPileId === 'discard') {
-      setDiscardCards(shuffle([...discardCards, ...source.cards]));
-      setPiles(piles.filter(p => p.id !== sourceId));
+      commitBoard({
+        discardCards: shuffle([...live.discardCards, ...source.cards]),
+        piles: live.piles.filter(p => p.id !== sourceId)
+      });
     } else {
-      const target = piles.find(p => p.id === targetPileId);
+      const target = live.piles.find(p => p.id === targetPileId);
       if (!target || target.type !== source.type) return;
-      setPiles(piles
+      commitBoard({piles: live.piles
         .filter(p => p.id !== sourceId)
         .map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...source.cards])} : p)
-      );
+      });
     }
     disarmPile();
   }
 
   function shuffleDiscardInPlace(){
-    setDiscardCards(shuffle(discardCards));
+    commitBoard({discardCards: shuffle(liveRef.current.discardCards)});
   }
 
   // Mouse click-drag panning (desktop). Touch single-finger panning is
@@ -928,7 +1085,7 @@ export function PlateauPage({onBack}) {
   function toggleVisionMode(){
     if (!visionMode) {
       setSelectedId(null);
-      setSelectedTileId(null);
+      clearTileSelection();
       setSelectedDiscardCardId(null);
     }
     setVisionMode(!visionMode);
@@ -948,7 +1105,7 @@ export function PlateauPage({onBack}) {
     setPlacedTiles([]);
     setHeldTile(null);
     setArmedPileId(null);
-    setSelectedTileId(null);
+    clearTileSelection();
     setSelectedDiscardCardId(null);
     setCellPicker(null);
     setVisionPlayerId(null);
@@ -1054,17 +1211,26 @@ export function PlateauPage({onBack}) {
     // and footer (see sidebarBounds/squareSize above) so it can never
     // overlap the header or spill off-screen — centered within that space,
     // scrollable as a last resort if even the smallest square size doesn't
-    // fit everyone.
+    // fit everyone. `pointerEvents:'none'` on the container + `'auto'` on
+    // each actual square: this column's own box always spans the FULL
+    // header-to-footer height regardless of player count (it's centered
+    // via flexbox, not sized to its content), so with 1 player — or 0 —
+    // most of that tall box is empty space with nothing visible in it, yet
+    // it still sat on top of the grid and silently absorbed every click
+    // that landed there instead of letting it reach the cell underneath.
+    // Turning off pointer events on the empty box and back on for just the
+    // squares/button themselves keeps the clickable area limited to what's
+    // actually visible.
     h('div', {style:{
       position:'fixed', right:8, top:sidebarBounds.top+SIDEBAR_GAP, bottom:sidebarBounds.bottom+SIDEBAR_GAP,
       display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'flex-end',
-      gap:SIDEBAR_GAP, overflowY:'auto', zIndex:15
+      gap:SIDEBAR_GAP, overflowY:'auto', zIndex:15, pointerEvents:'none'
     }},
       players.map((p,i) => h(PlayerSquare, {
         key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
         onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v)
       })),
-      h('div', {style:{width:squareSize}}, h(AddBtn, {onClick:addPlayer}))
+      h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:addPlayer}))
     ),
 
     // GRID VIEWPORT (scrollable / pannable / zoomable)
@@ -1117,7 +1283,7 @@ export function PlateauPage({onBack}) {
           }, p.nom.slice(0,1).toUpperCase());
         })),
 
-        // SELECTED TILE CONTROLS — just the 3 option buttons around the
+        // SELECTED TILE CONTROLS — just the option buttons around the
         // tile's own in-grid position (no enlarged duplicate card), placed
         // on its CORNERS rather than its cardinal edges. A first version put
         // them at the edge midpoints (top/left/right), which sat almost
@@ -1132,17 +1298,21 @@ export function PlateauPage({onBack}) {
         // transformed content div (in-grid coordinates, not a separate
         // fixed overlay) so they pan/zoom together with the tile — a
         // z-index keeps them above sibling tiles despite the tile divs'
-        // own DOM order.
+        // own DOM order. In 'placed' mode (right after placing from a
+        // pile/défausse), only the rotate button shows — no flip/discard,
+        // and no move-on-tap-elsewhere (see handleSingleClick) — so you can
+        // freely orient a freshly placed tile without any risk of a stray
+        // tap sending it elsewhere or losing/discarding it by mistake.
         selectedTileObj && !selectedTileOccupied && [
-          h('div', {
+          selectedTileMode !== 'placed' && h('div', {
             key:'flip', onClick: e => { e.stopPropagation(); flipTile(selectedTileObj.id); },
             style:{...inGridBtnStyle, left:selectedTileObj.col*CELL, top:selectedTileObj.row*CELL}
-          }, '↕️'),
+          }, h(FlipIcon)),
           h('div', {
             key:'rotate', onClick: e => { e.stopPropagation(); rotateTile(selectedTileObj.id); },
             style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL, top:selectedTileObj.row*CELL}
-          }, '⟳'),
-          h('div', {
+          }, h(RotateIcon)),
+          selectedTileMode !== 'placed' && h('div', {
             key:'discard', onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
             style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL, top:selectedTileObj.row*CELL+CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
           }, '✕')
