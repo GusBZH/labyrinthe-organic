@@ -50,6 +50,99 @@ function borderColor(vision, normal){
   return vision ? 'rgba(79,163,255,.5)' : normal;
 }
 
+function shuffle(arr){
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Placeholder deck: 100 identical "Case" tiles for now, so the draw/place/
+// rotate/split/shuffle mechanics can be built and tested before wiring in
+// the real thing — reading data.cases (only "Validé" entries, one card per
+// `quantite`) so editing the catalog and starting a new game is all it
+// takes to change what's in the deck. Same plan later for sorts/énergies.
+function makeInitialDeck(){
+  return shuffle(Array.from({length:100}, () => ({id:uid()})));
+}
+
+// A pioche or the défausse: tap draws (piles only), long-press arms it
+// (blue glow) and opens a Diviser/Mélanger menu, and clicking a DIFFERENT
+// pile/défausse while one is armed merges the armed one into it (shuffled)
+// — that's how you reunite piles after splitting them apart.
+function PileStack({pile, isDiscard, armedId, armedIdRef, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto}) {
+  const anchorRef = useRef(null);
+  const pressTimer = useRef(null);
+  const pendingArmedRef = useRef(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const isArmed = armedId === pile.id;
+
+  // Captures "what's armed right now" at pointerdown time, not click time.
+  // Clicking a merge target fires (in order): this pile's own onPointerDown
+  // (React delegates to the root container, reached first in the bubble
+  // phase) → the ARMED pile's Popup outside-click listener (attached
+  // directly on `document`, reached later in the same bubble) → pointerup
+  // → click. That Popup listener disarms the source pile the moment this
+  // pointerdown bubbles past it, so by the time 'click' fires here,
+  // armedIdRef.current has already gone back to null — reading it in
+  // handleClick (as a first attempt did) sees the merge target arrive
+  // "un-armed" and silently falls through to a plain draw instead. Reading
+  // it here, one step earlier, catches the real value before that disarm.
+  function onPointerDown(){
+    pendingArmedRef.current = armedIdRef.current;
+    startPress();
+  }
+  function startPress(){
+    if (isDiscard) return; // merge target only — no split/shuffle menu for it
+    pressTimer.current = setTimeout(() => {
+      setShowMenu(true);
+      onArm(pile.id);
+    }, 500);
+  }
+  function cancelPress(){
+    clearTimeout(pressTimer.current);
+  }
+  function handleClick(){
+    if (showMenu) return; // the click that follows a long-press shouldn't also draw
+    const armed = pendingArmedRef.current;
+    if (armed && armed !== pile.id) { onMergeInto(armed, pile.id); return; }
+    if (!isDiscard) onDraw(pile.id);
+  }
+  function closeMenu(){
+    setShowMenu(false);
+    onDisarm();
+  }
+
+  return h('div', {ref:anchorRef, style:{position:'relative', flexShrink:0}},
+    h('div', {
+      onPointerDown, onPointerUp:cancelPress, onPointerLeave:cancelPress, onPointerCancel:cancelPress,
+      onClick:handleClick,
+      style:{
+        width:46, height:60, borderRadius:8, cursor:'pointer', position:'relative',
+        background:'#242424', border: isArmed ? '2px solid #4fa3ff' : '1px solid #444',
+        boxShadow: isArmed ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        transition:'box-shadow .2s, border-color .2s'
+      }
+    },
+      h('div', {style:{fontSize:18}}, isDiscard ? '🗑️' : '🗺️'),
+      h('div', {style:{position:'absolute', bottom:2, right:2, fontSize:9, fontWeight:700, color:'#fff',
+        background:'rgba(0,0,0,.6)', borderRadius:8, padding:'1px 4px'}}, pile.cards.length)
+    ),
+    showMenu && h(Popup, {
+      onClose:closeMenu,
+      anchorRef,
+      style:{left:0, top:'100%', marginTop:6, width:130},
+      items:[
+        {label:'✂️ Diviser', onClick:()=>onSplit(pile.id)},
+        {label:'🔀 Mélanger', onClick:()=>onShuffle(pile.id)},
+      ]
+    })
+  );
+}
+
 function PlayerSquare({player, isCurrent, onRemove, onRename}) {
   const [showInfo, setShowInfo] = useState(false);
   const anchorRef = useRef(null);
@@ -103,11 +196,27 @@ export function PlateauPage({onBack}) {
   const [visionMode, setVisionMode] = useState(false);
   const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids, forVision}
   const [visionPlayerId, setVisionPlayerId] = useState(null);
+  const [piles, setPiles] = useState(saved?.piles || [{id:uid(), cards:makeInitialDeck()}]);
+  const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
+  const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
+  const [heldTile, setHeldTile] = useState(null);
+  const [armedPileId, setArmedPileId] = useState(null);
+  const [selectedTileId, setSelectedTileId] = useState(null);
+  const armedPileIdRef = useRef(null);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
   const resetAnchorRef = useRef(null);
   const cellPickerAnchorRef = useRef(null);
   const visionModalAnchorRef = useRef(null);
+
+  function armPile(id){
+    armedPileIdRef.current = id;
+    setArmedPileId(id);
+  }
+  function disarmPile(){
+    armedPileIdRef.current = null;
+    setArmedPileId(null);
+  }
   const zoomRef = useRef(1);
   const pinchRef = useRef(null);
 
@@ -121,8 +230,8 @@ export function PlateauPage({onBack}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex})); } catch {}
-  }, [players, currentIndex]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles})); } catch {}
+  }, [players, currentIndex, piles, discardCards, placedTiles]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -280,12 +389,40 @@ export function PlateauPage({onBack}) {
     commitPlayers(players.map(p => p.id === id ? {...p, pv: p.pv + delta} : p));
   }
 
-  function onContentClick(e){
-    if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
+  function pickFromCellPicker(id){
+    if (cellPicker?.forVision) setVisionPlayerId(id);
+    else setSelectedId(id);
+    setCellPicker(null);
+  }
+
+  function placeHeldTile(row, col){
+    if (!heldTile) return;
+    if (placedTiles.some(t => t.row === row && t.col === col)) return; // one tile per cell
+    setPlacedTiles([...placedTiles, {id:heldTile.cardId, row, col, rotation:0}]);
+    setHeldTile(null);
+  }
+
+  function rotateTile(tileId){
+    setPlacedTiles(placedTiles.map(t => t.id === tileId ? {...t, rotation:(t.rotation+90)%360} : t));
+  }
+
+  // A tuile can only be picked up/rotated/discarded while no player is
+  // standing on it.
+  function selectTileAt(row, col){
+    const tile = placedTiles.find(t => t.row === row && t.col === col);
+    if (!tile) return;
+    if (players.some(p => p.row === row && p.col === col)) return;
+    setSelectedTileId(tile.id);
+  }
+
+  function handleSingleClick(clientX, clientY){
+    setSelectedTileId(null);
     const rect = contentRef.current.getBoundingClientRect();
-    const c = Math.floor((e.clientX - rect.left) / effectiveCell);
-    const r = Math.floor((e.clientY - rect.top) / effectiveCell);
+    const c = Math.floor((clientX - rect.left) / effectiveCell);
+    const r = Math.floor((clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+    if (heldTile) { placeHeldTile(r, c); return; }
 
     // Vision mode: selecting a token shows its detail window instead of
     // doing the normal action (here: movement selection) — never falls
@@ -293,7 +430,7 @@ export function PlateauPage({onBack}) {
     if (visionMode) {
       const here = players.filter(p => p.row === r && p.col === c);
       if (here.length === 1) setVisionPlayerId(here[0].id);
-      else if (here.length > 1) setCellPicker({clientX:e.clientX, clientY:e.clientY, ids:here.map(p=>p.id), forVision:true});
+      else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
       return;
     }
 
@@ -311,14 +448,89 @@ export function PlateauPage({onBack}) {
     if (here.length === 1) {
       setSelectedId(here[0].id);
     } else if (here.length > 1) {
-      setCellPicker({clientX:e.clientX, clientY:e.clientY, ids:here.map(p=>p.id), forVision:false});
+      setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:false});
     }
   }
 
-  function pickFromCellPicker(id){
-    if (cellPicker?.forVision) setVisionPlayerId(id);
-    else setSelectedId(id);
-    setCellPicker(null);
+  // Distinguishing a single click (select/move/place) from a double-click
+  // (select the tuile under the cursor) on the same element requires a
+  // short delay: a native 'click' fires for BOTH clicks of a dblclick, so
+  // the first one is held back briefly — if a second click arrives in time
+  // it's cancelled and 'onContentDoubleClick' takes over instead.
+  const clickTimerRef = useRef(null);
+
+  function onContentClick(e){
+    if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
+    const clientX = e.clientX, clientY = e.clientY;
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      return;
+    }
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
+      handleSingleClick(clientX, clientY);
+    }, 250);
+  }
+
+  function onContentDoubleClick(e){
+    if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
+    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
+    const rect = contentRef.current.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left) / effectiveCell);
+    const r = Math.floor((e.clientY - rect.top) / effectiveCell);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+    if (heldTile) { placeHeldTile(r, c); return; }
+    selectTileAt(r, c);
+  }
+
+  function drawFromPile(pileId){
+    if (heldTile) return; // resolve the one you're holding before drawing another
+    const pile = piles.find(p => p.id === pileId);
+    if (!pile || pile.cards.length === 0) return;
+    const card = pile.cards[pile.cards.length-1];
+    setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
+    setHeldTile({cardId:card.id, fromPileId:pileId});
+  }
+
+  // Cuts the pile into two, in place, no shuffle — the point is to be able
+  // to deal from either half separately, not to re-randomize.
+  function splitPile(pileId){
+    const pile = piles.find(p => p.id === pileId);
+    if (!pile || pile.cards.length < 2) return;
+    const mid = Math.floor(pile.cards.length/2);
+    setPiles(piles.flatMap(p => p.id === pileId
+      ? [{...p, cards:p.cards.slice(0, mid)}, {id:uid(), cards:p.cards.slice(mid)}]
+      : [p]
+    ));
+  }
+
+  function shufflePile(pileId){
+    setPiles(piles.map(p => p.id === pileId ? {...p, cards:shuffle(p.cards)} : p));
+  }
+
+  // Merging two piles together (unlike splitting) does shuffle the result —
+  // this is how you reunite piles you'd split apart earlier. Takes the
+  // source pile id as an explicit argument (captured by the target's own
+  // PileStack at pointerdown time — see its comment) rather than reading
+  // armedPileIdRef here: by the time this runs, the source pile's own popup
+  // has already disarmed it via the outside-click listener (which fires on
+  // the target's pointerdown, earlier than this click), so re-deriving the
+  // source from that ref at this point would already read back null too.
+  function mergeArmedInto(sourceId, targetPileId){
+    if (!sourceId || sourceId === targetPileId) return;
+    const source = piles.find(p => p.id === sourceId);
+    if (!source) return;
+    if (targetPileId === 'discard') {
+      setDiscardCards(shuffle([...discardCards, ...source.cards]));
+      setPiles(piles.filter(p => p.id !== sourceId));
+    } else {
+      setPiles(piles
+        .filter(p => p.id !== sourceId)
+        .map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...source.cards])} : p)
+      );
+    }
+    disarmPile();
   }
 
   // Mouse click-drag panning (desktop). Touch single-finger panning is
@@ -419,6 +631,12 @@ export function PlateauPage({onBack}) {
     setCurrentIndex(0);
     setPlayers([]);
     setShowReset(false);
+    setPiles([{id:uid(), cards:makeInitialDeck()}]);
+    setDiscardCards([]);
+    setPlacedTiles([]);
+    setHeldTile(null);
+    setArmedPileId(null);
+    setSelectedTileId(null);
     zoomRef.current = 1;
     setZoom(1);
     const vp = viewportRef.current;
@@ -437,28 +655,43 @@ export function PlateauPage({onBack}) {
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
-    // HEADER (sticky) — future home of tile draw/discard piles
-    h('div', {style:{flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 16px',
+    // HEADER (sticky) — top row of controls, second row for tile piles
+    h('div', {style:{flexShrink:0,
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderBottom:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
-      h('button', {onClick:onBack, style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
-      h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
-      h('div', {ref:resetAnchorRef, style:{position:'relative'}},
-        h('button', {onClick:()=>setShowReset(!showReset), style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
-        showReset && h(Popup, {
-          onClose:()=>setShowReset(false),
-          anchorRef:resetAnchorRef,
-          style:{right:0, top:'100%', marginTop:8, width:200},
-          children: h('div', {},
-            h('div', {style:{fontSize:12, color:'#eee', marginBottom:10}}, 'Réinitialiser tout le plateau ?'),
-            h('div', {style:{display:'flex', gap:8}},
-              h('button', {onClick:resetBoard, style:{flex:1, background:'rgba(220,60,40,.15)', border:'1px solid rgba(220,60,40,.4)', borderRadius:6, color:'#f88', padding:'6px 0', fontSize:12}}, 'Oui'),
-              h('button', {onClick:()=>setShowReset(false), style:{flex:1, background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:6, color:'#eee', padding:'6px 0', fontSize:12}}, 'Non')
+      h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'12px 16px'}},
+        h('button', {onClick:onBack, style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
+        h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
+        h('div', {ref:resetAnchorRef, style:{position:'relative'}},
+          h('button', {onClick:()=>setShowReset(!showReset), style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
+          showReset && h(Popup, {
+            onClose:()=>setShowReset(false),
+            anchorRef:resetAnchorRef,
+            style:{right:0, top:'100%', marginTop:8, width:200},
+            children: h('div', {},
+              h('div', {style:{fontSize:12, color:'#eee', marginBottom:10}}, 'Réinitialiser tout le plateau ?'),
+              h('div', {style:{display:'flex', gap:8}},
+                h('button', {onClick:resetBoard, style:{flex:1, background:'rgba(220,60,40,.15)', border:'1px solid rgba(220,60,40,.4)', borderRadius:6, color:'#f88', padding:'6px 0', fontSize:12}}, 'Oui'),
+                h('button', {onClick:()=>setShowReset(false), style:{flex:1, background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:6, color:'#eee', padding:'6px 0', fontSize:12}}, 'Non')
+              )
             )
-          )
-        })
+          })
+        ),
+        h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
       ),
-      h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
+      h('div', {style:{display:'flex', alignItems:'center', gap:10, padding:'0 16px 12px', overflowX:'auto'}},
+        piles.map(p => h(PileStack, {
+          key:p.id, pile:p, isDiscard:false, armedId:armedPileId, armedIdRef:armedPileIdRef,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto
+        })),
+        h(PileStack, {
+          pile:{id:'discard', cards:discardCards}, isDiscard:true, armedId:armedPileId, armedIdRef:armedPileIdRef,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:()=>{}, onSplit:()=>{}, onShuffle:()=>{}, onMergeInto:mergeArmedInto
+        }),
+        heldTile && h('div', {style:{fontSize:11, color:'#9cf', marginLeft:6}}, '🗺️ Tuile en main — clique une case pour la poser')
+      )
     ),
 
     // RIGHT SIDEBAR — player roster (sticky, vertically centered)
@@ -485,6 +718,7 @@ export function PlateauPage({onBack}) {
       h('div', {
         ref:contentRef,
         onClick:onContentClick,
+        onDoubleClick:onContentDoubleClick,
         style:{
           width:COLS*CELL, height:ROWS*CELL, position:'relative',
           transform:`scale(${zoom})`, transformOrigin:'0 0',
@@ -499,6 +733,32 @@ export function PlateauPage({onBack}) {
             ...VISION_GRID_BG
           }
         }),
+        placedTiles.map(t => h('div', {
+          key:t.id,
+          style:{
+            position:'absolute', left:t.col*CELL+2, top:t.row*CELL+2, width:CELL-4, height:CELL-4,
+            borderRadius:4, background:'#3a3226', border:'1px solid #55493a',
+            display:'flex', alignItems:'center', justifyContent:'center', fontSize:16,
+            transform:`rotate(${t.rotation}deg)`, pointerEvents:'none',
+            boxShadow: selectedTileId===t.id ? '0 0 0 2px #fff, 0 0 8px 2px rgba(79,163,255,.6)' : 'none'
+          }
+        },
+          '🗺️',
+          h('div', {style:{position:'absolute', top:2, left:2, width:6, height:6, borderRadius:'50%', background:'#8a7a5a'}})
+        )),
+        (() => {
+          const selectedTile = placedTiles.find(t => t.id === selectedTileId);
+          if (!selectedTile) return null;
+          if (players.some(p => p.row === selectedTile.row && p.col === selectedTile.col)) return null;
+          return h('div', {
+            onClick: e => { e.stopPropagation(); rotateTile(selectedTile.id); },
+            style:{
+              position:'absolute', left:(selectedTile.col+1)*CELL+4, top:selectedTile.row*CELL + CELL/2 - 12,
+              width:24, height:24, borderRadius:'50%', background:'rgba(255,255,255,.12)', border:'1px solid #777',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer', color:'#eee'
+            }
+          }, '⟳');
+        })(),
         Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
           const cx = p.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
           const cy = p.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);

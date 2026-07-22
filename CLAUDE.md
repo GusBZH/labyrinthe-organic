@@ -211,28 +211,62 @@ mécanique séparée à coder). Flux d'une rencontre :
 4. S'il gagne, il fait une sélection prolongée sur la case pour cibler le monstre, puis
    clique sur la défausse pour le défausser.
 
-### Pioche et pose de tuiles (labyrinthe)
-1. Cliquer sur la pioche → la carte du dessus se retourne (reste visuellement sur la
-   pioche, marquée comme "tuile actuellement choisie").
-2. Cliquer sur un emplacement de grille vide → pose la tuile à cet endroit (encore
-   tournable/validable, cf. étape 3).
-3. Un petit menu apparaît avec deux boutons ronds :
-   - Flèche circulaire (à droite) → rotation horaire 90°, cliquable/spammable jusqu'à
-     obtenir l'orientation voulue
-   - Coche/validation (à gauche) → valide la tuile dans son état actuel
-4. Ce même menu (rotation + validation) réapparaît si on resélectionne plus tard une
-   tuile déjà posée — permet aussi, à ce moment, de : tourner, valider, défausser (clic
-   sur la défausse), ou déplacer (clic sur une autre case).
-- Les tuiles déjà posées mais vides (pas de joueur dessus) sont aussi sélectionnables
-  pour les tourner ou les défausser via le même mécanisme.
-- Une tuile du labyrinthe ne peut être manipulée que si aucun joueur n'est dessus.
+### Pioche et pose de tuiles (labyrinthe) — Couche 2, implémentée
+1. Tap/clic simple sur une pioche → pioche la carte du dessus (reste "en main",
+   indicateur visible dans le header) jusqu'à ce qu'on clique une case pour la poser.
+   Une seule tuile en main à la fois (retaper la pioche pendant qu'on en tient déjà
+   une ne fait rien).
+2. Clic sur une case vide de la grille → pose la tuile là.
+3. **Double-clic** sur une case avec une tuile posée (et sans joueur dessus) → la
+   sélectionne, faisant apparaître une flèche circulaire de rotation juste à sa droite
+   (rotation 90° sens horaire, cliquable/spammable). Pas de bouton de validation séparé
+   — la pose elle-même vaut confirmation, contrairement à une version antérieure du
+   design qui prévoyait un menu rotation+validation.
+   Distinguer clic simple (sélection perso/pose) de double-clic (sélection tuile) sur
+   le même élément demande un léger délai (`clickTimerRef`, 250ms) : un double-clic
+   déclenche aussi deux évènements `click` natifs, donc le premier clic est retenu
+   brièvement — si un second arrive à temps il annule le premier et laisse `onDoubleClick`
+   agir seul à sa place.
+- Une tuile ne peut être sélectionnée (et donc tournée) que si aucun joueur n'est dessus.
+- Pas encore implémenté : défausser/déplacer une tuile déjà posée (seule la rotation
+  existe pour l'instant sur une tuile posée) — pas demandé dans cette passe.
+- Deck actuel : **100 cartes identiques (placeholder)**, en attendant de brancher la
+  vraie pioche dynamique — voir note "Pioches dynamiques depuis le catalogue" ci-dessous.
 
-### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu)
-- Appui long / clic maintenu sur une pioche → la divise en deux (mécanique de jeu à
-  part entière, pas juste un utilitaire d'affichage). Une fois divisée, les deux
-  moitiés doivent être mélangées séparément (chacune re-brassée après la division,
-  pas juste coupée en deux paquets ordonnés).
-- Double-tap / double-clic sur une pioche OU une défausse → mélange.
+### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu) — implémentée pour les tuiles
+- Tap/clic simple sur une pioche → pioche la carte du dessus (défausse non piochable).
+- Appui long (500ms) sur une pioche → l'arme (glow bleu) et ouvre une mini fenêtre
+  Diviser/Mélanger. Diviser coupe le paquet en deux **sans mélanger** (juste couper en
+  deux piles, pas de rebrassage — corrige une version antérieure de cette note qui
+  disait l'inverse). Mélanger rebrasse la pile sur place.
+- Au lieu d'utiliser le menu, cliquer une **autre** pioche (ou la défausse) pendant
+  qu'une pioche est armée fusionne celle-ci dans la cible — et là ça **rebrasse** le
+  résultat (contrairement à Diviser). C'est comme ça qu'on peut diviser une pioche en
+  deux puis les rassembler plus tard. La défausse elle-même n'est pas armable/divisible
+  (elle n'est qu'une cible de fusion) — pas de menu long-press pour elle.
+- **Piège rencontré (fusion de piles)** : la fenêtre Diviser/Mélanger de la pioche armée
+  se ferme au clic extérieur (règle globale des popups) — mais ce clic extérieur, c'est
+  justement le clic sur la pioche CIBLE qui doit déclencher la fusion. Le listener
+  `pointerdown` global de la popup (attaché sur `document`) se déclenche pendant la
+  phase de bulle **avant** l'évènement `click` (qui arrive après le `pointerup`), donc
+  la pioche source était déjà désarmée (état React remis à `null`) au moment où le
+  gestionnaire de clic de la cible s'exécutait — la fusion tombait silencieusement en
+  pioche normale à la place. Remplacer la lecture de l'état React par une *ref* React
+  n'a pas suffi non plus : `onPointerDown` de la CIBLE (délégué par React à la racine,
+  donc atteint plus tôt dans la remontée de bulle) se déclenche bien avant le listener
+  `document` de la popup de la source, donc capturer la valeur armée à CE moment-là
+  (`pendingArmedRef`, dans `PileStack`) fonctionne — mais il fallait aussi **passer
+  cette valeur capturée en argument explicite** à `mergeArmedInto` plutôt que la
+  fonction ne relise elle-même la ref au niveau du parent (qui, elle, est déjà repassée
+  à `null` par la désarmement de la source à ce moment).
+
+### Pioches dynamiques depuis le catalogue (pas encore implémenté)
+Idée validée pour une prochaine passe : au lieu des 100 cartes identiques actuelles,
+générer la vraie pioche de cases depuis `data.cases` — un exemplaire de carte par unité
+de `quantite`, en ne prenant que les entrées avec le statut **Validé** (pastille verte).
+Modifier une quantité dans le catalogue et relancer une partie change directement la
+composition de la pioche, sans code à toucher. Même principe prévu plus tard pour les
+pioches de sorts et d'énergies (`data.sorts`/`data.energies`).
 
 ### Undo/redo global
 Boutons retour/avancer pour annuler des actions accidentelles (ex: mélange non
@@ -240,6 +274,8 @@ désiré). Réutiliser si possible le composant `UndoRedo` déjà construit pour
 édition (`src/components/UndoRedo.js`) plutôt que redévelopper un système d'historique
 séparé — à évaluer techniquement selon la nature des actions de jeu (probablement un
 historique distinct de celui du mode édition, mais même pattern UI/logique réutilisable).
+Pas encore fait pour les actions de tuiles/pioches (piocher, poser, tourner, diviser,
+mélanger, fusionner) — seul l'undo des joueurs/PV/déplacements existe pour l'instant.
 
 ### Mode Vision (affichage détaillé d'une carte/entité)
 Bouton "œil" en bas à droite de l'écran (footer du Plateau, juste à gauche de la
@@ -412,9 +448,16 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      extérieur, comme toute popup). C'est la future base d'affichage des
      cartes sort/énergie. Le volet "affiche le contenu détaillé d'une
      case/tuile" attend toujours les items de la Couche 3.
-   - Couches 2 à 4 (pioche/pose de tuiles, items/multi-sélection par case, contenu
-     du mode Vision) et undo/redo global (au-delà de celui déjà en place pour les
-     joueurs/PV/déplacements) : pas encore commencées.
+   - **Couche 2 (pioche/pose/rotation de tuiles) : implémentée** — voir "Pioche et
+     pose de tuiles" et "Pioches et défausses" ci-dessus pour le détail complet
+     (deck placeholder de 100 cartes identiques, diviser/mélanger/fusionner les
+     piles, poser et tourner une tuile). Reste : brancher la vraie pioche
+     dynamique depuis `data.cases` (voir "Pioches dynamiques depuis le catalogue"),
+     et défausser/déplacer une tuile déjà posée.
+   - Couche 3 (items/multi-sélection par case pour sorts/énergies au sol) et le
+     contenu détaillé du mode Vision pour les cases/tuiles (Couche 4) : pas encore
+     commencées. Undo/redo global au-delà de celui déjà en place pour les
+     joueurs/PV/déplacements (pas les actions de tuiles/pioches) : pas encore fait.
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation
