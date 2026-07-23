@@ -38,7 +38,7 @@ const ITEM_CORNER_INSET = ITEM_BOARD_SIZE/2 + 3;
 // how many of them stack on the same cell. Tiles themselves (cases/départ)
 // are excluded on purpose — they're the "background" layer everything else
 // sits on, so they stay fully opaque as the visual reference point.
-const BOARD_TOKEN_OPACITY = 0.85;
+const BOARD_TOKEN_OPACITY = 0.66;
 // Footer-equipped cards render at DOUBLE the header pile size (Gus) — the
 // footer has more room to work with than the cramped header row, and
 // equipped cards are meant to be the easiest ones on the whole board to

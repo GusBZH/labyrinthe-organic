@@ -861,17 +861,21 @@ undoable) contenant deux choses nouvelles :
   (PV/dé ensemble) vers le groupe de gauche, juste après `‹` — miroir exact de
   `[👁️, ›]` à droite. Le groupe central ne contient plus que PV (ou le lien "Ajoute un
   joueur" si personne).
-- **Opacité réduite (85%) sur tout ce qui est POSÉ sur le plateau, sauf les tuiles
+- **Opacité réduite sur tout ce qui est POSÉ sur le plateau, sauf les tuiles
   elles-mêmes** (Gus : "si il y a plusieurs joueurs sur une case on peut pas voir du
   tout les tuiles ni la case... est-ce qu'on pourrait pas faire des opacité réduite
   pour voir les items si ya des monstres et joueurs dessus ? Et même items pour voir
-  la carte en dessous ?") — nouvelle constante `BOARD_TOKEN_OPACITY = 0.85`, appliquée
-  aux jetons joueur/monstre/marqueur (`cellGroups`) et aux items posés (`boardItems`),
-  jamais aux cases/tuiles elles-mêmes (`placedTiles`, qui restent la couche "fond" de
-  référence, toujours pleinement opaque). `pointerEvents:'none'` sur tous ces jetons
-  (déjà le cas avant) donc la baisse d'opacité ne change rien à la détection de clic,
-  qui passe par les coordonnées du clic sur le conteneur `content`, pas par un hit-test
-  DOM par élément.
+  la carte en dessous ?") — nouvelle constante `BOARD_TOKEN_OPACITY` (0.85 au premier
+  essai, ramenée à **0.66** après test en vrai jeu), appliquée aux jetons joueur/
+  monstre/marqueur (`cellGroups`) et aux items posés (`boardItems`), jamais aux cases/
+  tuiles elles-mêmes (`placedTiles`, qui restent la couche "fond" de référence,
+  toujours pleinement opaque) — **ni aux mêmes cartes affichées dans une fenêtre**
+  (agrandie, pied de page, modale Vision joueur...) : la baisse d'opacité ne touche
+  que les 4 sites de rendu DANS le conteneur de grille transformé, jamais les `CardFace`
+  rendues ailleurs dans l'app, qui restent à 100%. `pointerEvents:'none'` sur tous ces
+  jetons (déjà le cas avant) donc la baisse d'opacité ne change rien à la détection de
+  clic, qui passe par les coordonnées du clic sur le conteneur `content`, pas par un
+  hit-test DOM par élément.
 
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
