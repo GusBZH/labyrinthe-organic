@@ -829,6 +829,50 @@ undoable) contenant deux choses nouvelles :
   comme filet de sécurité, et réutilise `headerBoxSize` déjà calculé juste pour rester
   visuellement cohérente avec la rangée du dessus.
 
+#### Retouches après premier retour de Gus (même session)
+- **Cases de départ : finalement PAS de défausse** ("pas besoin de défausse pour les
+  cases de départ") — `PileGroup` gagne une prop `hideDiscard` (ne rend pas son
+  `DiscardSlot`), passée uniquement au groupe `'depart'`. `discardTile` ne pousse plus
+  dans `discardCards` quand `t.type === 'depart'` : la tuile disparaît juste (toujours
+  undoable comme toute mutation `commitBoard`, seulement pas récupérable via une
+  défausse). Tout le reste (pioche/pose/rotation/flip/Dessus-Dessous vers la pioche
+  départ elle-même) reste inchangé — la défausse était la seule chose de trop.
+- **Marqueurs, fond transparent au lieu d'un bouton en cercle** (Gus : "je préfère que
+  ce soit pas dans un bouton en cercle mais que le fond soit transparent... on voit
+  strictement le drapeau et rien d'autre") — `MarkerButton` (header) et le jeton sur le
+  plateau perdent tous les deux leur cercle de fond/bordure ; seule l'icône reste
+  visible. Le glow bleu "tenu"/sélectionné, qui vivait sur `boxShadow`/`outline` d'un
+  cercle maintenant inexistant, devient un `filter:drop-shadow(...)` posé directement
+  sur l'icône — même langage visuel (bleu, ~même intensité), sans boîte derrière.
+- **Sélectionner un marqueur puis cliquer le bouton dont il vient le supprime** (Gus :
+  "quand je sélectionne les nouveaux marqueurs... puis que je clique sur la 'pioche'
+  d'où il vient il faut qu'il soit delete") — les marqueurs n'ayant pas de défausse, leur
+  propre `MarkerButton` joue ce rôle de "sélectionner puis taper sa source = défausser
+  directement", déjà en place pour les tuiles/items/monstres via leur défausse
+  (`hasSelectedForDiscardOfType`/`discardSelectedMonster`). `markerButtonClick(type)` :
+  si un marqueur est sélectionné ET que son `type` correspond exactement au bouton
+  cliqué → `discardSelectedMarker()` direct ; sinon retombe sur
+  `drawMarkerOrCancelSelection` comme avant (annule toute AUTRE sélection, ou tient un
+  marqueur neuf si rien n'était sélectionné).
+- **Dé caché quand la partie n'a aucun joueur, et déplacé à côté de `‹`** ("le miroir du
+  bouton vision quoi" — 👁️ vit juste à côté de `›`) : le pied de page passe de
+  `current ? <Dé> : <Dé grisé désactivé>` à `current && <Dé>` (absent, pas juste
+  désactivé, quand il n'y a personne) et le `DiceButton` a migré du groupe central
+  (PV/dé ensemble) vers le groupe de gauche, juste après `‹` — miroir exact de
+  `[👁️, ›]` à droite. Le groupe central ne contient plus que PV (ou le lien "Ajoute un
+  joueur" si personne).
+- **Opacité réduite (85%) sur tout ce qui est POSÉ sur le plateau, sauf les tuiles
+  elles-mêmes** (Gus : "si il y a plusieurs joueurs sur une case on peut pas voir du
+  tout les tuiles ni la case... est-ce qu'on pourrait pas faire des opacité réduite
+  pour voir les items si ya des monstres et joueurs dessus ? Et même items pour voir
+  la carte en dessous ?") — nouvelle constante `BOARD_TOKEN_OPACITY = 0.85`, appliquée
+  aux jetons joueur/monstre/marqueur (`cellGroups`) et aux items posés (`boardItems`),
+  jamais aux cases/tuiles elles-mêmes (`placedTiles`, qui restent la couche "fond" de
+  référence, toujours pleinement opaque). `pointerEvents:'none'` sur tous ces jetons
+  (déjà le cas avant) donc la baisse d'opacité ne change rien à la détection de clic,
+  qui passe par les coordonnées du clic sur le conteneur `content`, pas par un hit-test
+  DOM par élément.
+
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
 `src/components/UndoRedo.js`, mais historique **séparé** — `pastRef`/`futureRef` locaux
