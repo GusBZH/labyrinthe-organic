@@ -1073,16 +1073,16 @@
       "label": "📋 Règles de base"
     },
     {
+      "key": "cases",
+      "label": "🗺️ Cases"
+    },
+    {
       "key": "sorts",
       "label": "🪄 Sorts"
     },
     {
       "key": "energies",
       "label": "🔥 Énergies"
-    },
-    {
-      "key": "cases",
-      "label": "🗺️ Cases"
     },
     {
       "key": "monstres",
