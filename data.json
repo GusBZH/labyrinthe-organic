@@ -628,7 +628,7 @@
       "id": "c6",
       "nom": "Case Œil",
       "statut": "Validé",
-      "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. Toujours 4 portes.",
+      "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. 4 portes.",
       "quantite": 7,
       "notes": ""
     },
