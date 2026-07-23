@@ -1558,6 +1558,27 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      Cloudflare — remplacée par l'approche cloud ci-dessus, plus simple et sans
      contrainte de disponibilité matérielle.
 
+## Cartes catalogue (`src/components/Card.js`) — retouches de mise en page
+Deux ajustements demandés par Gus sur la ligne du bas de chaque carte (règles/cases/
+sorts/énergies/monstres, tous via ce composant partagé) :
+- **Badge de quantité (`×N`) recentré** : vivait dans le même groupe flex `gap:8` que
+  la croix `✕` de suppression, tout en bas à droite — Gus les trouvait trop proches
+  l'un de l'autre. La ligne du bas est passée en `position:'relative'`, et le badge en
+  `position:'absolute', left:'50%', transform:'translateX(-50%)'` — centré dans la
+  ligne quel que soit la largeur des deux groupes flex de part et d'autre (gauche :
+  emoji élément / niveau / toggle notes ; droite : juste la croix maintenant).
+  `item.quantite` reste non éditable directement (juste affiché) — aucune UI de
+  modification n'existe encore, seulement une valeur par défaut posée à la création.
+- **Emoji élément (sorts/énergies) déplacé du haut-gauche vers le bas-gauche** :
+  vivait empilé directement sous la pastille de couleur (`StatusDot`) dans la colonne
+  d'édition à gauche de la carte, à seulement 4px d'écart — Gus les trouvait trop
+  proches. Déplacé dans le groupe flex du bas-gauche, au même endroit que le sélecteur
+  de niveau (`withLvl`) des monstres occupe déjà pour ses propres cartes (ces deux
+  props sont mutuellement exclusives selon le type de carte, donc pas de collision
+  possible). Reste strictement édit-mode-only comme avant ; la pastille élément
+  affichée en lecture seule (`!editMode && showElem`) n'a pas bougé, elle était déjà au
+  bon endroit.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
