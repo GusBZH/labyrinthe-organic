@@ -572,7 +572,7 @@
       "id": "c1",
       "nom": "Case de Départ",
       "statut": "Validé",
-      "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. Cul-de-sac (1 porte).",
+      "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. 4 portes",
       "quantite": 10,
       "notes": ""
     },
