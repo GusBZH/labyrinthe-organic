@@ -103,6 +103,16 @@ function FlipIcon(){
     h('polyline', {points:'7 17 12 22 17 17'})
   );
 }
+// A discreet crosshair/target, for the "recentrer la vue" button.
+function TargetIcon(){
+  return h('svg', {width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2, strokeLinecap:'round', strokeLinejoin:'round'},
+    h('circle', {cx:12, cy:12, r:7}),
+    h('line', {x1:12, y1:1, x2:12, y2:4}),
+    h('line', {x1:12, y1:20, x2:12, y2:23}),
+    h('line', {x1:1, y1:12, x2:4, y2:12}),
+    h('line', {x1:20, y1:12, x2:23, y2:12})
+  );
+}
 
 function shuffle(arr){
   const a = [...arr];
@@ -1710,6 +1720,16 @@ export function PlateauPage({onBack}) {
   // back exactly as before the reset. Only the truly transient UI state
   // (selection/popups/zoom/scroll, none of it part of the undo snapshot
   // anyway) is still reset directly.
+  // Recenters the viewport on the board's middle at the default zoom —
+  // shared by Reset (which already did this) and the new discreet target
+  // button (Gus: "revenir au centre du plateau avec le zoom de base").
+  function centerView(){
+    zoomRef.current = 1;
+    setZoom(1);
+    const vp = viewportRef.current;
+    if (vp) { vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2; vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2; }
+  }
+
   function resetBoard(){
     setSelectedId(null);
     setShowReset(false);
@@ -1721,10 +1741,7 @@ export function PlateauPage({onBack}) {
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setEnlargedItem(null);
-    zoomRef.current = 1;
-    setZoom(1);
-    const vp = viewportRef.current;
-    if (vp) { vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2; vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2; }
+    centerView();
     commitBoard({
       players: [], piles: makeInitialPiles(),
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
@@ -1925,6 +1942,23 @@ export function PlateauPage({onBack}) {
       h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:addPlayer}))
     ),
 
+    // RECENTER BUTTON — discreet target icon, top-left of the footer (so
+    // visually it sits right at the board's own bottom-left corner) but
+    // `position:fixed` like the header/footer themselves, not part of the
+    // pannable/zoomable grid content — clicking it just calls the same
+    // centerView() Reset already used, without touching anything else.
+    // Anchored off `sidebarBounds.bottom` (already measured for the
+    // sidebar) so it always sits exactly at the grid/footer boundary.
+    h('button', {
+      onClick:centerView,
+      title:'Recentrer la vue',
+      style:{
+        position:'fixed', left:8, bottom:sidebarBounds.bottom+8, zIndex:15,
+        width:30, height:30, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
+        background:'rgba(255,255,255,.05)', border:`1px solid ${borderColor(visionMode,'#333')}`, color:'#777'
+      }
+    }, h(TargetIcon)),
+
     // GRID VIEWPORT (scrollable / pannable / zoomable)
     h('div', {
       ref:viewportRef,
@@ -2124,7 +2158,19 @@ export function PlateauPage({onBack}) {
       return h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:260, display:'flex', alignItems:'center', justifyContent:'center'}},
         h('div', {ref:visionModalAnchorRef, style:{position:'relative'}},
           h(Popup, {
-            onClose:()=>setVisionPlayerId(null),
+            // Guarded rather than a plain setVisionPlayerId(null): Popup's
+            // own "click outside my anchor" listener has no idea the
+            // enlarge window (enlargedItem) might be floating on TOP of
+            // this one — every click inside that layered window (including
+            // its own ‹/› arrows) is technically "outside" this modal's own
+            // anchor, so without this guard it closed the WRONG (bottom)
+            // window whenever the top one was interacted with, arrows
+            // included. While enlargedItem is open this Popup simply
+            // doesn't react to outside clicks at all — the enlarge window's
+            // own Popup still closes normally on its own outside clicks
+            // (its anchor correctly contains its ‹/›/✕), so a blank-space
+            // tap now closes the TOPMOST window first, as expected.
+            onClose:()=>{ if (!enlargedItem) setVisionPlayerId(null); },
             anchorRef:visionModalAnchorRef,
             style:{position:'relative', width:'min(92vw,420px)', maxHeight:'80vh', overflow:'auto', padding:20},
             children: h('div', {},

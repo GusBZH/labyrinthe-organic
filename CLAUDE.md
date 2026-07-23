@@ -753,7 +753,30 @@ peut afficher N'IMPORTE QUEL joueur, pas seulement le joueur courant, donc rien 
   partagent la case) — les flèches (`shiftVisionPlayer`, cycle sur `players` dans le même
   ordre que la sidebar) ne s'affichent que si ce flag est vrai.
 
+**Piège rencontré (fenêtres empilées — la fenêtre du DESSOUS se fermait au lieu de celle
+du DESSUS)** : ouvrir la fenêtre agrandie (`enlargedItem`) par-dessus la fenêtre joueur
+(`visionPlayerId`) exposait un angle mort du mécanisme "ferme au clic extérieur" de
+`Popup` — chaque `Popup` écoute `pointerdown` sur `document` et compare la cible à SON
+PROPRE `anchorRef`, sans savoir qu'une AUTRE fenêtre pourrait flotter par-dessus elle.
+Résultat : cliquer les flèches `‹`/`›` de la fenêtre agrandie (technique­ment "en dehors"
+de l'ancre de la fenêtre joueur, puisque les deux fenêtres sont des sous-arbres DOM
+totalement séparés) fermait la fenêtre joueur du dessous au lieu de rien faire ; et un
+clic dans le vide fermait la fenêtre joueur en premier plutôt que la fenêtre agrandie
+qui est pourtant au-dessus visuellement. Fix : le `onClose` de la `Popup` de la fenêtre
+joueur est maintenant gardé — `()=>{ if (!enlargedItem) setVisionPlayerId(null); }` —
+tant que `enlargedItem` est ouverte, elle ignore tout clic extérieur ; la fenêtre
+agrandie, elle, n'a pas besoin de garde (son ancre contient déjà correctement ses
+propres `‹`/`›`/✕). Un clic dans le vide ferme donc maintenant la fenêtre du DESSUS en
+premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du dessous.
+
 ### Pan et zoom
+- **Bouton recentrer** (`centerView()`, cible SVG discrète `TargetIcon`) : en bas à
+  gauche, `position:fixed` ancré sur `sidebarBounds.bottom` (déjà mesuré pour la
+  sidebar) donc toujours pile au coin bas-gauche de la grille, juste au-dessus du pied
+  de page — jamais affecté par le pan/zoom puisqu'il est hors du conteneur transformé,
+  comme le header/pied de page eux-mêmes. Recentre la vue sur le milieu du plateau au
+  zoom par défaut (même logique que Reset utilisait déjà pour ça, extraite dans
+  `centerView()` et réutilisée par les deux plutôt que dupliquée).
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
   déplacer la vue ; pincer à deux doigts pour zoomer/dézoomer.
 - PC : cliquer-glisser pour déplacer la vue ; molette ou geste trackpad pour zoomer.
