@@ -276,6 +276,55 @@ une tuile pendant qu'un joueur était sélectionné ailleurs laissait légitimem
 sélectionnés en même temps (pas un bug à proprement parler, juste un état jamais prévu
 comme normal) — source probable de confusion ("je sais plus ce qui est sélectionné").
 
+**Règle globale : cliquer un endroit où la sélection en cours n'a aucune action valide
+l'annule simplement — implémentée pour joueurs/monstres** (Gus : "dès que je sélectionne
+quelque chose et que je clique à un endroit où il ne peut rien y faire, ça annule juste
+la sélection" — signalé après avoir remarqué que sélectionner un joueur/monstre puis
+cliquer une pioche la piochait quand même, ou cliquer une carte du footer l'agrandissait,
+au lieu de simplement désélectionner). Un joueur/monstre sélectionné n'a QUE deux actions
+valides : le déplacer (tap sur la grille) ou le désélectionner (retap la même case) — tout
+le reste (pioches, défausses, zone d'équipement du pied de page) est un "cul-de-sac" pour
+cette sélection. Pour les tuiles/items ("pour item et cartes map c'est bon"), ce
+comportement existait déjà via `clearCardSelection` (câblée sur le clic de fond du
+header/pied de page) — mais les pioches/défausses/items du footer font toutes
+`e.stopPropagation()` dans le cadre de leur propre gestion de clic, donc un clic dessus
+ne remonte jamais jusqu'à ce handler de "fond" : il fallait un check explicite à CHACUN
+de ces points d'entrée plutôt qu'un seul point central.
+- **`clearCardSelection`** — désélectionne maintenant aussi `selectedId`/
+  `selectedMonsterId` en plus des sélections de carte déjà gérées, donc cliquer le fond
+  du header/pied de page (l'unique cas qui remonte bien jusque-là) désélectionne
+  correctement un joueur/monstre ("je peux pas déselectionner en cliquant dans le vide",
+  maintenant corrigé).
+- **Pioches** : `drawFromPileOrCancelSelection`/`toggleSelectDiscardCardOrCancelSelection`
+  enveloppent `drawFromPile`/`toggleSelectDiscardCard` — si un joueur/monstre est
+  sélectionné, elles annulent la sélection (`cancelEntitySelection`) au lieu de
+  piocher/sélectionner la carte du dessus de la défausse. Passées comme `onDraw`/
+  `onToggleSelect` aux 4 `PileGroup` à la place des fonctions nues — aucun changement
+  dans `PileStack`/`DiscardSlot` eux-mêmes, ils ignorent toujours l'existence des
+  joueurs/monstres.
+  - **Piège rencontré** : la pioche MONSTRE spécifiquement continuait de piocher malgré
+    l'enveloppe ci-dessus. Cause : `hasSelectedCardOfType('monstre')` (qui pilote le menu
+    Dessus/Dessous d'une pioche) renvoyait `true` dès que `selectedMonsterId` était posé —
+    hérité d'une session précédente qui avait généralisé "insérer une carte sélectionnée
+    dans une pioche" à `selectedMonsterId` par souci de symétrie avec tuiles/items.
+    `PileStack.handleClick` vérifie `hasSelectedCard` AVANT d'appeler `onDraw`, donc le
+    menu s'ouvrait et absorbait le clic avant que l'enveloppe ne s'exécute jamais. Fix :
+    `hasSelectedCardOfType('monstre')` ne regarde plus que `discardSelType === 'monstre'`
+    (une carte monstre sélectionnée DANS la défausse, un état différent qui reste
+    légitime pour ce menu) — un monstre sélectionné SUR LE PLATEAU (`selectedMonsterId`)
+    n'y donne plus accès du tout, cohérent avec le fait qu'un joueur sélectionné n'a
+    jamais eu cette possibilité non plus. La branche `insertSelectedCardIntoPile`
+    correspondante (devenue inatteignable) a été supprimée plutôt que laissée en code
+    mort. `hasSelectedForDiscardOfType('monstre')` (un besoin différent : la défausse
+    monstre elle-même, quand on clique dessus AVEC un monstre sélectionné, doit le
+    défausser directement — flux de combat documenté plus haut) garde volontairement son
+    check `!!selectedMonsterId` intact : ce chemin s'exécute avant même d'atteindre
+    l'enveloppe `onToggleSelect`, donc aucun conflit avec la nouvelle règle.
+- **Zone d'équipement du pied de page** : `onClickCapture` (déjà utilisée pour équiper
+  une carte tenue/sélectionnée avant que le clic n'atteigne une carte déjà équipée)
+  intercepte maintenant aussi ce cas — un joueur/monstre sélectionné + un clic n'importe
+  où dans cette zone annule la sélection au lieu de laisser la carte cliquée s'agrandir.
+
 **Bug corrigé (un tap sur une case au hasard puis un tap rapide sur une case DIFFÉRENTE
 avec une tuile sélectionnait quand même la tuile)** : Gus a remarqué qu'un simple clic
 sur une case vide suivi, assez vite, d'un simple clic sur une case avec une tuile posée

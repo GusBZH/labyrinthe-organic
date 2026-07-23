@@ -1190,9 +1190,6 @@ export function PlateauPage({onBack}) {
     } else if (live.selectedFooterItem) {
       cardId = live.selectedFooterItem.cardId;
       updates.players = removeFooterItem(live.players, live.selectedFooterItem);
-    } else if (live.selectedMonsterId) {
-      cardId = live.selectedMonsterId;
-      updates.monsters = live.monsters.filter(m => m.id !== live.selectedMonsterId);
     } else if (live.selectedDiscardCardId) {
       cardId = live.selectedDiscardCardId;
       updates.discardCards = live.discardCards.filter(cd => cd.id !== cardId);
@@ -1209,15 +1206,45 @@ export function PlateauPage({onBack}) {
     setSelectedMonsterId(null);
   }
 
-  // Clears whatever card is selected (a placed tile, a défausse card, or a
-  // board/footer item) — wired to header/footer background clicks, so
-  // tapping anywhere outside the grid/piles/footer slots also deselects,
-  // same spirit as every popup's "click elsewhere closes it" rule.
+  // Clears whatever card OR entity is selected (a placed tile, a défausse
+  // card, a board/footer item, a player, a monster) — wired to header/
+  // footer background clicks, so tapping anywhere outside the grid/piles/
+  // footer slots also deselects, same spirit as every popup's "click
+  // elsewhere closes it" rule. Player/monster clearing joined this
+  // relatively late (Gus: "dès que je sélectionne quelque chose et que je
+  // clique à un endroit où il ne peut rien y faire, ça annule juste la
+  // sélection" — a selected player/monster can ONLY ever be moved via the
+  // grid or re-tapped to deselect, so every other surface is exactly that
+  // kind of dead end for it) — see cancelEntitySelection's own comment for
+  // the piles/défausses/footer-items that call `e.stopPropagation()` and
+  // so need their OWN explicit check instead of relying on this bubbling.
   function clearCardSelection(){
     clearTileSelection();
     setSelectedDiscardCardId(null);
     setSelectedItemId(null);
     setSelectedFooterItem(null);
+    setSelectedId(null);
+    setSelectedMonsterId(null);
+  }
+
+  // See clearCardSelection's own comment. Piles/défausses/the footer equip
+  // zone each stop click propagation as part of their own normal handling
+  // (so their action isn't ALSO seen as "click elsewhere" by the header/
+  // footer background), which means they never reach clearCardSelection on
+  // their own — wrapping the callback PlateauPage hands them is simpler
+  // than reaching into PileStack/DiscardSlot/FooterItemRow themselves to
+  // add the same check three times.
+  function cancelEntitySelection(){
+    setSelectedId(null);
+    setSelectedMonsterId(null);
+  }
+  function drawFromPileOrCancelSelection(pileId){
+    if (selectedId || selectedMonsterId) { cancelEntitySelection(); return; }
+    drawFromPile(pileId);
+  }
+  function toggleSelectDiscardCardOrCancelSelection(cardId){
+    if (selectedId || selectedMonsterId) { cancelEntitySelection(); return; }
+    toggleSelectDiscardCard(cardId);
   }
 
   // Equips whichever item is currently held (fresh from a pile, heldItem)
@@ -1988,11 +2015,27 @@ export function PlateauPage({onBack}) {
   // défausse" isn't a single thing anymore.
   const discardSelType = selectedDiscardCardId ? discardCards.find(c => c.id === selectedDiscardCardId)?.type : null;
   const footerSelType = selectedFooterItem ? (selectedFooterItem.slot === 'energie' ? 'energie' : 'sort') : null;
+  // A board-selected monster (selectedMonsterId) is deliberately EXCLUDED
+  // from hasSelectedCardOfType('monstre') — it used to feed the pile's
+  // Dessus/Dessous insert menu (mirroring tiles/items), but that's now in
+  // direct conflict with the newer "selecting an entity, then clicking
+  // somewhere it has no valid action, cancels the selection" rule (Gus):
+  // clicking the monster PILE while a monster is selected must cancel the
+  // selection (see drawFromPileOrCancelSelection), not open that menu. A
+  // monster CARD selected from the DÉFAUSSE (discardSelType, a completely
+  // different state var) is unaffected and still opens the menu normally,
+  // same as any other type — only a LIVE board monster loses this path.
   function hasSelectedCardOfType(type){
     if (type === 'case') return !!(selectedTileId && !isPlacedMode) || discardSelType === 'case';
-    if (type === 'monstre') return !!selectedMonsterId || discardSelType === 'monstre';
+    if (type === 'monstre') return discardSelType === 'monstre';
     return (!!selectedItemObj && selectedItemObj.type === type) || discardSelType === type || footerSelType === type;
   }
+  // Unlike hasSelectedCardOfType above, this ONE keeps checking
+  // selectedMonsterId — it gates the monster défausse's "a plain click
+  // discards the selection directly" fast path (CLAUDE.md's documented
+  // combat flow: select the monster, tap its défausse), which fires
+  // BEFORE DiscardSlot ever reaches the cancel-selection wrapper, so no
+  // conflict with the new rule here.
   function hasSelectedForDiscardOfType(type){
     if (type === 'case') return !!(selectedTileId && !isPlacedMode);
     if (type === 'monstre') return !!selectedMonsterId;
@@ -2116,9 +2159,9 @@ export function PlateauPage({onBack}) {
           // the click through is all that's needed — no extra logic.
           allowPileDraw:true,
           onArm:armPile, onDisarm:disarmPile,
-          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
+          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
@@ -2128,9 +2171,9 @@ export function PlateauPage({onBack}) {
           hasSelectedCard:hasSelectedCardOfType('sort'), hasSelectedTile:hasSelectedForDiscardOfType('sort'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
-          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
@@ -2140,9 +2183,9 @@ export function PlateauPage({onBack}) {
           hasSelectedCard:hasSelectedCardOfType('energie'), hasSelectedTile:hasSelectedForDiscardOfType('energie'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
-          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         // Monstres — 4ème groupe, à droite des énergies. Piocher/déplacer/
@@ -2158,9 +2201,9 @@ export function PlateauPage({onBack}) {
           hasSelectedCard:hasSelectedCardOfType('monstre'), hasSelectedTile:hasSelectedForDiscardOfType('monstre'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
-          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCard
+          onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
         }),
         (heldTile || heldItem) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
       )
@@ -2685,7 +2728,13 @@ export function PlateauPage({onBack}) {
       current && h('div', {
         onClickCapture: e => {
           const live = liveRef.current;
-          if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); }
+          if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
+          // A selected player/monster has no valid action in the equip
+          // zone (see cancelEntitySelection's own comment) — capture-phase
+          // intercept, same as the branch above, so this fires BEFORE an
+          // equipped card's own click (which would otherwise open it
+          // enlarged instead of just cancelling the selection).
+          if (live.selectedId || live.selectedMonsterId) { e.stopPropagation(); cancelEntitySelection(); }
         },
         style:{display:'flex', alignItems:'center', gap:8, padding:'8px 14px 0', justifyContent:'center'}
       },
