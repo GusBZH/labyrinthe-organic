@@ -674,7 +674,7 @@
       "id": "r5",
       "nom": "Contrôle du labyrinthe",
       "statut": "Validé",
-      "effet": "1x par tour, à n'importe quel moment — Retirer, tourner ou déplacer d'une case une case sans joueur dessus.",
+      "effet": "1x par tour — Retirer ou tourner n'importe quelle case révélé sans autre joueur dessus.",
       "notes": ""
     },
     {
