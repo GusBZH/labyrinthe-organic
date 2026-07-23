@@ -276,6 +276,28 @@ une tuile pendant qu'un joueur était sélectionné ailleurs laissait légitimem
 sélectionnés en même temps (pas un bug à proprement parler, juste un état jamais prévu
 comme normal) — source probable de confusion ("je sais plus ce qui est sélectionné").
 
+**Bug corrigé (un tap sur une case au hasard puis un tap rapide sur une case DIFFÉRENTE
+avec une tuile sélectionnait quand même la tuile)** : Gus a remarqué qu'un simple clic
+sur une case vide suivi, assez vite, d'un simple clic sur une case avec une tuile posée
+ailleurs sélectionnait cette tuile — alors qu'aucun double-clic n'avait été fait sur
+elle, un seul tap y avait atterri. Cause : toute la grille est UN SEUL élément DOM
+`content` (pas de `<div>` par case, choix de perf assumé — voir la note de rendu dans la
+Couche 1 plus bas) ; le `dblclick` **natif** du navigateur ne vérifie que "même élément
+DOM cible + dans la fenêtre de temps/distance OS", il n'a aucune notion de "case". Deux
+clics simples sur des cases logiquement différentes peuvent donc déclencher un vrai
+`dblclick` natif si le timing colle, et `onContentDoubleClick` s'en servait pour
+sélectionner la tuile sous les coordonnées du DEUXIÈME clic — la vérification "même
+case" de `clickTimerRef` (voir plus haut) ne protège que la logique de clic simple de
+l'appli elle-même, elle n'a aucun pouvoir sur la décision du navigateur d'émettre ou non
+l'évènement `dblclick`. Fix : `lastClickCellRef` (dernière case cliquée) et
+`sameCellStreakRef` (recalculé à CHAQUE `onContentClick`, donc toujours à jour avant
+qu'un `dblclick` éventuel ne suive, puisqu'un `dblclick` natif est toujours précédé de
+ses deux `click` — comparé à la case du clic PRÉCÉDENT avant d'écraser
+`lastClickCellRef`) ; `onContentDoubleClick` rejette maintenant tout `dblclick` natif
+tant que `sameCellStreakRef.current` n'est pas vrai, sans toucher au reste de la logique
+existante (un vrai double-tap sur la même case continue de fonctionner normalement,
+vérifié explicitement en test).
+
 **Mode Vision = inspection pure, aucune carte ne bouge tant qu'il est actif** :
 `onContentDoubleClick` et le bloc carte de `handleSingleClick` sont tous deux court-
 circuités pendant que `visionMode` est vrai — impossible de ramasser une nouvelle tuile
@@ -382,6 +404,21 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   du positionnement visuel).
 
 ### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu) — implémentée pour les tuiles
+- **Pioches et défausse totalement inertes tant qu'une tuile est en mode `'placed'`**
+  (voir "Système de sélection par geste" pour ce mode) : Gus a signalé qu'après avoir
+  posé une tuile (mode rotation-only), cliquer une pioche ou la défausse ouvrait quand
+  même le menu Dessus/Dessous ou défaussait directement — alors que ce mode est censé
+  n'autoriser QUE la rotation. `PileStack`/`DiscardSlot` reçoivent maintenant une prop
+  `disabled` (vraie quand `selectedTileMode==='placed'`, calculée une fois dans
+  `PlateauPage` sous le nom `pilesDisabled`) : `onPointerDown` (donc l'armement par
+  appui long) et `handleClick` retournent immédiatement si `disabled`. Le clic bloqué
+  ne fait PAS `e.stopPropagation()` (contrairement au comportement normal) — il remonte
+  donc jusqu'au `onClick:clearCardSelection` du header/pied de page, qui désélectionne
+  la tuile en mode `'placed'`, exactement comme cliquer n'importe où en dehors d'une
+  sélection le fait déjà ailleurs dans l'appli. `hasSelectedCard`/`hasSelectedTile`
+  excluent aussi ce mode de leur calcul (une tuile en mode `'placed'` ne compte pas
+  comme "sélectionnée" pour ces deux props), par cohérence avec le blocage — même si
+  `disabled` est ce qui bloque réellement le clic dans tous les cas.
 - Tap/clic simple sur une pioche → pioche la carte du dessus (défausse non piochable).
 - Appui long (500ms) sur une pioche → l'arme (glow bleu) et ouvre une mini fenêtre
   Diviser/Mélanger. Diviser coupe le paquet en deux **sans mélanger** (juste couper en
@@ -448,22 +485,23 @@ Modifier une quantité dans le catalogue et relancer une partie change directeme
 composition de la pioche, sans code à toucher. Même principe prévu plus tard pour les
 pioches de sorts et d'énergies (`data.sorts`/`data.energies`).
 
-### Undo/redo global — implémenté pour tout l'état persisté du plateau
+### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
 `src/components/UndoRedo.js`, mais historique **séparé** — `pastRef`/`futureRef` locaux
-à `PlateauPage`, remis à zéro par `resetBoard`). À l'origine seul l'undo des joueurs
+à `PlateauPage`). À l'origine seul l'undo des joueurs
 existait (déplacer/ajouter/retirer un joueur, PV) ; Gus a signalé que **déplacer une
 tuile ne s'annulait pas** alors qu'ajouter/retirer un joueur oui — généralisé depuis à
 **toutes** les mutations du plateau (piocher/poser n'est PAS undoable en soi, voir
 plus bas, mais déplacer/tourner/flipper/défausser une tuile, diviser/mélanger/fusionner
-une pioche ou la défausse, et insérer une carte Dessus/Dessous, le sont désormais tous).
-- **Un seul historique combiné** (`commitBoard(updates)`) plutôt que 4 piles séparées :
+une pioche ou la défausse, insérer une carte Dessus/Dessous, et désormais **Reset
+lui-même**, le sont tous).
+- **Un seul historique combiné** (`commitBoard(updates)`) plutôt que des piles séparées :
   chaque action pousse un instantané de **tout** l'état persisté à la fois
-  (`{players, piles, discardCards, placedTiles, heldTile}`, lu depuis `liveRef` — voir
-  "Système de sélection par geste" pour pourquoi `liveRef` et pas les variables d'état
-  directes), puis applique seulement les clés fournies dans `updates`. `undo`/`redo`
-  restaurent les 5 clés ensemble. `commitPlayers(next)` n'est plus qu'un fin wrapper
-  `commitBoard({players:next})`, gardé pour ne pas retoucher tous ses appelants.
+  (`{players, piles, discardCards, placedTiles, heldTile, currentIndex}`, lu depuis
+  `liveRef` — voir "Système de sélection par geste" pour pourquoi `liveRef` et pas les
+  variables d'état directes), puis applique seulement les clés fournies dans `updates`.
+  `undo`/`redo` restaurent les 6 clés ensemble. `commitPlayers(next)` n'est qu'un fin
+  wrapper `commitBoard({players:next})`, gardé pour ne pas retoucher tous ses appelants.
 - **`heldTile` fait partie de l'instantané** même s'il est par ailleurs traité comme un
   état transitoire non-undoable (voir point suivant) : c'est ce qui permet à l'undo
   d'une POSE de remettre la carte "en main" plutôt que de la faire disparaître (le
@@ -476,6 +514,16 @@ une pioche ou la défausse, et insérer une carte Dessus/Dessous, le sont désor
   précédent : annuler la POSE qui suit une pioche redonne la carte, sans avoir besoin
   d'un second `undo` séparé pour "annuler aussi la pioche" — et pour annuler une pioche
   seule (sans la poser), le geste dédié existe déjà (re-cliquer la même pioche).
+- **Reset est maintenant undoable** : Gus a demandé à pouvoir annuler un reset comme
+  n'importe quelle autre action. `resetBoard` ne vide plus `pastRef`/`futureRef` — il
+  appelle `commitBoard({players:[], piles:[...deck neuf...], discardCards:[],
+  placedTiles:[], heldTile:null, currentIndex:0})` comme n'importe quel autre appelant,
+  ce qui pousse automatiquement l'état d'AVANT le reset comme entrée d'historique
+  normale avant d'appliquer le vidage. `currentIndex` a dû rejoindre `liveRef` et les 5
+  clés de `commitBoard`/`applySnapshot`/`currentSnapshot` (devenues 6) pour que l'undo
+  restaure aussi "quel joueur était courant", pas seulement la liste des joueurs. Seul
+  l'état vraiment transitoire (sélection en cours, popups ouvertes, zoom, scroll) reste
+  remis à zéro directement, hors du snapshot — comme avant.
 
 ### Mode Vision (affichage détaillé d'une carte/entité)
 Bouton "œil" en bas à droite de l'écran (footer du Plateau, juste à gauche de la
@@ -500,6 +548,15 @@ modification de `useEditFlash` lui-même). Classes CSS `visionflash-in`/
 (bordures des boutons du header/pied de page) passent en bleu (`rgba(79,163,255,.5)`)
 tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` dans
 `PlateauPage.js`).
+
+**Note de design pour plus tard (pas encore implémentée)** : une fois que la fenêtre
+`visionPlayerId` affichera vraiment les sorts/énergies du joueur (au lieu du placeholder
+actuel), chaque carte sort/énergie listée y sera cliquable pour s'ouvrir en grand dans
+sa propre fenêtre dédiée (avec une croix ✕ pour la fermer, même convention que les
+popups existantes) — cette fenêtre agrandie aura en plus des flèches `‹`/`›` dans ses
+coins bas pour défiler d'une carte à l'autre sans repasser par la liste. Dépend de la
+Couche 3 (items/cartes sur le plateau, pas encore commencée) et du contenu réel des
+sorts/énergies par joueur, donc rien à coder avant que ces briques existent.
 
 ### Pan et zoom
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
@@ -607,13 +664,22 @@ tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` da
      joueur en attendant un visuel par personnage, nom éditable par double-clic
      via `EditText`, cœur rouge avec PV en coin, ✕ pour retirer) + bouton `+`
      (`AddBtn`) en bas de la colonne pour ajouter un joueur (PV de base = 3,
-     apparaît au centre de la grille). Cliquer un
-     carré ouvre une fenêtre d'infos (`Popup` en mode `children`, ouverte vers
-     la **gauche** du carré puisque la colonne est collée au bord droit de
-     l'écran — sinon elle sortirait de l'écran) qui
-     affichera plus tard les sorts/énergies du joueur — pour l'instant un
-     simple message d'attente. Quand il n'y a aucun joueur, le texte "Ajoute
-     un joueur" du pied de page est lui-même cliquable pour en créer un.
+     apparaît au centre de la grille). Cliquer un carré ouvre la **même grande
+     fenêtre modale** que cliquer un jeton en mode Vision (`visionPlayerId`,
+     voir "Mode Vision" plus bas) — nom, cœur de PV, section Sorts & Énergies
+     en attente — plutôt qu'une petite popup locale séparée. Une première
+     version donnait à `PlayerSquare` sa propre popup locale (`showInfo`,
+     children `Popup`) avec un texte d'attente quasi identique mais
+     indépendant ; Gus a signalé qu'elle ne s'ouvrait pas de façon fiable et a
+     précisé vouloir explicitement RÉUTILISER la fenêtre Vision existante, pas
+     en déboguer une seconde. `PlayerSquare` a donc perdu son état local et
+     prend maintenant une prop `onOpenInfo` que `PlateauPage` câble à
+     `()=>setVisionPlayerId(p.id)` — cette fenêtre ne vérifie déjà nulle part
+     si `visionMode` est actif (voir son rendu), donc l'ouvrir depuis la
+     sidebar fonctionne à l'identique que le mode Vision soit activé ou non,
+     sans aucune condition supplémentaire à ajouter. Quand il n'y a aucun
+     joueur, le texte "Ajoute un joueur" du pied de page est lui-même
+     cliquable pour en créer un.
      Nom par défaut "Joueur N" via `nextPlayerName()` : cherche le plus petit N
      **non utilisé** parmi les joueurs existants plutôt que `players.length+1`
      — avec ce dernier, supprimer un joueur du milieu (ex: "Joueur 1" sur 4)

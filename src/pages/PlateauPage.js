@@ -118,7 +118,7 @@ function CardFace({showBack, size}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
@@ -139,6 +139,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
   // "un-armed" and silently falls through to a plain draw instead. Reading
   // it here, one step earlier, catches the real value before that disarm.
   function onPointerDown(){
+    if (disabled) return;
     pendingArmedRef.current = armedIdRef.current;
     startPress();
   }
@@ -160,6 +161,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
     clearTimeout(pressTimer.current);
   }
   function handleClick(e){
+    if (disabled) return; // let it bubble to the header's "click elsewhere deselects" handler instead
     e.stopPropagation(); // don't let this bubble into the header's "click elsewhere deselects" handler
     if (showSplitMenu) return; // the click that follows a long-press shouldn't also draw
     const armed = pendingArmedRef.current;
@@ -236,7 +238,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, onArm, 
 // pioche afterward reshuffles the whole défausse into it, letting you
 // recycle discarded cards back into circulation without picking them up
 // one at a time. Mirrors PileStack's own long-press-to-arm structure.
-function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, disabled, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
@@ -247,6 +249,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
   const isArmed = armedId === 'discard';
 
   function onPointerDown(){
+    if (disabled) return;
     pendingArmedRef.current = armedIdRef.current;
     startPress();
   }
@@ -263,6 +266,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
     clearTimeout(pressTimer.current);
   }
   function handleClick(e){
+    if (disabled) return; // let it bubble to the header's "click elsewhere deselects" handler instead
     e.stopPropagation();
     if (showMenu) return; // the click that follows a long-press shouldn't also act
     const armed = pendingArmedRef.current;
@@ -311,14 +315,12 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, o
 // when the sidebar doesn't have enough vertical room for everyone at the
 // default 64px — see sizing logic in PlateauPage, right below the header/
 // footer height measurement.
-function PlayerSquare({player, isCurrent, size=64, onRemove, onRename}) {
-  const [showInfo, setShowInfo] = useState(false);
-  const anchorRef = useRef(null);
+function PlayerSquare({player, isCurrent, size=64, onRemove, onRename, onOpenInfo}) {
   const scale = size/64;
 
-  return h('div', {ref:anchorRef, style:{position:'relative', pointerEvents:'auto'}},
+  return h('div', {style:{position:'relative', pointerEvents:'auto'}},
     h('div', {
-      onClick: () => setShowInfo(!showInfo),
+      onClick: onOpenInfo,
       style: {
         width:size, height:size, borderRadius:10*scale, background:player.couleur,
         display:'flex', alignItems:'center', justifyContent:'center',
@@ -339,16 +341,7 @@ function PlayerSquare({player, isCurrent, size=64, onRemove, onRename}) {
           h(EditText, {value:player.nom, onChange:onRename, editMode:true})
         )
       )
-    ),
-    showInfo && h(Popup, {
-      onClose: () => setShowInfo(false),
-      anchorRef,
-      style: {right:'100%', marginRight:8, top:0, width:180},
-      children: h('div', {},
-        h('div', {style:{fontSize:13, fontWeight:600, color:'#eee', marginBottom:6}}, player.nom),
-        h('div', {style:{fontSize:11, color:'#666'}}, 'Sorts & Énergies — bientôt disponible')
-      )
-    })
+    )
   );
 }
 
@@ -393,7 +386,7 @@ export function PlateauPage({onBack}) {
   // arming/merging.
   const liveRef = useRef({});
   useEffect(() => {
-    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles };
+    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -574,7 +567,7 @@ export function PlateauPage({onBack}) {
     const live = liveRef.current;
     pastRef.current.push({
       players: live.players, piles: live.piles, discardCards: live.discardCards,
-      placedTiles: live.placedTiles, heldTile: live.heldTile
+      placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex
     });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
@@ -585,6 +578,7 @@ export function PlateauPage({onBack}) {
     if ('discardCards' in updates) setDiscardCards(updates.discardCards);
     if ('placedTiles' in updates) setPlacedTiles(updates.placedTiles);
     if ('heldTile' in updates) setHeldTile(updates.heldTile);
+    if ('currentIndex' in updates) setCurrentIndex(updates.currentIndex);
   }
 
   function commitPlayers(next){
@@ -597,11 +591,12 @@ export function PlateauPage({onBack}) {
     setDiscardCards(snap.discardCards);
     setPlacedTiles(snap.placedTiles);
     setHeldTile(snap.heldTile);
+    setCurrentIndex(snap.currentIndex);
   }
 
   function currentSnapshot(){
     const live = liveRef.current;
-    return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile };
+    return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex };
   }
 
   function undo(){
@@ -836,6 +831,22 @@ export function PlateauPage({onBack}) {
   // click on a DIFFERENT cell (see bug fix below).
   const clickTimerRef = useRef(null);
 
+  // The grid is rendered as ONE giant div (no per-cell elements, for perf —
+  // see contentRef below), so the browser's own native 'dblclick' event only
+  // checks "same DOM target + within the OS timing/distance threshold" — it
+  // has no concept of "cell" at all. Two ordinary single clicks on DIFFERENT
+  // cells, fired quickly enough, can still make the browser emit a genuine
+  // dblclick — which onContentDoubleClick would otherwise happily act on
+  // using the second click's coordinates, selecting whatever tile happens to
+  // sit there even though only one tap ever landed on it. lastClickCellRef/
+  // sameCellStreakRef track whether the two most recent clicks actually hit
+  // the SAME cell (recomputed on every onContentClick call, since it always
+  // runs before the dblclick that may follow), so onContentDoubleClick can
+  // reject a spurious native dblclick that doesn't correspond to a real
+  // same-cell double-tap.
+  const lastClickCellRef = useRef(null);
+  const sameCellStreakRef = useRef(false);
+
   // Bug fixed here: the previous version cancelled ANY pending single
   // click whenever a second click arrived within 250ms, regardless of
   // where — so a normal, fast "select a player, then tap where they
@@ -856,6 +867,9 @@ export function PlateauPage({onBack}) {
     const rect = contentRef.current.getBoundingClientRect();
     const col = Math.floor((clientX - rect.left) / effectiveCell);
     const row = Math.floor((clientY - rect.top) / effectiveCell);
+
+    sameCellStreakRef.current = !!(lastClickCellRef.current && lastClickCellRef.current.row === row && lastClickCellRef.current.col === col);
+    lastClickCellRef.current = {row, col};
 
     if (clickTimerRef.current) {
       const pending = clickTimerRef.current;
@@ -887,6 +901,7 @@ export function PlateauPage({onBack}) {
   function onContentDoubleClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     if (clickTimerRef.current) { clearTimeout(clickTimerRef.current.timer); clickTimerRef.current = null; }
+    if (!sameCellStreakRef.current) return; // spurious native dblclick: the two clicks weren't actually on the same cell
     if (visionMode) return; // inspect-only: no new tile selection while Vision is active
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
@@ -1091,19 +1106,16 @@ export function PlateauPage({onBack}) {
     setVisionMode(!visionMode);
   }
 
+  // Reset used to wipe pastRef/futureRef outright, so it could never itself
+  // be undone. Gus asked for it to behave like any other action instead: it
+  // now goes through commitBoard (pushing the pre-reset state as a normal
+  // history entry) rather than clearing history, so ↩ brings everything
+  // back exactly as before the reset. Only the truly transient UI state
+  // (selection/popups/zoom/scroll, none of it part of the undo snapshot
+  // anyway) is still reset directly.
   function resetBoard(){
-    pastRef.current = [];
-    futureRef.current = [];
-    setCanUndo(false);
-    setCanRedo(false);
     setSelectedId(null);
-    setCurrentIndex(0);
-    setPlayers([]);
     setShowReset(false);
-    setPiles([{id:uid(), type:'case', cards:makeInitialDeck()}]);
-    setDiscardCards([]);
-    setPlacedTiles([]);
-    setHeldTile(null);
     setArmedPileId(null);
     clearTileSelection();
     setSelectedDiscardCardId(null);
@@ -1113,6 +1125,10 @@ export function PlateauPage({onBack}) {
     setZoom(1);
     const vp = viewportRef.current;
     if (vp) { vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2; vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2; }
+    commitBoard({
+      players: [], piles: [{id:uid(), type:'case', cards:makeInitialDeck()}],
+      discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0
+    });
   }
 
   const current = players[currentIndex] || null;
@@ -1127,7 +1143,15 @@ export function PlateauPage({onBack}) {
 
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
-  const hasSelectedCard = !!(selectedTileId || selectedDiscardCardId);
+  // A tile fresh out of a pile/défausse ('placed' mode, rotate-only) isn't
+  // "selected" as far as piles/défausse are concerned — Gus asked for those
+  // to be completely inert (not even the Dessus/Dessous insert menu) while
+  // it's in that state, matching how it also can't be moved or discarded
+  // yet. `pilesDisabled` below is what actually blocks the clicks; this
+  // just keeps the insert-menu gate consistent with it.
+  const isPlacedMode = selectedTileMode === 'placed';
+  const pilesDisabled = isPlacedMode;
+  const hasSelectedCard = !!((selectedTileId && !isPlacedMode) || selectedDiscardCardId);
 
   // Shrinks the player squares (down to a 40px floor) once there isn't
   // enough room between header and footer to fit them all at the default
@@ -1182,7 +1206,7 @@ export function PlateauPage({onBack}) {
           piles[0]
             ? h(PileStack, {
                 pile:piles[0], holding: heldTile?.fromPileId === piles[0].id,
-                armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard,
+                armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard, disabled:pilesDisabled,
                 onArm:armPile, onDisarm:disarmPile,
                 onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
                 onInsertSelected:insertSelectedCardIntoPile
@@ -1190,7 +1214,7 @@ export function PlateauPage({onBack}) {
             : h('div', {style:{width:56, height:56}}),
           h(DiscardSlot, {
             cards:discardCards, selectedId:selectedDiscardCardId,
-            armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedTile:!!selectedTileId,
+            armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedTile:!!(selectedTileId && !isPlacedMode), disabled:pilesDisabled,
             onArm:armPile, onDisarm:disarmPile,
             onMergeInto:mergeArmedInto, onShuffleInPlace:shuffleDiscardInPlace,
             onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
@@ -1198,7 +1222,7 @@ export function PlateauPage({onBack}) {
         ),
         piles.slice(1).map(p => h(PileStack, {
           key:p.id, pile:p, holding: heldTile?.fromPileId === p.id,
-          armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard,
+          armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard, disabled:pilesDisabled,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile
@@ -1228,7 +1252,8 @@ export function PlateauPage({onBack}) {
     }},
       players.map((p,i) => h(PlayerSquare, {
         key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
-        onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v)
+        onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v),
+        onOpenInfo:()=>setVisionPlayerId(p.id)
       })),
       h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:addPlayer}))
     ),
