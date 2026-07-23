@@ -681,7 +681,7 @@
       "id": "r6",
       "nom": "Combat",
       "statut": "Validé",
-      "effet": "Si au moins 2 joueurs ou monstre partagent la même case, l'un d'eux peut déclencher un combat. \nChacun lance un dé. \nLe petit résultats perd 1 PV.\nSi plusieurs résultats sont les plus petits, ceux qui ont lancé ces dés relancent.\nSi un joueur lance plusieurs dés, il garde le meilleur résultat.",
+      "effet": "Si au moins 2 joueurs ou monstre partagent la même case, l'un d'eux peut déclencher un combat. \nChacun lance un dé. \nLe plus petit résultats perd 1 PV.\nSi plusieurs résultats sont les plus petits, ceux qui ont lancé ces dés relancent.\nSi un joueur lance plusieurs dés, il garde le meilleur résultat.",
       "notes": ""
     },
     {
