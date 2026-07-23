@@ -709,19 +709,39 @@ export function PlateauPage({onBack}) {
   // screen entirely, with nothing to catch the overflow. The grid viewport
   // sits in exactly the space between header and footer already, so its
   // own bounding rect gives us that space for free — no separate header/
-  // footer refs needed. Re-measured on resize (and once after mount, since
-  // fonts/first layout can nudge header height by a pixel or two).
+  // footer refs needed.
   const [sidebarBounds, setSidebarBounds] = useState({top:0, bottom:0});
+  // Bug fixed here: only re-measuring on the window's own 'resize' event
+  // missed every case where the HEADER or FOOTER changed height on their
+  // own without the window itself resizing — splitting a pile enough to
+  // wrap the header onto a 2nd row (Couche 3's pile groups), or a player
+  // equipping their first item and growing the footer's equip zone into
+  // existence. Gus noticed the sidebar creeping behind the header after
+  // splitting piles, and the footer overflowing off the bottom of the
+  // screen — both are this same stale-measurement bug, just surfacing on
+  // opposite edges of the viewport. A `ResizeObserver` on the viewport
+  // element itself (rather than the window) fires on ANY change to ITS OWN
+  // box — which is exactly "header got taller" or "footer got taller",
+  // since the viewport is the flex:1 space left over between them — so it
+  // covers every cause uniformly instead of enumerating each one.
   useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
     function measure(){
-      const vp = viewportRef.current;
-      if (!vp) return;
       const rect = vp.getBoundingClientRect();
       setSidebarBounds({top:rect.top, bottom: window.innerHeight - rect.bottom});
     }
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      ro.observe(vp);
+    }
+    return () => {
+      window.removeEventListener('resize', measure);
+      if (ro) ro.disconnect();
+    };
   }, []);
 
   // Applies a pending scroll correction right after React has committed a

@@ -913,6 +913,24 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      maintenant dynamiquement (`squareSize`, plancher 40px) pour tenir dans
      l'espace mesuré, et si même le plancher ne suffit pas, la colonne devient
      scrollable (`overflowY:'auto'`) plutôt que de continuer à déborder.
+     **Piège rencontré (`sidebarBounds` figé après coup — les carrés
+     repassaient derrière le header, le pied de page débordait en bas)** :
+     `sidebarBounds` n'était re-mesuré que sur l'évènement `resize` de la
+     fenêtre — ça ratait tous les cas où le HEADER ou le PIED DE PAGE
+     changent de hauteur sans que la fenêtre elle-même ne redimensionne :
+     diviser une pioche jusqu'à faire passer le header sur une 2ème ligne
+     (Couche 3), ou le premier joueur ajouté qui fait apparaître la zone
+     d'équipement du pied de page. Résultat signalé par Gus : les carrés
+     joueurs se retrouvaient visuellement DERRIÈRE le header (plus grand
+     qu'avant mais `sidebarBounds.top` encore basé sur son ancienne hauteur,
+     plus petite), et le pied de page débordait en bas de l'écran pour la
+     même raison côté `sidebarBounds.bottom`. Fix : un `ResizeObserver` sur
+     `viewportRef` lui-même (la grille, qui occupe déjà tout l'espace
+     restant entre header et footer) en plus de l'écouteur `resize` — il se
+     déclenche sur N'IMPORTE QUEL changement de la boîte de la grille, donc
+     couvre "le header a grandi" et "le footer a grandi" par la même
+     mécanique générale plutôt que d'être recâblé à chaque nouvelle cause
+     possible.
      **Piège rencontré (zone invisible qui bloquait les clics sur la grille)** :
      la colonne garde toujours la hauteur PLEINE header-à-footer (elle est
      centrée par flexbox, pas dimensionnée à son contenu) — avec peu de
