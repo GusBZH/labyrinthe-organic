@@ -710,7 +710,7 @@
       "nom": "Combat à distance",
       "statut": "Test 1",
       "effet": "Nécessite de la Porté. Uniquement le défenseur peut mourir. Impossible contre les monstres. N'empêche pas une attaque classique dans le même tour.",
-      "notes": ""
+      "notes": "Pas mal si on est limité à une attaque par tour, parce qu'on affaibli la personne et on doit finir au cac. Ou taper de loin et courrir ."
     }
   ],
   "lexique": [
