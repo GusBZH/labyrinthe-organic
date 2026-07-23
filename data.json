@@ -620,7 +620,7 @@
       "id": "c7",
       "nom": "Case Monstre",
       "statut": "Validé",
-      "effet": "En arrivant dessus, piocher une carte Monstre. Combat optionnel. Toujours un cul-de-sac.",
+      "effet": "En arrivant dessus, si la case est vide, piochez une carte Monstre. \nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
       "quantite": 10,
       "notes": ""
     },
