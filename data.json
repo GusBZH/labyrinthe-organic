@@ -700,7 +700,7 @@
     },
     {
       "id": "r9",
-      "nom": "Combat de groupe",
+      "nom": "Combat de groupe (mtn doublon)",
       "statut": "Test 1",
       "effet": "Plusieurs joueurs ou monstres sur la même case : tous lancent un dé, uniquement le plus bas résultat perd 1pv.",
       "notes": ""
