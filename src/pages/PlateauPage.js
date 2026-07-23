@@ -45,8 +45,12 @@ const FOOTER_ROW_HEIGHT = FOOTER_ITEM_SIZE + FOOTER_SLOT_PAD*2;
 const FOOTER_ROW_WIDTH = FOOTER_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 // Same slot layout as the footer (nature square + 2 long rows), reused in
 // the player detail window ("disposée de la même manière que dans le
-// footer") but sized down to fit that window's narrower right column.
-const VISION_ITEM_SIZE = 28;
+// footer"). Doubled (Gus: "agrandir du double... comme ça on peut lire
+// sans forcément agrandir l'item") so the cards are readable at a glance
+// without opening the separate enlarge window — the modal itself widens
+// to make room (see its own width below), keeping the name/PV column the
+// same size instead of shrinking it to compensate.
+const VISION_ITEM_SIZE = 56;
 const VISION_ROW_HEIGHT = VISION_ITEM_SIZE + FOOTER_SLOT_PAD*2;
 const VISION_ROW_WIDTH = VISION_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 
@@ -178,7 +182,7 @@ function CardFace({showBack, size, kind='case'}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
@@ -200,7 +204,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
   // "un-armed" and silently falls through to a plain draw instead. Reading
   // it here, one step earlier, catches the real value before that disarm.
   function onPointerDown(){
-    if (disabled) return;
+    if (blockArm) return;
     pendingArmedRef.current = armedIdRef.current;
     startPress();
   }
@@ -383,9 +387,14 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
+  // `allowPileDraw` (case piles only, see its own comment where it's
+  // passed in) lets a click through to draw normally even while `disabled`
+  // would otherwise block it — long-press-to-arm stays blocked either way
+  // (`blockArm`), just the plain click behaves differently.
+  const pileClickDisabled = disabled && !allowPileDraw;
   return h('div', {style:{display:'flex', flexDirection:'column', alignItems:'center', gap:5}},
     groupPiles.length
       // CSS grid reserves the FULL declared column count regardless of how
@@ -398,7 +407,7 @@ function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedI
       ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(${Math.min(2, groupPiles.length)}, ${boxSize}px)`, gap:5}},
           groupPiles.map(p => h(PileStack, {
             key:p.id, pile:p, boxSize, holding: holding.pileId === p.id,
-            armedId, armedIdRef, hasSelectedCard, disabled,
+            armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:disabled,
             onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
           }))
         )
@@ -1825,6 +1834,19 @@ export function PlateauPage({onBack}) {
   const sidebarDesiredH = sidebarItemCount*SIDEBAR_DEFAULT_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
   const squareSize = sidebarDesiredH <= sidebarAvailH ? SIDEBAR_DEFAULT_SIZE
     : Math.max(SIDEBAR_MIN_SIZE, Math.floor((sidebarAvailH - (sidebarItemCount-1)*SIDEBAR_GAP) / sidebarItemCount));
+  // Once even the floor size doesn't fit everyone (enough players — Gus hit
+  // this around 8), the column becomes scrollable — but `justifyContent:
+  // 'center'` on an OVERFLOWING flex container centers the excess equally
+  // above AND below the box, and a plain `overflowY:'auto'` scroll range
+  // for centered overflow doesn't let you scroll up far enough to reach
+  // that above-the-box excess: the first player (sometimes the second)
+  // stayed permanently hidden behind the header, un-reachable by scrolling
+  // at all, not just visually clipped. Switching to `flex-start` once this
+  // "wouldn't fit even at the floor" state is detected keeps the list
+  // flush against the top of its box instead, so scrolling actually
+  // reaches every item.
+  const sidebarDesiredAtFloor = sidebarItemCount*SIDEBAR_MIN_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
+  const sidebarWillOverflow = sidebarDesiredAtFloor > sidebarAvailH;
 
   // Same "shrink to fit, don't overflow" idea as squareSize above, applied
   // to the header's 3 deck groups: each group is now a 2-column grid of
@@ -1838,7 +1860,10 @@ export function PlateauPage({onBack}) {
   // squareSize this has only a token floor (just to avoid the boxes
   // shrinking to nothing in an extreme case), not a real minimum size;
   // overflowX:'auto' on the row stays only as an ultimate safety net.
-  const CASE_BOX = 56, HEADER_GROUP_GAP = 6, HEADER_PAD = 32, HEADER_MIN_SCALE = 0.2;
+  // Case tiles use the SAME box size as sort/énergie piles here (Gus:
+  // "mets les cartes map à la même taille que les items") — no separate
+  // CASE_BOX constant anymore, just HEADER_ITEM_BOX for all 3 groups.
+  const HEADER_GROUP_GAP = 6, HEADER_PAD = 32, HEADER_MIN_SCALE = 0.2;
   function groupNaturalWidth(count, box){
     const cols = Math.min(2, Math.max(1, count));
     return cols*box + (cols > 1 ? 5 : 0);
@@ -1846,13 +1871,12 @@ export function PlateauPage({onBack}) {
   const caseCount = Math.max(1, piles.filter(p => p.type === 'case').length);
   const sortCount = Math.max(1, piles.filter(p => p.type === 'sort').length);
   const energieCount = Math.max(1, piles.filter(p => p.type === 'energie').length);
-  const naturalHeaderWidth = groupNaturalWidth(caseCount, CASE_BOX) + HEADER_GROUP_GAP*2
+  const naturalHeaderWidth = groupNaturalWidth(caseCount, HEADER_ITEM_BOX) + HEADER_GROUP_GAP*2
     + groupNaturalWidth(sortCount, HEADER_ITEM_BOX)
     + groupNaturalWidth(energieCount, HEADER_ITEM_BOX);
   const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
-  const caseBoxSize = Math.round(CASE_BOX * headerScale);
-  const itemBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
+  const headerBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
@@ -1895,15 +1919,24 @@ export function PlateauPage({onBack}) {
       // divider (Gus: "trop d'écart... rapproche-les" — a tight
       // HEADER_GROUP_GAP plus a divider reads as 3 distinct groups without
       // needing wide spacing to do it). Sizes shrink together via
-      // caseBoxSize/itemBoxSize (see their own comment) rather than letting
-      // the row overflow off-screen; overflowX stays as a last-resort
-      // fallback exactly like the sidebar's own squareSize floor+scroll.
+      // headerBoxSize (see its own comment) rather than letting the row
+      // overflow off-screen; overflowX stays as a last-resort fallback
+      // exactly like the sidebar's own squareSize floor+scroll.
       h('div', {style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto'}},
         h(PileGroup, {
-          type:'case', piles, discardCards, boxSize:caseBoxSize,
+          type:'case', piles, discardCards, boxSize:headerBoxSize,
           holding:{pileId: heldTile ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('case'), hasSelectedTile:hasSelectedForDiscardOfType('case'), disabled:pilesDisabled,
+          // A tile fresh out of a pile ('placed' mode) blocks the DÉFAUSSE
+          // and long-press-arming a pile, but clicking a case PILE itself
+          // is deliberately let through: Gus asked for it to deselect the
+          // placed tile and immediately draw the next card in one tap
+          // ("c'est le truc qu'on va faire le plus souvent") instead of
+          // being fully inert. `drawFromPile` already calls
+          // clearTileSelection() as part of any normal draw, so allowing
+          // the click through is all that's needed — no extra logic.
+          allowPileDraw:true,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
@@ -1911,7 +1944,7 @@ export function PlateauPage({onBack}) {
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
-          type:'sort', piles, discardCards, boxSize:itemBoxSize,
+          type:'sort', piles, discardCards, boxSize:headerBoxSize,
           holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('sort'), hasSelectedTile:hasSelectedForDiscardOfType('sort'), disabled:pilesDisabled,
@@ -1922,7 +1955,7 @@ export function PlateauPage({onBack}) {
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
-          type:'energie', piles, discardCards, boxSize:itemBoxSize,
+          type:'energie', piles, discardCards, boxSize:headerBoxSize,
           holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('energie'), hasSelectedTile:hasSelectedForDiscardOfType('energie'), disabled:pilesDisabled,
@@ -1951,7 +1984,7 @@ export function PlateauPage({onBack}) {
     // actually visible.
     h('div', {style:{
       position:'fixed', right:8, top:sidebarBounds.top+SIDEBAR_GAP, bottom:sidebarBounds.bottom+SIDEBAR_GAP,
-      display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'flex-end',
+      display:'flex', flexDirection:'column', justifyContent: sidebarWillOverflow ? 'flex-start' : 'center', alignItems:'flex-end',
       gap:SIDEBAR_GAP, overflowY:'auto', zIndex:15, pointerEvents:'none'
     }},
       players.map((p,i) => h(PlayerSquare, {
@@ -2192,7 +2225,7 @@ export function PlateauPage({onBack}) {
             // tap now closes the TOPMOST window first, as expected.
             onClose:()=>{ if (!enlargedItem) setVisionPlayerId(null); },
             anchorRef:visionModalAnchorRef,
-            style:{position:'relative', width:'min(92vw,420px)', maxHeight:'80vh', overflow:'auto', padding:20},
+            style:{position:'relative', width:'min(95vw,560px)', maxHeight:'80vh', overflow:'auto', padding:20},
             children: h('div', {},
               h('div', {
                 onClick:()=>setVisionPlayerId(null),

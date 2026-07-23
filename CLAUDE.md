@@ -615,6 +615,31 @@ contre `CELL-4` pour une tuile) — `PileStack`/`DiscardSlot` prennent maintenan
   de `ITEM_BOX`, puisque ce dernier sert aussi de base au calcul de `FOOTER_ITEM_SIZE`
   (voir "Équiper un item sur un joueur" plus bas) : grossir `ITEM_BOX` aurait aussi fait
   gonfler les cartes du pied de page, jamais demandé cette fois.
+- **Cartes case alignées sur la même taille que les cartes sort/énergie dans le
+  header** (Gus : "mets les cartes map à la même taille que les items") : l'ancienne
+  constante séparée `CASE_BOX` (56px) est supprimée, les 3 groupes du header (cases,
+  sorts, énergies) partagent maintenant tous `HEADER_ITEM_BOX` — un seul
+  `headerBoxSize` (issu de `HEADER_ITEM_BOX * headerScale`) remplace les deux
+  variables `caseBoxSize`/`itemBoxSize` d'avant, passé identiquement aux 3
+  `PileGroup`. N'affecte que le header — les tuiles posées sur la grille et tenues en
+  main gardent leur taille `CELL` habituelle, inchangée.
+- **Cliquer la pioche de cases pendant qu'une tuile est en mode `'placed'` désélectionne
+  ET pioche directement une nouvelle carte, en un seul clic** (Gus : "c'est le truc
+  qu'on va faire le plus souvent, ça évite un clic dans le vide avant de devoir
+  repiocher") — avant ce fix, un clic sur la pioche en mode `'placed'` ne faisait rien
+  (bloqué comme n'importe quelle pioche/défausse pendant ce mode, voir plus haut).
+  `PileStack` sépare maintenant deux gardes distincts au lieu d'un seul `disabled` :
+  `blockArm` protège toujours l'armement par appui long (Diviser/Mélanger, inchangé),
+  tandis que `disabled` ne protège plus QUE le clic simple — `PileGroup` reçoit une
+  nouvelle prop `allowPileDraw` (passée `true` uniquement pour le groupe **cases**,
+  pas sorts/énergies) qui calcule `pileClickDisabled = disabled && !allowPileDraw` :
+  pendant le mode `'placed'`, `blockArm` reste `disabled` (le long-press reste
+  bloqué) mais le clic simple passe à travers normalement, retombant sur `onDraw`.
+  Comme `drawFromPile` appelle déjà `clearTileSelection()` à chaque pioche normale, il
+  n'y avait rien de plus à écrire pour obtenir "désélectionne + pioche" en un geste —
+  seul le blocage en amont empêchait ce chemin d'exister. La défausse (`DiscardSlot`)
+  n'est pas concernée (garde le comportement bloqué inchangé) : ranger une carte
+  dedans reste un choix explicite (bouton ✕ ou clic défausse), jamais un clic "perdu".
 
 **Items sur le plateau** — nouvel état `boardItems` (`{id, type, row, col}`), rendu
 entre les tuiles et les jetons joueurs dans le DOM (donc au-dessus des cases, en
@@ -744,6 +769,16 @@ comme dans le pied de page (même emplacement nature + mêmes lignes en pointill
 peut afficher N'IMPORTE QUEL joueur, pas seulement le joueur courant, donc rien n'y est
 équipable/réordonnable, seulement consultable en cliquant une carte pour l'agrandir),
 à une taille réduite (`VISION_ITEM_SIZE`) pour tenir dans la largeur de la fenêtre.
+- **`VISION_ITEM_SIZE` doublé (28 → 56px), fenêtre élargie en conséquence** (Gus :
+  "agrandir du double la taille des items, comme ça on peut lire sans forcément
+  agrandir l'item... essaye de garder le nom et le cœur à la même taille, si tu peux
+  prendre la place sur le côté droit de la fenêtre") : seule la constante
+  `VISION_ITEM_SIZE` change — `VISION_ROW_HEIGHT`/`VISION_ROW_WIDTH` en dérivent déjà
+  automatiquement (paramétrés depuis une session précédente), rien à retoucher côté
+  calcul. La colonne nom+cœur de PV (gauche) garde sa taille propre, indépendante de
+  `VISION_ITEM_SIZE` — seule la colonne de droite (sorts/énergies) grossit. Largeur
+  max de la `Popup` portée de `min(92vw,420px)` à `min(95vw,560px)` pour donner la
+  place nécessaire à droite sans écraser la colonne de gauche.
 - **`‹`/`›` pour changer de joueur, mais seulement depuis la barre latérale** ("la
   fenêtre... ce serait cool d'avoir en bas les <> pour passer de joueurs en joueur...
   mais en mode vision et qu'on clique sur un joueur pas besoin de <>") : nouveau state
@@ -931,6 +966,26 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      couvre "le header a grandi" et "le footer a grandi" par la même
      mécanique générale plutôt que d'être recâblé à chaque nouvelle cause
      possible.
+     **Piège rencontré (le fix ResizeObserver réglait le pied de page mais pas le
+     header — joueur 1 restait caché derrière, même une fois la colonne devenue
+     scrollable)** : Gus a signalé que le débordement en bas était bien corrigé mais
+     qu'en haut, au-delà d'environ 8 joueurs (colonne qui a atteint son plancher
+     `SIDEBAR_MIN_SIZE` et bascule en scroll), le premier joueur (parfois le second)
+     restait inatteignable derrière le header, scroll ou pas. Cause différente du
+     bug `sidebarBounds` ci-dessus (déjà réglé) : la colonne utilisait
+     `justifyContent:'center'` en permanence, y compris une fois son contenu réel
+     plus haut que l'espace disponible (`overflowY:'auto'`) — combiner un
+     `justifyContent:'center'` avec un contenu qui déborde crée un "piège de scroll" :
+     le débordement se répartit symétriquement au-dessus ET en dessous de la boîte,
+     mais la plage de scroll par défaut du navigateur pour un contenu centré ne
+     remonte pas jusqu'à la portion qui dépasse EN HAUT — elle reste inatteignable
+     quel que soit l'ancrage `sidebarBounds`, même parfaitement à jour. Rien à voir
+     avec le fix ResizeObserver (qui règle le RE-mesurage de l'espace disponible, pas
+     ce problème d'alignement interne). Fix : nouveau calcul `sidebarWillOverflow`
+     (compare la hauteur désirée au plancher `SIDEBAR_MIN_SIZE` à l'espace mesuré
+     réellement disponible) qui bascule `justifyContent` en `'flex-start'` dès que ça
+     déborde — le scroll par défaut atteint alors bien le tout début du contenu.
+     Centré (`'center'`) reste le comportement par défaut tant que tout tient.
      **Piège rencontré (zone invisible qui bloquait les clics sur la grille)** :
      la colonne garde toujours la hauteur PLEINE header-à-footer (elle est
      centrée par flexbox, pas dimensionnée à son contenu) — avec peu de
