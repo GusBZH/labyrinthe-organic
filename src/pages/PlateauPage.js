@@ -129,6 +129,30 @@ function EyeIcon(){
   );
 }
 
+// Small flag glyph, color-parameterized — reused for BOTH drapeau bleu and
+// drapeau rouge markers (Gus gave neither an explicit emoji, unlike the two
+// jetons/la roche below): no single Unicode flag reads as a plain "blue
+// flag", so rather than mix an emoji for one color and a custom SVG for the
+// other (visually inconsistent), both flags share this one shape, just
+// tinted differently.
+function FlagIcon({color, size=16}){
+  return h('svg', {width:size, height:size, viewBox:'0 0 24 24'},
+    h('line', {x1:5, y1:2, x2:5, y2:22, stroke:'currentColor', strokeWidth:2, strokeLinecap:'round'}),
+    h('path', {d:'M5 3 L21 7.5 L5 13 Z', fill:color, stroke:color, strokeLinejoin:'round'})
+  );
+}
+// Order matches exactly what Gus gave, left to right: cases de départ are
+// handled as a 5th TILE type (see the 'depart' pile above, not here — this
+// map is only the 5 unlimited-supply "marqueurs" that follow it). Jetons and
+// la roche use the emoji Gus gave directly; the two flags share FlagIcon.
+const MARKER_ORDER = ['jeton_bleu', 'drapeau_bleu', 'drapeau_rouge', 'jeton_rouge', 'roche'];
+const MARKER_EMOJI = {jeton_bleu:'🔵', jeton_rouge:'🔴', roche:'🪨'};
+function MarkerIcon({type, size=16}){
+  if (type === 'drapeau_bleu') return h(FlagIcon, {color:'#4fa3ff', size});
+  if (type === 'drapeau_rouge') return h(FlagIcon, {color:'#e74c3c', size});
+  return h('span', {style:{fontSize:size, lineHeight:1}}, MARKER_EMOJI[type] || '❔');
+}
+
 // Clamps a popup's top-left corner so it never opens partly off-screen
 // (Gus: "vérifier si la fenêtre a la place pour s'ouvrir avant, et si non
 // qu'elle se déplace un peu" — signalled about menus drifting off the
@@ -144,13 +168,14 @@ function clampPopupPos(left, top, width, height){
   return { left: Math.min(Math.max(margin, left), maxLeft), top: Math.min(Math.max(margin, top), maxTop) };
 }
 // Shared size estimate for the multi-entity/multi-item cell pickers
-// (cellPicker, itemCellPicker) — `twoColumn` forces the wider 2-column
-// layout's width even if one side is currently empty (itemCellPicker is
-// always 2 columns; cellPicker only switches to 2 columns once a monster
-// shares the cell — see its own render logic).
-function pickerDims(colACount, colBCount, twoColumn){
-  const width = twoColumn ? 260 : 220;
-  const height = Math.max(colACount, colBCount, 1) * 46 + 20;
+// (cellPicker, itemCellPicker) — `counts` is the per-column item count
+// (only used for the height estimate, zeros included are harmless), and
+// `columns` is how many columns will actually render (1, 2 or 3 — cellPicker
+// grew a 3rd column once markers could share a cell alongside players/
+// monsters, see its own render logic for when each column appears).
+function pickerDims(counts, columns){
+  const width = columns >= 3 ? 320 : columns === 2 ? 260 : 220;
+  const height = Math.max(...counts, 1) * 46 + 20;
   return {width, height};
 }
 
@@ -171,23 +196,34 @@ function shuffle(arr){
 // own pile.type ('case'/'sort'/'energie') so piles can only ever merge
 // same-type — that's also what keeps their défausses separate (see
 // `discardCards`, each entry tagged with the same `type`).
-function makeDeck(type){
-  return shuffle(Array.from({length:100}, () => ({id:uid()})));
+function makeDeck(type, count=100){
+  return shuffle(Array.from({length:count}, () => ({id:uid()})));
 }
 
+// Cases de départ: a 5th tile deck, mechanically identical to 'case' (same
+// draw/place/rotate/flip/discard machinery via placedTiles' own `type`
+// field — see heldTile/discardTile/CardFace below) but its OWN distinct
+// pile.type so it can never merge with the regular case deck (mergeArmedInto
+// already refuses to merge two piles of different types — this falls out
+// for free once départ has a type of its own, no extra check needed). Only
+// 10 cards ("y en a 10"), not the 100-card placeholder every other deck uses.
 function makeInitialPiles(){
-  return ['case', 'sort', 'energie', 'monstre'].map(type => ({id:uid(), type, cards:makeDeck(type)}));
+  return [
+    ...['case', 'sort', 'energie', 'monstre'].map(type => ({id:uid(), type, cards:makeDeck(type)})),
+    {id:uid(), type:'depart', cards:makeDeck('depart', 10)}
+  ];
 }
 
 // Back-of-card accent color per deck type — the only visual difference
 // between a case/sort/énergie card back for now ("le reste on verra plus
 // tard", per Gus): a plain dark back with a thin colored border, no other
 // content since the real card art isn't wired in yet.
-const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a', monstre:'#8a2f2f'};
+const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a', monstre:'#8a2f2f', depart:'#2f8f5a'};
 // Front-face glyph per deck type: cases keep the original placeholder
 // cross, sorts get a wand, énergies a flame (Gus's choice), monstres an
-// ogre — purely cosmetic placeholders until real card art exists.
-const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥', monstre:'👹'};
+// ogre, cases de départ a plain "D" — purely cosmetic placeholders until
+// real card art exists.
+const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥', monstre:'👹', depart:'D'};
 
 // A real card square: black back (accent border by deck type), white front
 // with a glyph by type, flipped via a simple rotateY. Reused for the pile
@@ -248,7 +284,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
   // popup can render `position:fixed` there (see the render below for why).
   function menuPosNow(){
     const r = anchorRef.current.getBoundingClientRect();
-    return clampPopupPos(r.left, r.bottom+6, 150, 90);
+    return clampPopupPos(r.left, r.bottom+6, 56, 90);
   }
   function startPress(){
     if (hasSelectedCard) return; // a quick click here means "insert", not "arm"
@@ -311,7 +347,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
     showSplitMenu && h(Popup, {
       onClose:closeSplitMenu,
       anchorRef,
-      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:130, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:56, minWidth:56, zIndex:280},
       items:[
         {label:'✂️', onClick:()=>onSplit(pile.id)},
         {label:'🔀', onClick:()=>onShuffle(pile.id)},
@@ -320,7 +356,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
     showInsertMenu && h(Popup, {
       onClose:()=>setShowInsertMenu(false),
       anchorRef,
-      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:56, minWidth:56, zIndex:280},
       items:[
         {label:'⬆️', onClick:()=>onInsertSelected(pile.id, 'top')},
         {label:'⬇️', onClick:()=>onInsertSelected(pile.id, 'bottom')},
@@ -360,7 +396,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
     if (cards.length === 0 || hasSelectedTile) return; // nothing to arm / a quick tap here means "discard the selection" instead
     pressTimer.current = setTimeout(() => {
       const r = anchorRef.current.getBoundingClientRect();
-      setMenuPos(clampPopupPos(r.left, r.bottom+6, 150, 50));
+      setMenuPos(clampPopupPos(r.left, r.bottom+6, 56, 50));
       setShowMenu(true);
       onArm(armedSelfId);
     }, 500);
@@ -416,7 +452,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
     showMenu && h(Popup, {
       onClose:closeMenu,
       anchorRef,
-      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
+      style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:56, minWidth:56, zIndex:280},
       items:[
         {label:'🔀', onClick:onShuffleInPlace},
       ]
@@ -728,6 +764,36 @@ function DiceButton({player, onRoll, guardedBySelection, visionMode}){
   );
 }
 
+// A marker "pile" isn't a pile at all — unlimited supply, no cards to count
+// (see `markers`'s own comment) — so this is a plain icon button rather than
+// PileStack: a click holds a fresh marker (drawMarkerOrCancelSelection),
+// re-clicking the SAME button cancels it (blue glow while held, same visual
+// language as an armed/held pile elsewhere). `disabled` mirrors the pile
+// groups' own `pilesDisabled`/Vision-mode gating (see its call site) so a
+// stray tap can't spawn a marker mid-tile-rotation or while Vision mode is
+// inspecting — bubbling through untouched (no stopPropagation) lets the
+// header's own "click elsewhere deselects" handler run instead, exactly
+// like a disabled PileStack/DiscardSlot already does.
+function MarkerButton({type, holding, disabled, onClick}){
+  function handleClick(e){
+    if (disabled) return;
+    e.stopPropagation();
+    onClick();
+  }
+  return h('div', {
+    onClick:handleClick,
+    style:{
+      width:36, height:36, borderRadius:8, flexShrink:0, cursor: disabled ? 'default' : 'pointer',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      background:'rgba(255,255,255,.06)',
+      boxShadow: holding ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
+      outline: holding ? '2px solid #4fa3ff' : 'none',
+      opacity: disabled ? 0.4 : 1,
+      transition:'box-shadow .2s, outline-color .2s, opacity .2s'
+    }
+  }, h(MarkerIcon, {type, size:20}));
+}
+
 export function PlateauPage({onBack}) {
   const saved = loadSession();
   const [players, setPlayers] = useState(saved?.players || []);
@@ -736,6 +802,10 @@ export function PlateauPage({onBack}) {
   const [showReset, setShowReset] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  // Header extension row (cases de départ + marqueurs) — collapsed by
+  // default, toggled by the small +/− button at the header's bottom-right
+  // corner. Purely a UI toggle, not part of any undo/persisted state.
+  const [headerExtOpen, setHeaderExtOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [scrollTick, setScrollTick] = useState(0);
   const [visionMode, setVisionMode] = useState(false);
@@ -758,6 +828,18 @@ export function PlateauPage({onBack}) {
   // spécifique aux joueurs (sidebar, dé, PV, footer "joueur courant"...).
   const [monsters, setMonsters] = useState(saved?.monsters || []);
   const [selectedMonsterId, setSelectedMonsterId] = useState(null);
+  // Marqueurs (jetons/drapeaux/roche) — dernier ajout de la version locale.
+  // Réagissent "exactement comme les monstres" (Gus) : même clustering de
+  // case (cellGroups), même geste un-tap-sélectionne, mêmes règles de
+  // désélection globales. Contrairement à tout le reste du plateau, PAS de
+  // pioche/défausse — quantité illimitée ("je peux en prendre en remettre
+  // comme je veux"), donc pas de `type` de pile ni de `discardCards` associé,
+  // juste ce tableau d'entités {id, row, col, type} + heldMarker pour le
+  // cycle "tenir puis poser" (voir drawMarker, mirror de drawFromPile côté
+  // items mais sans pile source).
+  const [markers, setMarkers] = useState(saved?.markers || []);
+  const [selectedMarkerId, setSelectedMarkerId] = useState(null);
+  const [heldMarker, setHeldMarker] = useState(null); // {cardId, markerType}
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
   const [selectedTileId, setSelectedTileId] = useState(null);
@@ -875,7 +957,7 @@ export function PlateauPage({onBack}) {
   const liveRef = useRef({});
   useEffect(() => {
     liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex,
-      boardItems, heldItem, selectedItemId, selectedFooterItem, monsters, selectedMonsterId };
+      boardItems, heldItem, selectedItemId, selectedFooterItem, monsters, selectedMonsterId, markers, selectedMarkerId, heldMarker };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -906,8 +988,8 @@ export function PlateauPage({onBack}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters})); } catch {}
-  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers})); } catch {}
+  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -1079,7 +1161,8 @@ export function PlateauPage({onBack}) {
     pastRef.current.push({
       players: live.players, piles: live.piles, discardCards: live.discardCards,
       placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
-      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters
+      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters,
+      markers: live.markers, heldMarker: live.heldMarker
     });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
@@ -1094,6 +1177,8 @@ export function PlateauPage({onBack}) {
     if ('boardItems' in updates) setBoardItems(updates.boardItems);
     if ('heldItem' in updates) setHeldItem(updates.heldItem);
     if ('monsters' in updates) setMonsters(updates.monsters);
+    if ('markers' in updates) setMarkers(updates.markers);
+    if ('heldMarker' in updates) setHeldMarker(updates.heldMarker);
   }
 
   function commitPlayers(next){
@@ -1110,12 +1195,14 @@ export function PlateauPage({onBack}) {
     setBoardItems(snap.boardItems);
     setHeldItem(snap.heldItem);
     setMonsters(snap.monsters || []);
+    setMarkers(snap.markers || []);
+    setHeldMarker(snap.heldMarker || null);
   }
 
   function currentSnapshot(){
     const live = liveRef.current;
     return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
-      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters };
+      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters, markers: live.markers, heldMarker: live.heldMarker };
   }
 
   function undo(){
@@ -1215,9 +1302,10 @@ export function PlateauPage({onBack}) {
   // entry so it lands in the right one of the 3 défausses (see PileGroup).
   function discardTile(tileId){
     const live = liveRef.current;
+    const t = live.placedTiles.find(x => x.id === tileId);
     commitBoard({
-      placedTiles: live.placedTiles.filter(t => t.id !== tileId),
-      discardCards: [...live.discardCards, {id:tileId, type:'case'}]
+      placedTiles: live.placedTiles.filter(x => x.id !== tileId),
+      discardCards: [...live.discardCards, {id:tileId, type: t?.type || 'case'}]
     });
     clearTileSelection();
   }
@@ -1281,6 +1369,48 @@ export function PlateauPage({onBack}) {
     setSelectedMonsterId(null);
   }
 
+  // Marker equivalent of discardSelectedMonster — except markers have no
+  // pile/défausse at all (unlimited supply, "je peux en prendre en remettre
+  // comme je veux"), so discarding one simply deletes it outright instead of
+  // feeding a défausse. It can always be recreated for free from its
+  // MarkerButton whenever needed.
+  function discardSelectedMarker(){
+    const live = liveRef.current;
+    if (!live.selectedMarkerId) return;
+    commitBoard({markers: live.markers.filter(m => m.id !== live.selectedMarkerId)});
+    setSelectedMarkerId(null);
+  }
+
+  // Marker equivalent of drawFromPile, minus the pile itself: a MarkerButton
+  // (see its own component) has infinite supply, so "drawing" just conjures
+  // a fresh marker id into heldMarker — clicking the SAME button again while
+  // holding cancels it (mirrors clicking the same pile again), clicking a
+  // DIFFERENT button while holding does nothing (mirrors a mismatched pile
+  // click), matching drawFromPile's own shape exactly.
+  function drawMarker(markerType){
+    if (heldMarker) {
+      if (heldMarker.markerType === markerType) setHeldMarker(null);
+      return;
+    }
+    setHeldMarker({cardId:uid(), markerType});
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
+    setSelectedDiscardCardId(null);
+    setSelectedId(null); // only one thing selected at a time
+    setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
+    clearTileSelection();
+  }
+  // See drawFromPileOrCancelSelection's own comment — same "a click here
+  // while something else entirely is selected just cancels it" rule,
+  // applied to the marker buttons (which aren't PileStack/DiscardSlot
+  // instances, so they need their own explicit wrapper rather than the
+  // hasSelectedCard/hasSelectedTile props those components already have).
+  function drawMarkerOrCancelSelection(markerType){
+    if (hasAnySelection()) { clearCardSelection(); return; }
+    drawMarker(markerType);
+  }
+
   // Clicking a défausse's own top card selects/deselects it (toggle) — it
   // never needs to flip since it's already shown face-up. Fully generic
   // across all 3 défausses (case/sort/énergie): `discardCards` entries carry
@@ -1293,6 +1423,7 @@ export function PlateauPage({onBack}) {
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
   }
 
   // Feeds the currently-selected card (a placed tile, a défausse's top
@@ -1328,6 +1459,7 @@ export function PlateauPage({onBack}) {
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
   }
 
   // Clears whatever card OR entity is selected (a placed tile, a défausse
@@ -1349,6 +1481,7 @@ export function PlateauPage({onBack}) {
     setSelectedFooterItem(null);
     setSelectedId(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
   }
 
   // Whether ANYTHING is currently selected — a tile (not in rotate-only
@@ -1359,7 +1492,7 @@ export function PlateauPage({onBack}) {
   // below and clearCardSelection's own comment for why several controls
   // need this check explicitly rather than relying on bubbling alone).
   function hasAnySelection(){
-    return !!(selectedId || selectedMonsterId || (selectedTileId && selectedTileMode !== 'placed')
+    return !!(selectedId || selectedMonsterId || selectedMarkerId || (selectedTileId && selectedTileMode !== 'placed')
       || selectedItemId || selectedDiscardCardId || selectedFooterItem);
   }
   // Wraps a click handler so that, if ANYTHING is selected when it fires,
@@ -1451,6 +1584,7 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
     setSelectedItemId(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
     // A long-press-driven selection here (see useFooterItemGestures) is
     // still followed by a native trailing 'click' on release, same as the
     // grid's item long-press (see suppressNextClickRef's own comment) —
@@ -1536,10 +1670,13 @@ export function PlateauPage({onBack}) {
       if (herePlayers.length === 1 && hereMonsters.length === 0) { setVisionPlayerId(herePlayers[0].id); setVisionPlayerFromSidebar(false); return; }
       // Several players, or players mixed with monsters: disambiguate via
       // the same two-column picker the normal (non-Vision) flow uses.
+      // Markers are deliberately never gathered here — Vision mode stays
+      // scoped to players/monsters only (see hereMarkers' own comment
+      // further down), so this picker never grows a 3rd column.
       {
-        const dims = pickerDims(herePlayers.length, hereMonsters.length, hereMonsters.length > 0);
+        const dims = pickerDims([herePlayers.length, hereMonsters.length], hereMonsters.length > 0 ? 2 : 1);
         const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
-        setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:true});
+        setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:[], forVision:true});
       }
       return;
     }
@@ -1554,7 +1691,7 @@ export function PlateauPage({onBack}) {
     // overwhelming majority, made this asymmetry the right one.
     if (live.heldTile) {
       if (live.placedTiles.some(t => t.row === r && t.col === c)) return; // one tile per cell
-      commitBoard({placedTiles: [...live.placedTiles, {id:live.heldTile.cardId, row:r, col:c, rotation:0, flipped:false}], heldTile: null});
+      commitBoard({placedTiles: [...live.placedTiles, {id:live.heldTile.cardId, type:live.heldTile.tileType || 'case', row:r, col:c, rotation:0, flipped:false}], heldTile: null});
       // Lands in 'placed' mode — rotate-only, see the mode's own comment
       // above selectedTileMode's declaration — so it can be turned freely
       // right after placing without a stray tap sending it elsewhere.
@@ -1581,15 +1718,23 @@ export function PlateauPage({onBack}) {
       return;
     }
 
+    // A marker held from a MarkerButton (see drawMarker) — no pile, no
+    // occupancy check (several markers, or a marker and a monster/player,
+    // can freely share a cell, same as items).
+    if (live.heldMarker) {
+      commitBoard({markers: [...live.markers, {id:live.heldMarker.cardId, type:live.heldMarker.markerType, row:r, col:c}], heldMarker: null});
+      return;
+    }
+
     if (live.selectedDiscardCardId) {
       const dcard = live.discardCards.find(cd => cd.id === live.selectedDiscardCardId);
       if (!dcard) { setSelectedDiscardCardId(null); return; }
-      if (dcard.type === 'case') {
+      if (dcard.type === 'case' || dcard.type === 'depart') {
         if (live.placedTiles.some(t => t.row === r && t.col === c)) return;
         const cardId = live.selectedDiscardCardId;
         commitBoard({
           discardCards: live.discardCards.filter(cd => cd.id !== cardId),
-          placedTiles: [...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]
+          placedTiles: [...live.placedTiles, {id:cardId, type:dcard.type, row:r, col:c, rotation:0, flipped:false}]
         });
         setSelectedDiscardCardId(null);
         setSelectedTileId(cardId);
@@ -1667,21 +1812,35 @@ export function PlateauPage({onBack}) {
       setSelectedMonsterId(null);
       return;
     }
+    // A marker selected for movement — markers "réagissent exactement comme
+    // les monstres" (Gus), so this is a straight copy of the monster branch
+    // above, just writing into `markers` instead.
+    if (live.selectedMarkerId) {
+      const sel = live.markers.find(m => m.id === live.selectedMarkerId);
+      if (sel && sel.row === r && sel.col === c) { setSelectedMarkerId(null); return; }
+      commitBoard({markers: live.markers.map(m => m.id === live.selectedMarkerId ? {...m, row:r, col:c} : m)});
+      setSelectedMarkerId(null);
+      return;
+    }
     // Nothing held/selected: a plain tap picks whatever's on this cell —
-    // players and monsters share the same click gesture, so both are
-    // gathered together here. A single match selects it directly; several
-    // (any mix of players/monsters) opens the disambiguation picker, now
-    // carrying both lists so it can show them in two columns (see its
-    // render below) instead of only ever listing players.
+    // players, monsters AND markers share the same click gesture, so all
+    // three are gathered together here. A single match selects it directly;
+    // several (any mix of the three) opens the disambiguation picker, now
+    // carrying all three lists so it can show up to 3 columns (see its
+    // render below) instead of only ever listing players/monsters.
     const herePlayers = live.players.filter(p => p.row === r && p.col === c);
     const hereMonsters = live.monsters.filter(m => m.row === r && m.col === c);
-    if (herePlayers.length + hereMonsters.length === 1) {
+    const hereMarkers = live.markers.filter(m => m.row === r && m.col === c);
+    const hereTotal = herePlayers.length + hereMonsters.length + hereMarkers.length;
+    if (hereTotal === 1) {
       if (herePlayers.length === 1) setSelectedId(herePlayers[0].id);
-      else setSelectedMonsterId(hereMonsters[0].id);
-    } else if (herePlayers.length + hereMonsters.length > 1) {
-      const dims = pickerDims(herePlayers.length, hereMonsters.length, hereMonsters.length > 0);
+      else if (hereMonsters.length === 1) setSelectedMonsterId(hereMonsters[0].id);
+      else setSelectedMarkerId(hereMarkers[0].id);
+    } else if (hereTotal > 1) {
+      const columns = hereMarkers.length > 0 ? 3 : (hereMonsters.length > 0 ? 2 : 1);
+      const dims = pickerDims([herePlayers.length, hereMonsters.length, hereMarkers.length], columns);
       const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
-      setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:false});
+      setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:hereMarkers.map(m=>m.id), forVision:false});
     }
   }
 
@@ -1765,6 +1924,7 @@ export function PlateauPage({onBack}) {
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
   }
 
   function onContentDoubleClick(e){
@@ -1853,7 +2013,7 @@ export function PlateauPage({onBack}) {
     if (items.length > 1) {
       const sortCount = items.filter(it => it.type !== 'energie').length;
       const energieCount = items.filter(it => it.type === 'energie').length;
-      const dims = pickerDims(sortCount, energieCount, true);
+      const dims = pickerDims([sortCount, energieCount], 2);
       const pos = clampPopupPos(clientX, clientY + 40, dims.width, dims.height);
       setItemCellPicker({clientX:pos.left, clientY:pos.top, items, forVision: live.visionMode});
       return true;
@@ -1866,6 +2026,7 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
     return true;
   }
 
@@ -1887,10 +2048,13 @@ export function PlateauPage({onBack}) {
     const pile = piles.find(p => p.id === pileId);
     if (!pile) return;
 
-    // Sort/énergie decks draw into heldItem instead of heldTile — same
-    // "click again to cancel" cycle, just tagged with the deck's type so it
-    // lands in boardItems (not placedTiles) once placed.
-    if (pile.type !== 'case') {
+    // Sort/énergie/monstre decks draw into heldItem instead of heldTile —
+    // same "click again to cancel" cycle, just tagged with the deck's type
+    // so it lands in boardItems/monsters (not placedTiles) once placed.
+    // Cases de départ are the exception: mechanically a tile like 'case'
+    // (rotate/flip/one-per-cell), so they fall through to the heldTile
+    // branch below instead, just like 'case' itself.
+    if (pile.type !== 'case' && pile.type !== 'depart') {
       if (heldItem) {
         if (heldItem.fromPileId === pileId) {
           const cardId = heldItem.cardId;
@@ -1908,6 +2072,7 @@ export function PlateauPage({onBack}) {
       setSelectedDiscardCardId(null);
       setSelectedId(null); // only one thing selected at a time
       setSelectedMonsterId(null);
+      setSelectedMarkerId(null);
       clearTileSelection();
       return;
     }
@@ -1923,13 +2088,14 @@ export function PlateauPage({onBack}) {
     if (pile.cards.length === 0) return;
     const card = pile.cards[pile.cards.length-1];
     setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
-    setHeldTile({cardId:card.id, fromPileId:pileId});
+    setHeldTile({cardId:card.id, fromPileId:pileId, tileType:pile.type});
     clearTileSelection();
     setSelectedDiscardCardId(null);
     setSelectedId(null); // only one thing selected at a time
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
@@ -2097,6 +2263,7 @@ export function PlateauPage({onBack}) {
       clearTileSelection();
       setSelectedDiscardCardId(null);
       setSelectedMonsterId(null);
+      setSelectedMarkerId(null);
     }
     setVisionMode(!visionMode);
   }
@@ -2130,11 +2297,12 @@ export function PlateauPage({onBack}) {
     setSelectedFooterItem(null);
     setEnlargedItem(null);
     setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
     centerView();
     commitBoard({
       players: [], piles: makeInitialPiles(),
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
-      boardItems: [], heldItem: null, monsters: []
+      boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
     });
   }
 
@@ -2159,6 +2327,15 @@ export function PlateauPage({onBack}) {
     const key = `${m.row}-${m.col}`;
     (cellGroups[key] = cellGroups[key] || []).push({...m, kind:'monstre'});
   });
+  // Markers join the SAME clustering — Gus asked for them to react "exactement
+  // comme les monstres... considéré comme un joueur", so a lone marker
+  // centers like a lone player/monster and a marker sharing a cell with
+  // others splits the same jitter positions, instead of a separate
+  // corner-stacking system like boardItems (sorts/énergies) get below.
+  markers.forEach(mk => {
+    const key = `${mk.row}-${mk.col}`;
+    (cellGroups[key] = cellGroups[key] || []).push({...mk, kind:'marker'});
+  });
 
   // Same clustering idea for items sharing a cell — a smaller offset than
   // players' since the tokens themselves are smaller (ITEM_BOARD_SIZE).
@@ -2172,6 +2349,7 @@ export function PlateauPage({onBack}) {
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
   const selectedItemObj = selectedItemId ? boardItems.find(it => it.id === selectedItemId) : null;
   const selectedMonsterObj = selectedMonsterId ? monsters.find(m => m.id === selectedMonsterId) : null;
+  const selectedMarkerObj = selectedMarkerId ? markers.find(m => m.id === selectedMarkerId) : null;
   // A tile fresh out of a pile/défausse ('placed' mode, rotate-only) isn't
   // "selected" as far as piles/défausse are concerned — Gus asked for those
   // to be completely inert (not even the Dessus/Dessous insert menu) while
@@ -2199,7 +2377,12 @@ export function PlateauPage({onBack}) {
   // different state var) is unaffected and still opens the menu normally,
   // same as any other type — only a LIVE board monster loses this path.
   function hasSelectedCardOfType(type){
-    if (type === 'case') return !!(selectedTileId && !isPlacedMode) || discardSelType === 'case';
+    // 'case' and 'depart' are both tile types living in the SAME
+    // selectedTileId — the actual selected tile's own `type` (defaulting to
+    // 'case' for tiles placed before this field existed) decides which one
+    // this matches, so a selected case tile never opens the départ pile's
+    // insert menu and vice versa.
+    if (type === 'case' || type === 'depart') return (!!selectedTileId && !isPlacedMode && (selectedTileObj?.type || 'case') === type) || discardSelType === type;
     if (type === 'monstre') return discardSelType === 'monstre';
     return (!!selectedItemObj && selectedItemObj.type === type) || discardSelType === type || footerSelType === type;
   }
@@ -2210,7 +2393,7 @@ export function PlateauPage({onBack}) {
   // BEFORE DiscardSlot ever reaches the cancel-selection wrapper, so no
   // conflict with the new rule here.
   function hasSelectedForDiscardOfType(type){
-    if (type === 'case') return !!(selectedTileId && !isPlacedMode);
+    if (type === 'case' || type === 'depart') return !!selectedTileId && !isPlacedMode && (selectedTileObj?.type || 'case') === type;
     if (type === 'monstre') return !!selectedMonsterId;
     return (!!selectedItemObj && selectedItemObj.type === type) || footerSelType === type;
   }
@@ -2383,8 +2566,63 @@ export function PlateauPage({onBack}) {
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
           onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
         }),
-        (heldTile || heldItem) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
-      )
+        (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
+      ),
+
+      // HEADER EXTENSION — collapsed by default behind the small +/− button
+      // (bottom-right corner, positioned to never overlap the monster
+      // défausse, which sits inset under its own column rather than flush
+      // to the screen edge). Holds the cases-de-départ deck (a 5th tile
+      // type, full pile/défausse mechanics reused as-is) and the 5
+      // unlimited-supply marqueurs, in the exact left-to-right order Gus
+      // gave. Deliberately does NOT feed into naturalHeaderWidth/headerScale
+      // above — it's an optional "petite extension", not part of the main
+      // row's shrink-to-fit budget — so it gets its own overflowX:'auto'
+      // safety net instead.
+      headerExtOpen && h('div', {
+        style:{
+          display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'10px 16px 14px', overflowX:'auto',
+          borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`
+        }
+      },
+        h(PileGroup, {
+          type:'depart', piles, discardCards, boxSize:headerBoxSize,
+          holding:{pileId: heldTile && heldTile.tileType === 'depart' ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
+          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          hasSelectedCard:hasSelectedCardOfType('depart'), hasSelectedTile:hasSelectedForDiscardOfType('depart'), disabled:pilesDisabled,
+          // Same "deselect + draw the next one in one tap" passthrough as
+          // the case group (see its own comment) — départ tiles are placed
+          // exactly as often mid-game, no reason to treat that tap as inert.
+          allowPileDraw:true,
+          visionMode, onOpenDiscardPeek:openDiscardPeek,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+        }),
+        h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
+        h('div', {style:{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', paddingTop:Math.max(0, (headerBoxSize-36)/2)}},
+          MARKER_ORDER.map(type => h(MarkerButton, {
+            key:type, type, holding: heldMarker?.markerType === type, disabled: pilesDisabled || visionMode,
+            onClick: () => drawMarkerOrCancelSelection(type)
+          }))
+        )
+      ),
+
+      // Small +/− toggle, pinned to the header's own bottom-right corner
+      // (the header has `position:relative` already — see its own comment
+      // on why that matters for z-index — so this stays anchored to it
+      // regardless of whether the extension row is open, i.e. regardless of
+      // the header's own total height at any given moment).
+      h('button', {
+        onClick:guardedBySelection(()=>setHeaderExtOpen(o => !o)),
+        title: headerExtOpen ? 'Réduire' : 'Marqueurs',
+        style:{
+          position:'absolute', right:8, bottom:6, zIndex:21,
+          width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+          background:'rgba(255,255,255,.08)', border:`1px solid ${borderColor(visionMode,'#444')}`, color:'#ccc', fontSize:14, lineHeight:1
+        }
+      }, headerExtOpen ? '−' : '+')
     ),
 
     // RIGHT SIDEBAR — player roster, confined to the space between header
@@ -2469,7 +2707,7 @@ export function PlateauPage({onBack}) {
             transform:`rotate(${t.rotation}deg)`, pointerEvents:'none',
             boxShadow: selectedTileId === t.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : 'none'
           }
-        }, h(CardFace, {showBack:t.flipped, size:CELL-4}))),
+        }, h(CardFace, {showBack:t.flipped, size:CELL-4, kind:t.type || 'case'}))),
         // Items render ABOVE tiles, BELOW players — plain DOM order (no
         // z-index needed) already gives that: this block sits between the
         // placedTiles block above and the player-tokens block below.
@@ -2510,6 +2748,22 @@ export function PlateauPage({onBack}) {
                 boxShadow: selectedMonsterId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.5)'
               }
             }, '👹');
+          }
+          if (e.kind === 'marker') {
+            // Blue selection glow like a tile/player, NOT the monster's red —
+            // the icon shape alone already tells markers apart, no need for
+            // a dedicated color the way monsters (all identical 👹) needed one.
+            return h('div', {
+              key:e.id,
+              style:{
+                position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
+                width:22, height:22, borderRadius:'50%', background:'rgba(20,20,20,.85)',
+                border:'1px solid rgba(255,255,255,.25)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                pointerEvents:'none',
+                boxShadow: selectedMarkerId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
+              }
+            }, h(MarkerIcon, {type:e.type, size:13}));
           }
           return h('div', {
             key:e.id,
@@ -2594,7 +2848,13 @@ export function PlateauPage({onBack}) {
             key:'item-discard', onClick: e => { e.stopPropagation(); discardSelectedItem(); },
             style:{...inGridBtnStyle, left:selectedItemObj.col*CELL, top:selectedItemObj.row*CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
           }, '✕')
-        ]
+        ],
+        // A marker gets only the ✕ — no eye, since there's no card content
+        // behind it to enlarge (a marker IS its own whole appearance).
+        selectedMarkerObj && h('div', {
+          key:'marker-discard', onClick: e => { e.stopPropagation(); discardSelectedMarker(); },
+          style:{...inGridBtnStyle, left:selectedMarkerObj.col*CELL+CELL, top:selectedMarkerObj.row*CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
+        }, '✕')
       )
     ),
 
@@ -2614,7 +2874,7 @@ export function PlateauPage({onBack}) {
       ref:cellPickerAnchorRef,
       style:{position:'fixed', left:cellPicker.clientX, top:cellPicker.clientY, zIndex:250}
     },
-      cellPicker.monsterIds.length === 0
+      (cellPicker.monsterIds.length === 0 && cellPicker.markerIds.length === 0)
         ? h(Popup, {
             onClose:()=>setCellPicker(null),
             anchorRef:cellPickerAnchorRef,
@@ -2656,6 +2916,19 @@ export function PlateauPage({onBack}) {
                     setCellPicker(null);
                   }
                 }, '👹'))
+              ),
+              // Markers never appear here for Vision (forVision is always
+              // false whenever markerIds is non-empty — Vision mode never
+              // gathers markers, see handleSingleClick), so this column has
+              // just the one action: select for move.
+              cellPicker.markerIds.length > 0 && h('div', {style:{display:'flex', flexDirection:'column', gap:6}},
+                cellPicker.markerIds.map(id => {
+                  const mk = markers.find(m => m.id === id);
+                  return h('div', {
+                    key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
+                    onClick:() => { setSelectedMarkerId(id); setCellPicker(null); }
+                  }, mk && h(MarkerIcon, {type:mk.type, size:16}));
+                })
               )
             )
           })

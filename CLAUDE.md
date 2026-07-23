@@ -725,6 +725,110 @@ Modifier une quantité dans le catalogue et relancer une partie change directeme
 composition de la pioche, sans code à toucher. Même principe prévu plus tard pour les
 pioches de sorts et d'énergies (`data.sorts`/`data.energies`).
 
+### Cases de départ + marqueurs + extension du header — implémenté (dernier ajout, "on a fini la version locale !")
+Dernière couche avant la fin de la version locale hotseat : un petit bouton `+`/`−` en
+bas à droite du header (positionné pour ne jamais chevaucher la défausse monstre, qui
+est décalée vers l'intérieur de sa propre colonne plutôt que collée au bord de l'écran)
+ouvre/ferme une extension du header (`headerExtOpen`, purement de l'UI, pas persisté ni
+undoable) contenant deux choses nouvelles :
+
+- **Cases de départ** : un 5ème type de pioche de tuile (`pile.type:'depart'`), 10 cartes
+  seulement (`makeDeck('depart', 10)` — `makeDeck` prend maintenant un `count` en second
+  paramètre, 100 par défaut pour ne rien changer aux 4 pioches existantes) plutôt que le
+  placeholder à 100. Mécaniquement **identique à une case normale** (pioche/défausse/
+  rotation/flip/déplacement/défausse, un seul geste de sélection par double-clic, mode
+  `'placed'` rotate-only après la pose...) : réutilise tout le système de tuiles existant
+  sans nouveau code de geste, simplement en donnant à `placedTiles` un champ `type` qu'il
+  n'avait pas avant (implicitement toujours `'case'` jusqu'ici) — threadé à travers
+  `heldTile` (nouveau champ `tileType`, posé par `drawFromPile` depuis `pile.type`),
+  la pose (`placedTiles` retient `type:heldTile.tileType||'case'`), le rendu de la tuile
+  (`CardFace` reçoit `kind:t.type||'case'`), `discardTile` (relit le type de la tuile
+  plutôt que de forcer `'case'` en dur comme avant) et la branche de pose depuis la
+  défausse (`dcard.type === 'case' || dcard.type === 'depart'`). `drawFromPile` route
+  maintenant `'case'` ET `'depart'` vers la branche `heldTile` (`pile.type !== 'case' &&
+  pile.type !== 'depart'` décide qui va dans `heldItem` à la place). `BACK_ACCENT`/
+  `FRONT_GLYPH` gagnent une entrée `depart` (bordure verte, glyphe "D" placeholder).
+  **Mélange interdit avec les cases normales** ("pas possible de mélanger une case de
+  départ et une case map dans les pioches") : ne demande aucun code dédié — comme chaque
+  pioche a déjà son propre `pile.type`, `mergeArmedInto` (qui refuse déjà toute fusion
+  entre deux types différents) bloque la fusion pour la même raison qu'il empêche déjà
+  case/sort/énergie/monstre de se mélanger. Seule subtilité : `hasSelectedCardOfType`/
+  `hasSelectedForDiscardOfType` comparaient auparavant juste "y a-t-il une tuile
+  sélectionnée" pour le type `'case'` — puisque `case` et `depart` partagent maintenant
+  le même état `selectedTileId`, ces deux fonctions regardent maintenant aussi le
+  `type` réel de la tuile sélectionnée (`selectedTileObj?.type`) pour départager, sinon
+  sélectionner une case de départ aurait pu ouvrir le menu Dessus/Dessous de la pioche
+  de cases normales (et vice versa).
+- **Marqueurs** : 5 jetons/drapeaux à quantité **illimitée** ("je peux en prendre en
+  remettre comme je veux") — donc PAS de pioche ni de défausse, juste un tableau
+  `markers` (`{id, row, col, type}`) et un bouton dédié par type (`MarkerButton`, pas un
+  `PileStack`) dans l'ordre exact donné par Gus : 🔵 jeton bleu, drapeau bleu, drapeau
+  rouge, 🔴 jeton rouge, 🪨 roche (placeholder "en attendant"). Les deux drapeaux
+  partagent un même composant `FlagIcon` (SVG trait, coloré par prop) plutôt qu'un emoji
+  — aucun emoji Unicode ne rend un "drapeau bleu" simple, et mélanger un emoji pour l'un
+  et un SVG pour l'autre aurait été visuellement incohérent.
+  **Réagissent "exactement comme les monstres, considérés comme un joueur"** : cliquer
+  un bouton marqueur "tient" un marqueur fraîchement `uid()`-é (`heldMarker`, même cycle
+  que `drawFromPile` mais sans pioche source — recliquer le MÊME bouton annule, cliquer
+  un AUTRE bouton pendant qu'on en tient un ne fait rien, mêmes règles qu'une pioche),
+  un tap sur la grille le pose ; une fois posé, un simple tap le sélectionne
+  (`selectedMarkerId`), un second tap ailleurs le déplace. Rejoint le MÊME clustering de
+  case que joueurs/monstres (`cellGroups`, tag `kind:'marker'`) plutôt qu'un système de
+  coin séparé comme les items — un marqueur seul se centre comme un joueur seul, un
+  marqueur qui partage sa case avec d'autres entités se répartit le même jitter. Glow de
+  sélection bleu (comme une tuile), pas rouge comme un monstre — la forme de l'icône
+  suffit déjà à distinguer les types entre eux, pas besoin d'une couleur dédiée. Un
+  marqueur sélectionné n'affiche qu'une croix ✕ (pas d'œil : il n'y a pas de contenu de
+  carte à agrandir, l'icône EST son apparence). Défausser un marqueur (`discardSelectedMarker`)
+  le supprime simplement du plateau — pas de défausse à alimenter, il peut être recréé
+  gratuitement à tout moment depuis son bouton. `MarkerButton` est bloqué (comme les 4
+  pioches) pendant le mode `'placed'` d'une tuile (`pilesDisabled`) et pendant le mode
+  Vision (`visionMode`, même esprit que "pioches totalement inertes en mode Vision" —
+  même si un marqueur n'est pas une pioche à proprement parler, l'idée "aucune nouvelle
+  entité tant que Vision inspecte" reste cohérente).
+  **Mode Vision volontairement scopé de côté** : contrairement aux monstres, les
+  marqueurs ne sont PAS rassemblés dans la branche Vision de `handleSingleClick` — taper
+  une case avec seulement un marqueur (sans joueur/monstre) en mode Vision ne fait donc
+  rien, exactement comme avant l'ajout des marqueurs. Pas de contenu de carte à afficher
+  en grand pour un marqueur de toute façon.
+  **Attention aux problèmes de sélection déjà rencontrés avec joueurs/monstres/items**
+  (Gus a explicitement demandé d'y faire attention) : `selectedMarkerId` a été ajouté
+  partout où `selectedMonsterId` l'était déjà — `hasAnySelection()`, `clearCardSelection()`,
+  `liveRef`, `commitBoard`/`applySnapshot`/`currentSnapshot` (pour `markers` lui-même,
+  comme `monsters`), la persistance `localStorage`, et TOUS les sites "une seule chose
+  sélectionnée à la fois" (`toggleSelectDiscardCard`, `insertSelectedCardIntoPile`,
+  `selectFooterItem`, `handleItemLongPress`, les deux branches de `drawFromPile`,
+  `selectTileAt`, `resetBoard`, `toggleVisionMode`, `drawMarker` lui-même). `MarkerButton`
+  a sa propre enveloppe `drawMarkerOrCancelSelection` (mirroring `drawFromPileOrCancelSelection`)
+  puisque ce n'est ni un `PileStack` ni un `DiscardSlot` — pas de prop `hasSelectedCard`
+  à lui passer, donc un `hasAnySelection()` direct suffit. Vérifié explicitement :
+  cliquer un AUTRE bouton marqueur (ou n'importe quel autre contrôle guardedBySelection)
+  pendant qu'un marqueur est sélectionné annule la sélection au lieu d'en tenir un
+  nouveau ; un marqueur partageant une case avec un joueur ouvre bien le `cellPicker` à
+  colonnes multiples (voir juste en dessous) ; l'undo/redo restaure bien un marqueur
+  défaussé.
+- **`cellPicker` étendu à 3 colonnes** : portait déjà `playerIds`/`monsterIds` séparément
+  (voir "Monstres traités comme des 'joueurs'") — gagne maintenant `markerIds`. Le mode
+  liste à une seule colonne (cas d'origine, toujours intact) ne s'active que si NI
+  monstre NI marqueur ne partage la case ; dès que l'un des deux est présent, bascule en
+  mode `children` à colonnes — la colonne monstres reste toujours rendue dans ce mode
+  (même si vide, comportement hérité identique à avant les marqueurs), la colonne
+  marqueurs ne s'ajoute que si `markerIds.length > 0`. `pickerDims` a été généralisé en
+  conséquence : prend maintenant `(counts:number[], columns:1|2|3)` au lieu de
+  `(colACount, colBCount, twoColumn:boolean)`, pour calculer une largeur à 3 paliers
+  (220/260/320) plutôt que 2.
+- **Popups de pioche (Diviser/Mélanger/Dessus/Dessous) rétrécies** : depuis leur passage
+  en emoji-only (voir plus haut), elles réservaient encore la largeur `130`/`150px`
+  d'origine, pensée pour du texte — largeur ramenée à `56px`. Piège : la classe CSS
+  partagée `.popup` impose `min-width:130px`, un plancher qu'un `width` inline seul ne
+  peut pas franchir (la spécificité CSS ne joue pas ici, `min-width` prime) — il faut
+  aussi un `minWidth:56` inline pour l'emporter sur cette règle de classe.
+- L'extension ne participe PAS au calcul `naturalHeaderWidth`/`headerScale` de la rangée
+  principale (cases/sorts/énergies/monstres) — c'est une "petite extension" optionnelle,
+  pas un 5ème groupe dans le budget de rétrécissement ; elle a son propre `overflowX:'auto'`
+  comme filet de sécurité, et réutilise `headerBoxSize` déjà calculé juste pour rester
+  visuellement cohérente avec la rangée du dessus.
+
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
 `src/components/UndoRedo.js`, mais historique **séparé** — `pastRef`/`futureRef` locaux
@@ -1372,6 +1476,13 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      une pioche/équiper/réordonner) passent par `commitBoard` comme les tuiles, donc
      déjà undoable — seul le tirage/annulation d'une pioche (`heldItem`) ne l'est pas en
      soi, même logique que pour `heldTile` (voir "Undo/redo global").
+   - **Cases de départ + marqueurs (voir "Cases de départ + marqueurs + extension du
+     header" plus haut) : implémentés.** Gus a signalé cet ajout comme le dernier avant
+     de considérer la version locale hotseat terminée ("on a fini la version locale !").
+     Reste, non-bloquant : brancher les vraies pioches dynamiques depuis le catalogue
+     (`data.cases`/`data.sorts`/`data.energies`, voir "Pioches dynamiques depuis le
+     catalogue"), le contenu réel des cartes (toujours des placeholders), et le contenu
+     détaillé du mode Vision pour les cases/tuiles (Couche 4, jamais commencé).
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation
