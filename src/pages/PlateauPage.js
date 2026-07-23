@@ -129,6 +129,31 @@ function EyeIcon(){
   );
 }
 
+// Clamps a popup's top-left corner so it never opens partly off-screen
+// (Gus: "vérifier si la fenêtre a la place pour s'ouvrir avant, et si non
+// qu'elle se déplace un peu" — signalled about menus drifting off the
+// right edge, but the same clamp works for every edge). These menus open
+// BEFORE their first paint, so there's no DOM box to measure yet — width/
+// height are estimated instead from what's actually inside (item count ×
+// a known per-item size), which is accurate enough now that every one of
+// them is emoji-only (no variable-width text to throw the estimate off).
+function clampPopupPos(left, top, width, height){
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  return { left: Math.min(Math.max(margin, left), maxLeft), top: Math.min(Math.max(margin, top), maxTop) };
+}
+// Shared size estimate for the multi-entity/multi-item cell pickers
+// (cellPicker, itemCellPicker) — `twoColumn` forces the wider 2-column
+// layout's width even if one side is currently empty (itemCellPicker is
+// always 2 columns; cellPicker only switches to 2 columns once a monster
+// shares the cell — see its own render logic).
+function pickerDims(colACount, colBCount, twoColumn){
+  const width = twoColumn ? 260 : 220;
+  const height = Math.max(colACount, colBCount, 1) * 46 + 20;
+  return {width, height};
+}
+
 function shuffle(arr){
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) {
@@ -223,7 +248,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
   // popup can render `position:fixed` there (see the render below for why).
   function menuPosNow(){
     const r = anchorRef.current.getBoundingClientRect();
-    return {left:r.left, top:r.bottom+6};
+    return clampPopupPos(r.left, r.bottom+6, 150, 90);
   }
   function startPress(){
     if (hasSelectedCard) return; // a quick click here means "insert", not "arm"
@@ -288,8 +313,8 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
       anchorRef,
       style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:130, zIndex:280},
       items:[
-        {label:'✂️ Diviser', onClick:()=>onSplit(pile.id)},
-        {label:'🔀 Mélanger', onClick:()=>onShuffle(pile.id)},
+        {label:'✂️', onClick:()=>onSplit(pile.id)},
+        {label:'🔀', onClick:()=>onShuffle(pile.id)},
       ]
     }),
     showInsertMenu && h(Popup, {
@@ -297,8 +322,8 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
       anchorRef,
       style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
       items:[
-        {label:'⬆️ Dessus', onClick:()=>onInsertSelected(pile.id, 'top')},
-        {label:'⬇️ Dessous', onClick:()=>onInsertSelected(pile.id, 'bottom')},
+        {label:'⬆️', onClick:()=>onInsertSelected(pile.id, 'top')},
+        {label:'⬇️', onClick:()=>onInsertSelected(pile.id, 'bottom')},
       ]
     })
   );
@@ -335,7 +360,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
     if (cards.length === 0 || hasSelectedTile) return; // nothing to arm / a quick tap here means "discard the selection" instead
     pressTimer.current = setTimeout(() => {
       const r = anchorRef.current.getBoundingClientRect();
-      setMenuPos({left:r.left, top:r.bottom+6});
+      setMenuPos(clampPopupPos(r.left, r.bottom+6, 150, 50));
       setShowMenu(true);
       onArm(armedSelfId);
     }, 500);
@@ -393,7 +418,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
       anchorRef,
       style:{position:'fixed', left:menuPos?.left, top:menuPos?.top, width:150, zIndex:280},
       items:[
-        {label:'🔀 Mélanger', onClick:onShuffleInPlace},
+        {label:'🔀', onClick:onShuffleInPlace},
       ]
     })
   );
@@ -625,6 +650,81 @@ function PlayerSquare({player, isCurrent, size=64, onRemove, onRename, onOpenInf
         )
       )
     )
+  );
+}
+
+// Classic dice pip layout, 3×3 grid positions (row,col) lit up per face
+// value 1-6 — used for the roll result instead of a plain digit (Gus: "si
+// le chiffre peut être représenté comme les points noirs d'un dé c'est
+// mieux").
+const DICE_PIPS = {
+  1: [[1,1]],
+  2: [[0,0],[2,2]],
+  3: [[0,0],[1,1],[2,2]],
+  4: [[0,0],[0,2],[2,0],[2,2]],
+  5: [[0,0],[0,2],[1,1],[2,0],[2,2]],
+  6: [[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]]
+};
+function DiceFace({value, size}){
+  const on = new Set((DICE_PIPS[value] || []).map(([r,c]) => `${r}-${c}`));
+  return h('div', {style:{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gridTemplateRows:'repeat(3,1fr)', width:size, height:size, padding:size*0.14, boxSizing:'border-box'}},
+    Array.from({length:9}, (_, i) => {
+      const r = Math.floor(i/3), c = i%3;
+      return h('div', {key:i, style:{display:'flex', alignItems:'center', justifyContent:'center'}},
+        on.has(`${r}-${c}`) && h('div', {style:{width:size*0.16, height:size*0.16, borderRadius:'50%', background:'#222'}})
+      );
+    })
+  );
+}
+
+const DICE_EMOJI_SIZE = 20, DICE_RESULT_SIZE = 27;
+// Dice roll button: click shakes the 🎲 emoji for ~1s (Gus: "petit
+// mouvement mais rapide/nerveux dans des sens qui semble aléatoires"),
+// then the result pops in as a white square with dice pips (DiceFace),
+// growing from tiny up to full size — big enough to fully cover the emoji
+// underneath (Gus: "un peu plus gros que le dé en emoji pour le cacher").
+// Re-rolling plays the same pop-in in reverse first (the old result
+// shrinks away to reveal the emoji again) before shaking and growing the
+// new one. Pure presentation layer around the existing rollDice/
+// guardedBySelection — the dice VALUE itself is still generated by the
+// same untouched rollDice (still not undo-tracked, see its own comment);
+// `phase` is local state private to this button, nothing here is added to
+// the board's persisted/undoable state.
+function DiceButton({player, onRoll, guardedBySelection, visionMode}){
+  const [phase, setPhase] = useState('idle'); // idle | shrinking | shaking | growing
+  const timersRef = useRef([]);
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
+  function after(ms, fn){ timersRef.current.push(setTimeout(fn, ms)); }
+
+  const handleClick = guardedBySelection(() => {
+    if (phase !== 'idle') return;
+    const shakeThenReveal = () => {
+      setPhase('shaking');
+      after(1000, () => {
+        onRoll();
+        setPhase('growing');
+        after(260, () => setPhase('idle'));
+      });
+    };
+    if (player.dice) { setPhase('shrinking'); after(220, shakeThenReveal); }
+    else shakeThenReveal();
+  });
+
+  const showResult = player.dice && phase !== 'shaking';
+  return h('button', {
+    onClick:handleClick,
+    style:{position:'relative', background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`,
+      borderRadius:6, width:44, height:34, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
+  },
+    h('div', {className: phase === 'shaking' ? 'dice-shake' : '', style:{fontSize:DICE_EMOJI_SIZE, lineHeight:1}}, '🎲'),
+    showResult && h('div', {
+      className: phase === 'growing' ? 'dice-result-grow' : phase === 'shrinking' ? 'dice-result-shrink' : '',
+      style:{
+        position:'absolute', top:'50%', left:'50%', marginTop:-DICE_RESULT_SIZE/2, marginLeft:-DICE_RESULT_SIZE/2,
+        width:DICE_RESULT_SIZE, height:DICE_RESULT_SIZE, background:'#fff', borderRadius:5,
+        boxShadow:'0 1px 4px rgba(0,0,0,.5)'
+      }
+    }, h(DiceFace, {value:player.dice, size:DICE_RESULT_SIZE}))
   );
 }
 
@@ -1436,7 +1536,11 @@ export function PlateauPage({onBack}) {
       if (herePlayers.length === 1 && hereMonsters.length === 0) { setVisionPlayerId(herePlayers[0].id); setVisionPlayerFromSidebar(false); return; }
       // Several players, or players mixed with monsters: disambiguate via
       // the same two-column picker the normal (non-Vision) flow uses.
-      setCellPicker({clientX, clientY, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:true});
+      {
+        const dims = pickerDims(herePlayers.length, hereMonsters.length, hereMonsters.length > 0);
+        const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
+        setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:true});
+      }
       return;
     }
 
@@ -1575,7 +1679,9 @@ export function PlateauPage({onBack}) {
       if (herePlayers.length === 1) setSelectedId(herePlayers[0].id);
       else setSelectedMonsterId(hereMonsters[0].id);
     } else if (herePlayers.length + hereMonsters.length > 1) {
-      setCellPicker({clientX, clientY, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:false});
+      const dims = pickerDims(herePlayers.length, hereMonsters.length, hereMonsters.length > 0);
+      const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
+      setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:false});
     }
   }
 
@@ -1745,7 +1851,11 @@ export function PlateauPage({onBack}) {
     const items = live.boardItems.filter(it => it.row === r && it.col === c);
     if (!items.length) return false;
     if (items.length > 1) {
-      setItemCellPicker({clientX, clientY: clientY + 40, items, forVision: live.visionMode});
+      const sortCount = items.filter(it => it.type !== 'energie').length;
+      const energieCount = items.filter(it => it.type === 'energie').length;
+      const dims = pickerDims(sortCount, energieCount, true);
+      const pos = clampPopupPos(clientX, clientY + 40, dims.width, dims.height);
+      setItemCellPicker({clientX:pos.left, clientY:pos.top, items, forVision: live.visionMode});
       return true;
     }
     const item = items[0];
@@ -2109,7 +2219,12 @@ export function PlateauPage({onBack}) {
   // enough room between header and footer to fit them all at the default
   // 64px — the sidebar itself stays vertically centered in that space and
   // scrolls if even the floor size doesn't fit everyone.
-  const SIDEBAR_GAP = 8, SIDEBAR_DEFAULT_SIZE = 64, SIDEBAR_MIN_SIZE = 40;
+  // Default square size scaled ×0.8 (Gus: "réduire... d'un cinquième") from
+  // the original 64px — PlayerSquare's own `scale = size/64` already
+  // derives proportionally from whatever size it's given, so every
+  // internal element (fonts, badges, border-radius) shrinks along with it
+  // automatically, nothing to touch there.
+  const SIDEBAR_GAP = 8, SIDEBAR_DEFAULT_SIZE = 51, SIDEBAR_MIN_SIZE = 40;
   const sidebarAvailH = Math.max(0, (typeof window !== 'undefined' ? window.innerHeight : 800) - sidebarBounds.top - sidebarBounds.bottom - SIDEBAR_GAP*2);
   const sidebarItemCount = players.length + 1; // +1 for the "add player" button
   const sidebarDesiredH = sidebarItemCount*SIDEBAR_DEFAULT_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
@@ -2540,7 +2655,7 @@ export function PlateauPage({onBack}) {
                     else setSelectedMonsterId(id);
                     setCellPicker(null);
                   }
-                }, '👹 Monstre'))
+                }, '👹'))
               )
             )
           })
@@ -2579,7 +2694,7 @@ export function PlateauPage({onBack}) {
                   }
                   setItemCellPicker(null);
                 }
-              }, kind === 'energie' ? '🔥 Énergie' : '🪄 Sort')
+              }, kind === 'energie' ? '🔥' : '🪄')
             )
           ))
         )
@@ -2869,9 +2984,8 @@ export function PlateauPage({onBack}) {
         h('button', {onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
 
         h('div', {style:{display:'flex', alignItems:'center', gap:10}},
-          current ? h('button', {onClick:guardedBySelection(()=>rollDice(current.id)), style:{background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`, borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
-            current.dice ? `🎲 ${current.dice}` : '🎲'
-          ) : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, color:'#444', padding:'6px 12px', fontSize:13}}, '🎲'),
+          current ? h(DiceButton, {player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode})
+            : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, width:44, height:34, color:'#444', fontSize:16}}, '🎲'),
           current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
             h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
             h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},

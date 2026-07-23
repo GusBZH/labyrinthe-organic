@@ -73,6 +73,39 @@ button,input,textarea{font-family:inherit;cursor:pointer}
   65.28% {opacity:.25;}
   100%   {opacity:0;}
 }
+/* Dice roll (see DiceButton in PlateauPage.js): the 🎲 emoji trembles in
+   short, irregular bursts for ~1s (Gus: "petit mouvement mais rapide/
+   nerveux dans des sens qui semble aléatoires"), then the result pops in
+   as a small white square (dice pips) over it, growing from tiny to full
+   size. Re-rolling plays the pop-in in reverse first, shrinking the old
+   result away, before the shake starts again. */
+@keyframes diceShake{
+  0%   {transform:translate(0,0) rotate(0deg);}
+  8%   {transform:translate(-2px,1px) rotate(-9deg);}
+  17%  {transform:translate(2px,-2px) rotate(7deg);}
+  24%  {transform:translate(-1px,2px) rotate(-5deg);}
+  33%  {transform:translate(2px,1px) rotate(8deg);}
+  41%  {transform:translate(-2px,-1px) rotate(-7deg);}
+  50%  {transform:translate(1px,2px) rotate(5deg);}
+  58%  {transform:translate(-2px,1px) rotate(-8deg);}
+  67%  {transform:translate(2px,-1px) rotate(6deg);}
+  75%  {transform:translate(-1px,-2px) rotate(-4deg);}
+  83%  {transform:translate(1px,1px) rotate(6deg);}
+  92%  {transform:translate(-1px,-1px) rotate(-3deg);}
+  100% {transform:translate(0,0) rotate(0deg);}
+}
+.dice-shake{ animation:diceShake 1s ease-in-out; }
+@keyframes diceResultGrow{
+  0%   {transform:scale(.1); opacity:0;}
+  55%  {opacity:1;}
+  100% {transform:scale(1); opacity:1;}
+}
+@keyframes diceResultShrink{
+  0%   {transform:scale(1); opacity:1;}
+  100% {transform:scale(.1); opacity:0;}
+}
+.dice-result-grow{ animation:diceResultGrow .22s ease-out both; }
+.dice-result-shrink{ animation:diceResultShrink .18s ease-in both; }
 </style>
 </head>
 <body>
