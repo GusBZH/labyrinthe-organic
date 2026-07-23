@@ -651,8 +651,8 @@
     {
       "id": "ekxjksry8",
       "nom": "Case porte",
-      "statut": "Test 3",
-      "effet": "",
+      "statut": "Validé",
+      "effet": "Utile dans certains mode de jeu",
       "quantite": 1,
       "notes": ""
     }
