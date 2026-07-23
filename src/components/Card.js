@@ -28,18 +28,6 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
             style:{left:16, top:0},
             items: STATUTS.map(s => ({label:s, dot:SC[s], onClick:()=>onUpdate({...item, statut:s})}))
           })
-        ),
-        withElem && h('div', {ref:elRef, style:{position:'relative'}},
-          h('div', {onClick:()=>setShowEl(!showEl), style:{fontSize:14, cursor:'pointer'}}, ec?.em || '?'),
-          showEl && h(Popup, {
-            onClose:()=>setShowEl(false),
-            anchorRef: elRef,
-            style:{left:20, top:0},
-            items: [...ELEMENTS, 'Commun'].map(el => ({
-              label:`${EC[el]?.em||'⚪'} ${el}`,
-              onClick:()=>onUpdate({...item, element:el})
-            }))
-          })
         )
       ),
       h('div', {style:{flex:1, minWidth:0}},
@@ -60,8 +48,25 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
         h('div', {style:{fontSize:12, color:'#bbb', lineHeight:1.6}},
           h(EditText, {value:item.effet, onChange:v=>onUpdate({...item,effet:v}), editMode, multiline:true})
         ),
-        h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6}},
+        h('div', {style:{position:'relative', display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6}},
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+            // Element emoji-picker moved down here from the top-left column
+            // (Gus: "trop proche de la pastille de couleur en haut à
+            // gauche") — sits at the bottom-left now, same spot a monster's
+            // withLvl popup already used, instead of stacked right under
+            // StatusDot with only 4px between them.
+            editMode && withElem && h('div', {ref:elRef, style:{position:'relative'}},
+              h('div', {onClick:()=>setShowEl(!showEl), style:{fontSize:14, cursor:'pointer'}}, ec?.em || '?'),
+              showEl && h(Popup, {
+                onClose:()=>setShowEl(false),
+                anchorRef: elRef,
+                style:{left:0, bottom:'100%', marginBottom:4},
+                items: [...ELEMENTS, 'Commun'].map(el => ({
+                  label:`${EC[el]?.em||'⚪'} ${el}`,
+                  onClick:()=>onUpdate({...item, element:el})
+                }))
+              })
+            ),
             !editMode && showElem && ec && h('span', {style:{
               fontSize:10, color:ec.dot, background:ec.bg, padding:'1px 6px',
               borderRadius:10, border:`1px solid ${ec.br}`
@@ -81,8 +86,13 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
               showNotes ? '▲ notes' : '▼ notes'
             )
           ),
+          // Quantity badge re-centered (Gus: "actuellement il est en bas à
+          // droite... je veux en bas au milieu") — was grouped with the ✕
+          // in the right-hand flex group, too close to it; now absolutely
+          // centered in the row regardless of how wide either side group is,
+          // leaving the ✕ alone on the right.
+          h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-            h('span', {style:{fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
             editMode && h('span', {onClick:()=>onDelete(item.id), style:{fontSize:10, color:'#444', cursor:'pointer'}}, '✕')
           )
         ),
