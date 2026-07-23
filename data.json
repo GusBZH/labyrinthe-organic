@@ -306,7 +306,7 @@
     {
       "id": "s1",
       "nom": "Grenade",
-      "element": "Eau",
+      "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
       "limite": "1x tour",
