@@ -642,6 +642,14 @@
     },
     {
       "id": "urjtegfdqjh",
+      "nom": "Case clé",
+      "statut": "Test 3",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "ekxjksry8",
       "nom": "Nouvelle case",
       "statut": "Test 3",
       "effet": "",
