@@ -372,8 +372,9 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
    - Cliquer une pioche pendant qu'une tuile (ou une carte de la défausse) est
      sélectionnée n'y pioche pas — ça ouvre un mini menu Dessus/Dessous pour l'y
      ranger, voir "Pioches et défausses" ci-dessous.
-- Deck actuel : **100 cartes identiques (placeholder)**, en attendant de brancher la
-  vraie pioche dynamique — voir note "Pioches dynamiques depuis le catalogue" ci-dessous.
+- Deck actuel : **100 cartes identiques (placeholder)** par type (cases/sorts/énergies,
+  `makeDeck(type)`), en attendant de brancher la vraie pioche dynamique — voir note
+  "Pioches dynamiques depuis le catalogue" ci-dessous.
 - **Piège rencontré (fenêtre du menu pioche invisible)** : la mini-fenêtre Diviser/
   Mélanger de l'appui long sur une pioche s'affichait derrière la grille malgré son
   propre `zIndex`. Cause : le header n'avait aucun `position` explicite (donc `static`
@@ -497,11 +498,14 @@ une pioche ou la défausse, insérer une carte Dessus/Dessous, et désormais **R
 lui-même**, le sont tous).
 - **Un seul historique combiné** (`commitBoard(updates)`) plutôt que des piles séparées :
   chaque action pousse un instantané de **tout** l'état persisté à la fois
-  (`{players, piles, discardCards, placedTiles, heldTile, currentIndex}`, lu depuis
-  `liveRef` — voir "Système de sélection par geste" pour pourquoi `liveRef` et pas les
-  variables d'état directes), puis applique seulement les clés fournies dans `updates`.
-  `undo`/`redo` restaurent les 6 clés ensemble. `commitPlayers(next)` n'est qu'un fin
-  wrapper `commitBoard({players:next})`, gardé pour ne pas retoucher tous ses appelants.
+  (`{players, piles, discardCards, placedTiles, heldTile, currentIndex, boardItems,
+  heldItem}`, lu depuis `liveRef` — voir "Système de sélection par geste" pour pourquoi
+  `liveRef` et pas les variables d'état directes), puis applique seulement les clés
+  fournies dans `updates`. `undo`/`redo` restaurent les 8 clés ensemble (`boardItems`/
+  `heldItem` ajoutés avec les items de la Couche 3, voir plus bas — même raisonnement
+  que `heldTile`, transitoire mais capturé pour que l'undo d'une pose remette l'item
+  "en main"). `commitPlayers(next)` n'est qu'un fin wrapper `commitBoard({players:next})`,
+  gardé pour ne pas retoucher tous ses appelants.
 - **`heldTile` fait partie de l'instantané** même s'il est par ailleurs traité comme un
   état transitoire non-undoable (voir point suivant) : c'est ce qui permet à l'undo
   d'une POSE de remettre la carte "en main" plutôt que de la faire disparaître (le
@@ -530,9 +534,10 @@ Bouton "œil" en bas à droite de l'écran (footer du Plateau, juste à gauche d
 flèche `›`). Une fois activé, toute sélection (case, perso, monstre, item) affichera
 le texte complet de la carte en grand plutôt que d'exécuter l'action normale associée
 à la sélection — ex: sélectionner un monstre en mode Vision affichera ses stats et
-récompenses en plein écran, au lieu du menu d'action habituel. **Ce volet "révèle le
-contenu des cartes" n'est pas encore codé** (dépend des items/cartes-sur-case de la
-Couche 3, pas encore présents) ; en revanche l'**ambiance visuelle du toggle est
+récompenses en plein écran, au lieu du menu d'action habituel. **Le volet joueurs est
+fait** (fenêtre `visionPlayerId`, voir "Couche 3" plus bas pour son contenu réel
+sorts/énergies) ; l'inspection détaillée d'une case/tuile/monstre reste à faire (pas
+encore de monstres sur le plateau). L'**ambiance visuelle du toggle est
 implémentée** : overlay bleuté sur les lignes de la grille du Plateau (même dégradé
 répété que le fond de grille, teinté bleu par-dessus, cf. `visionGridStyle` dans
 `PlateauPage.js`), avec un effet glitch inspiré du mode édition à l'activation/
@@ -549,14 +554,114 @@ modification de `useEditFlash` lui-même). Classes CSS `visionflash-in`/
 tant que le mode est actif, pour renforcer l'ambiance (helper `borderColor()` dans
 `PlateauPage.js`).
 
-**Note de design pour plus tard (pas encore implémentée)** : une fois que la fenêtre
-`visionPlayerId` affichera vraiment les sorts/énergies du joueur (au lieu du placeholder
-actuel), chaque carte sort/énergie listée y sera cliquable pour s'ouvrir en grand dans
-sa propre fenêtre dédiée (avec une croix ✕ pour la fermer, même convention que les
-popups existantes) — cette fenêtre agrandie aura en plus des flèches `‹`/`›` dans ses
-coins bas pour défiler d'une carte à l'autre sans repasser par la liste. Dépend de la
-Couche 3 (items/cartes sur le plateau, pas encore commencée) et du contenu réel des
-sorts/énergies par joueur, donc rien à coder avant que ces briques existent.
+### Couche 3 — items (sorts/énergies) sur le plateau et équipés par joueur : implémentée
+Deuxième type de "carte" sur le plateau, en plus des tuiles de la Couche 2 : les sorts
+et énergies ont leurs propres pioches/défausses dans le header, peuvent être posés sur
+le plateau, et peuvent être équipés sur un joueur via une nouvelle zone dans le pied de
+page. Toujours des cartes placeholder identiques (même deck 100 cartes que les tuiles,
+`makeDeck(type)`), en attendant la vraie pioche dynamique — voir "Pioches dynamiques
+depuis le catalogue". Seule différence visuelle pour l'instant entre les 3 types de
+carte : le dos (`BACK_ACCENT` dans `PlateauPage.js` — bordure grise/dorée/bleue pour
+case/sort/énergie) — "le reste on verra plus tard", le contenu réel des cartes n'est
+toujours pas branché.
+
+**Pioches et défausses de sorts/énergies dans le header** — `PileGroup` (nouveau
+composant) généralise `PileStack`/`DiscardSlot` (déjà conçus pour ça, voir leur
+commentaire sur `pile.type`) à 3 groupes de deck affichés côte à côte : cases, puis
+sorts, puis énergies ("les sorts à droite des cases et les énergies à droite des
+sorts"). Cartes de sorts/énergies **deux fois plus petites** que les tuiles (`ITEM_BOX`
+= 30px de boîte contre 56px pour les cases, `ITEM_BOARD_SIZE` = 22px sur le plateau
+contre `CELL-4` pour une tuile) — `PileStack`/`DiscardSlot` prennent maintenant une prop
+`boxSize` (défaut 56, inchangé pour les cases) plutôt qu'une taille figée en dur.
+- **Un seul défausse "logique" mais 3 défausses visuelles** : `discardCards` reste un
+  seul tableau plat, mais chaque entrée porte maintenant un `type` (`'case'`/`'sort'`/
+  `'energie'`) — `PileGroup` filtre ce tableau par type pour chaque défausse affichée.
+  Un id sélectionné (`selectedDiscardCardId`) reste totalement générique : comme les ids
+  sont uniques, il appartient sans ambiguïté à un seul type, retrouvable par
+  `discardCards.find(c=>c.id===...)`.
+- **L'armement d'une défausse par appui long utilise maintenant un id composite**
+  `'discard:'+type` (ex: `'discard:sort'`) plutôt que le `'discard'` unique d'avant —
+  `mergeArmedInto` reconnaît ce préfixe pour savoir quelle défausse est concernée et
+  n'y déplace que les cartes de CE type (les cartes des 2 autres défausses, si elles
+  existent comme d'autres entrées du même tableau `discardCards`, restent en place).
+- **Wrap 2 colonnes quand une pioche se divise** (motif demandé par Gus : `◻️◻️` puis
+  `◻️` sur une nouvelle ligne au 3ème paquet) : `PileGroup` affiche les piles d'UN type
+  dans une simple CSS grid `gridTemplateColumns:'repeat(2, ...)'` — une grid 2 colonnes
+  remplit naturellement colonne 1 puis colonne 2 puis repasse en colonne 1 d'une
+  nouvelle ligne, sans logique de découpage manuel. La défausse reste un sibling flex
+  EN DEHORS de cette grid ("toujours devant le premier paquet") : diviser/fusionner des
+  piles fait grandir/rétrécir la grid sans jamais déplacer la défausse elle-même.
+- **Rétrécit au lieu de déborder** ("comme les carrés des joueurs") : même principe que
+  `squareSize` de la sidebar, appliqué à la largeur totale des 3 groupes du header
+  (`caseBoxSize`/`itemBoxSize`, calculés depuis `groupNaturalWidth()` vs
+  `window.innerWidth`, plancher `HEADER_MIN_SCALE`=0.5×) — `overflowX:'auto'` reste un
+  filet de sécurité si même ce plancher ne suffit pas.
+
+**Items sur le plateau** — nouvel état `boardItems` (`{id, type, row, col}`), rendu
+entre les tuiles et les jetons joueurs dans le DOM (donc au-dessus des cases, en
+dessous des joueurs, sans besoin de z-index — l'ordre du DOM suffit). Contrairement aux
+tuiles, plusieurs items peuvent partager une case (petit décalage de regroupement,
+même principe que `cellGroups` pour les joueurs, juste `itemCellGroups`) et un item n'a
+ni rotation ni flip ni bouton dans la grille — "juste déplacer c'est suffisant".
+- **Troisième geste dédié : l'appui long**, exactement le design d'origine prévu dans
+  "Système de sélection par geste" (clic = joueurs, double-clic = tuiles, appui long =
+  items) — implémenté en autonome via `onContentPointerDown`/`Move`/`Up` sur le div
+  `content` (qui n'avait aucun handler pointer avant), sans toucher au système clic/
+  double-clic existant : un timer de 500ms (même durée que l'armement des pioches),
+  annulé si le pointeur bouge de plus de 6px (seuil un peu plus large que le drag de
+  pan, pour laisser le pan tactile natif tranquille). `heldTile`/`visionMode` bloquent
+  la sélection, comme les autres gestes de carte.
+- **Un vrai `click` natif suit toujours un appui long réussi** (le `preventDefault` sur
+  `pointerdown` n'annule pas le `click` qui arrive au relâchement) — `suppressNextClickRef`
+  (mis à `true` par `handleItemLongPress` quand il sélectionne réellement quelque chose,
+  vérifié et remis à `false` en tête de `onContentClick`) absorbe ce clic parasite pour
+  qu'il ne retombe pas sur la logique de sélection joueur juste après.
+- **Poser/déplacer un item** : `heldItem` (tiré d'une pioche sort/énergie, mêmes deux
+  clics que `heldTile` — un pour piocher/tenir, un pour poser) et `selectedItemId` (item
+  déjà posé, ramassé par appui long) suivent exactement le même schéma "un seul tap
+  suffit pour finir le geste" que les tuiles, sans le mode `'placed'` rotation-only (pas
+  besoin, rien à orienter).
+
+**Équiper un item sur un joueur** — nouvelle zone dans le pied de page, juste au-dessus
+de la ligne dé/PV existante (jamais touchée), visible seulement s'il y a un joueur
+courant : à gauche un **emplacement unique "sort de nature"** (`player.natureSort`,
+carré en pointillés tant qu'il est vide), à droite deux lignes empilées — sorts puis
+énergies (`player.sorts`/`player.energies`, tableaux, sans limite dure de 3 — l'app
+n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
+- **"Peu importe où je clique dans cette zone avec un item"** : `onClickCapture` sur la
+  zone entière (phase de capture, donc déclenché AVANT le clic propre de n'importe quel
+  slot enfant) équipe directement `heldItem`/`selectedItemId` s'il y en a un, et
+  `e.stopPropagation()` empêche le clic d'atteindre en plus le handler normal d'un slot
+  (qui, lui, ouvrirait la fenêtre agrandie — pas ce qu'on veut ici). Le tout premier
+  sort équipé va dans l'emplacement nature ; tous les suivants (et toutes les énergies,
+  toujours) s'ajoutent en bout de leur ligne (`equipHeldOrSelectedItem`).
+- **Retirer un item équipé** : `selectedFooterItem` (`{playerId, slot, cardId}`) mirrore
+  `selectedDiscardCardId`/`selectedItemId` — reste "en place" (glow) dans le tableau du
+  joueur jusqu'à un tap ailleurs (case du plateau, pioche/défausse assortie) qui le
+  déplace réellement. `removeFooterItem()` centralise le retrait (nature/sorts/
+  énergies) pour `insertSelectedCardIntoPile`/`discardSelectedItem`/le tap sur la grille.
+- **Geste final sur un item déjà équipé** (dernière clarification de Gus, remplace une
+  première idée plus simple) : **un tap** ouvre directement la fenêtre agrandie ;
+  **appui long SANS bouger** sélectionne pour déplacer ailleurs (grille/pioche/
+  défausse) ; **appui long EN bougeant** réordonne en glissant dans sa ligne ; **clic
+  droit** = équivalent bureau de l'appui long (sélection immédiate, sans les 500ms).
+  Moteur dédié `useFooterItemGestures` (dans `PlateauPage.js`, pas exporté — gestes trop
+  spécifiques à ce composant pour généraliser `useReorder` de `utils.js`, qui démarre
+  toujours son drag immédiatement depuis une poignée dédiée) : même schéma que
+  `useReorder` (refs pour l'état de drag "vivant", state seulement pour le re-rendu
+  visuel) mais avec un timer de 500ms avant d'armer le drag, et une 3ème issue possible
+  (juste ouvrir la fenêtre) si le timer n'a jamais eu le temps de se déclencher. Un clic
+  qui suit un appui long réussi (déplacement OU réordonnancement) est absorbé de la même
+  façon que sur la grille (`suppressClickRef` interne au hook).
+
+**Fenêtre agrandie avec `‹`/`›`** (`enlargedItem`, `{playerId, index}`) — implémente la
+note de design différée d'une session précédente. `playerCardList(p)` aplatit
+`[natureSort?, ...sorts, ...energies]` d'un joueur en une seule liste ordonnée pour que
+les flèches défilent sur TOUT ce que le joueur possède sans avoir besoin d'un carrousel
+séparé par ligne. Accessible de deux endroits qui partagent exactement la même fenêtre :
+un tap sur un item déjà équipé dans son propre pied de page, ou un clic sur une carte
+listée dans la fenêtre Vision `visionPlayerId` (qui affiche maintenant vraiment les
+cartes du joueur au lieu du placeholder "bientôt disponible").
 
 ### Pan et zoom
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
@@ -733,12 +838,13 @@ sorts/énergies par joueur, donc rien à coder avant que ces briques existent.
      Couche 5, directement sur la Couche 1 — voir "Pan et zoom" ci-dessus.
    - Mode Vision : **ambiance visuelle du toggle + affichage détaillé des joueurs
      implémentés**, en avance sur la Couche 4. Cliquer un jeton en mode Vision
-     ouvre une grande fenêtre (nom, cœur de PV, section Sorts & Énergies —
-     placeholder pour l'instant) au lieu de sélectionner pour déplacement ;
+     ouvre une grande fenêtre (nom, cœur de PV, section Sorts & Énergies — affiche
+     maintenant les vraies cartes équipées du joueur, cliquables pour les voir en
+     grand, voir "Couche 3" plus bas) au lieu de sélectionner pour déplacement ;
      croix rouge en haut à droite pour fermer (en plus de la fermeture au clic
-     extérieur, comme toute popup). C'est la future base d'affichage des
-     cartes sort/énergie. Le volet "affiche le contenu détaillé d'une
-     case/tuile" attend toujours les items de la Couche 3.
+     extérieur, comme toute popup). Le volet "affiche le contenu détaillé d'une
+     case/tuile" (contenu réel de carte, pas juste "il y a un item ici") reste à
+     faire, indépendant des items eux-mêmes qui existent déjà.
    - **Couche 2 (pioche/pose/rotation/déplacement/défausse de tuiles) : implémentée** —
      voir "Pioche et pose de tuiles" et "Pioches et défausses" ci-dessus pour le détail
      complet (deck placeholder de 100 cartes identiques avec vrai visuel de carte
@@ -753,10 +859,18 @@ sorts/énergies par joueur, donc rien à coder avant que ces briques existent.
      "Système de sélection par geste" ci-dessus pour le détail actuel. Reste : brancher
      la vraie pioche dynamique depuis `data.cases` (voir "Pioches dynamiques depuis le
      catalogue").
-   - Couche 3 (items/multi-sélection par case pour sorts/énergies au sol) et le
-     contenu détaillé du mode Vision pour les cases/tuiles (Couche 4) : pas encore
-     commencées. Undo/redo global au-delà de celui déjà en place pour les
-     joueurs/PV/déplacements (pas les actions de tuiles/pioches) : pas encore fait.
+   - **Couche 3 (items sorts/énergies sur le plateau et équipés par joueur) :
+     implémentée** — voir sa propre section "Couche 3" plus haut pour le détail complet
+     (pioches/défausses dédiées dans le header, pose/déplacement par appui long sur le
+     plateau, équipement dans une nouvelle zone du pied de page avec emplacement
+     "sort de nature", réordonnancement par glisser, fenêtre agrandie avec `‹`/`›`).
+     Reste : brancher la vraie pioche dynamique depuis `data.sorts`/`data.energies`, et
+     le contenu réel des cartes (toujours un simple "+" placeholder). Le contenu détaillé
+     du mode Vision pour les cases/tuiles (Couche 4) : pas encore commencé. Toutes les
+     actions d'items qui touchent l'état persisté (poser/déplacer/défausser/ranger dans
+     une pioche/équiper/réordonner) passent par `commitBoard` comme les tuiles, donc
+     déjà undoable — seul le tirage/annulation d'une pioche (`heldItem`) ne l'est pas en
+     soi, même logique que pour `heldTile` (voir "Undo/redo global").
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation

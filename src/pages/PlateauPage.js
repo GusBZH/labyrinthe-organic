@@ -16,6 +16,11 @@ const CENTER_ROW = Math.floor(ROWS/2), CENTER_COL = Math.floor(COLS/2);
 const MIN_ZOOM = 0.4, MAX_ZOOM = 2.5;
 const MAX_HISTORY = 50;
 const DEFAULT_PV = 3;
+// Sorts/énergies are "2 fois plus petites" than a tile card everywhere they
+// appear: header pioches/défausses (ITEM_BOX vs. the tile pile's 56px box)
+// and here on the board (ITEM_BOARD_SIZE vs. the tile's CELL-4 card size).
+const ITEM_BOX = 30;
+const ITEM_BOARD_SIZE = 22;
 
 function loadSession(){
   try {
@@ -80,27 +85,40 @@ function shuffle(arr){
   return a;
 }
 
-// Placeholder deck: 100 identical "Case" tiles for now, so the draw/place/
-// rotate/split/shuffle mechanics can be built and tested before wiring in
-// the real thing — reading data.cases (only "Validé" entries, one card per
-// `quantite`) so editing the catalog and starting a new game is all it
-// takes to change what's in the deck. Same plan later for sorts/énergies —
-// each deck type gets its own pile.type so piles can only merge same-type.
-function makeInitialDeck(){
+// Placeholder deck: 100 identical cards for now, so the draw/place/rotate/
+// split/shuffle mechanics can be built and tested before wiring in the real
+// thing — reading data.cases/data.sorts/data.energies (only "Validé"
+// entries, one card per `quantite`) so editing the catalog and starting a
+// new game is all it takes to change what's in the deck. Each deck gets its
+// own pile.type ('case'/'sort'/'energie') so piles can only ever merge
+// same-type — that's also what keeps their défausses separate (see
+// `discardCards`, each entry tagged with the same `type`).
+function makeDeck(type){
   return shuffle(Array.from({length:100}, () => ({id:uid()})));
 }
 
-// A real card square: black back, white front with a black cross, flipped
-// via a simple rotateY. Reused for the pile stack, the held tile, the
-// défausse (always shown face-up), and tiles on the board.
-function CardFace({showBack, size}) {
+function makeInitialPiles(){
+  return ['case', 'sort', 'energie'].map(type => ({id:uid(), type, cards:makeDeck(type)}));
+}
+
+// Back-of-card accent color per deck type — the only visual difference
+// between a case/sort/énergie card back for now ("le reste on verra plus
+// tard", per Gus): a plain dark back with a thin colored border, no other
+// content since the real card art isn't wired in yet.
+const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a'};
+
+// A real card square: black back (accent border by deck type), white front
+// with a black cross, flipped via a simple rotateY. Reused for the pile
+// stack, the held tile/item, the défausses (always shown face-up), and
+// tiles/items on the board.
+function CardFace({showBack, size, kind='case'}) {
   return h('div', {style:{width:size, height:size, position:'relative', perspective:600}},
     h('div', {style:{
       position:'absolute', inset:0, transformStyle:'preserve-3d',
       transition:'transform .3s', transform: showBack ? 'rotateY(0deg)' : 'rotateY(180deg)'
     }},
       h('div', {style:{position:'absolute', inset:0, borderRadius:6, background:'#111',
-        border:'1px solid #333', backfaceVisibility:'hidden'}}),
+        border:`1px solid ${BACK_ACCENT[kind] || BACK_ACCENT.case}`, backfaceVisibility:'hidden'}}),
       h('div', {style:{position:'absolute', inset:0, borderRadius:6, background:'#fff',
         border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)',
         display:'flex', alignItems:'center', justifyContent:'center'}},
@@ -118,7 +136,8 @@ function CardFace({showBack, size}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+  const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
@@ -179,16 +198,16 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
       onPointerDown, onPointerUp:cancelPress, onPointerLeave:cancelPress, onPointerCancel:cancelPress,
       onClick:handleClick,
       style:{
-        width:56, height:56, borderRadius:8, cursor:'pointer', position:'relative',
+        width:boxSize, height:boxSize, borderRadius:8, cursor:'pointer', position:'relative',
         boxShadow: isArmed ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
         outline: isArmed ? '2px solid #4fa3ff' : 'none',
         transition:'box-shadow .2s, outline-color .2s'
       }
     },
       // perspective stack: two offset squares behind the top card
-      h('div', {style:{position:'absolute', left:5, top:5, width:52, height:52, borderRadius:6, background:'#151515', border:'1px solid #333'}}),
-      h('div', {style:{position:'absolute', left:2, top:2, width:52, height:52, borderRadius:6, background:'#1a1a1a', border:'1px solid #383838'}}),
-      h('div', {style:{position:'absolute', left:0, top:0}}, h(CardFace, {showBack: !holding, size:52})),
+      h('div', {style:{position:'absolute', left:5, top:5, width:cardSize, height:cardSize, borderRadius:6, background:'#151515', border:'1px solid #333'}}),
+      h('div', {style:{position:'absolute', left:2, top:2, width:cardSize, height:cardSize, borderRadius:6, background:'#1a1a1a', border:'1px solid #383838'}}),
+      h('div', {style:{position:'absolute', left:0, top:0}}, h(CardFace, {showBack: !holding, size:cardSize, kind:pile.type})),
       h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, pile.cards.length)
     ),
@@ -238,7 +257,8 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
 // pioche afterward reshuffles the whole défausse into it, letting you
 // recycle discarded cards back into circulation without picking them up
 // one at a time. Mirrors PileStack's own long-press-to-arm structure.
-function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, disabled, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSelectedTile, disabled, boxSize=56, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+  const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
   const pendingArmedRef = useRef(null);
@@ -246,7 +266,8 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
   const [menuPos, setMenuPos] = useState(null);
   const topCard = cards.length ? cards[cards.length-1] : null;
   const isSelected = topCard && selectedId === topCard.id;
-  const isArmed = armedId === 'discard';
+  const armedSelfId = 'discard:' + type;
+  const isArmed = armedId === armedSelfId;
 
   function onPointerDown(){
     if (disabled) return;
@@ -259,7 +280,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
       const r = anchorRef.current.getBoundingClientRect();
       setMenuPos({left:r.left, top:r.bottom+6});
       setShowMenu(true);
-      onArm('discard');
+      onArm(armedSelfId);
     }, 500);
   }
   function cancelPress(){
@@ -270,7 +291,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
     e.stopPropagation();
     if (showMenu) return; // the click that follows a long-press shouldn't also act
     const armed = pendingArmedRef.current;
-    if (armed) { onMergeInto(armed, 'discard'); return; }
+    if (armed) { onMergeInto(armed, armedSelfId); return; }
     if (hasSelectedTile) { onDiscardSelectedTile(); return; }
     if (topCard) onToggleSelect(topCard.id);
   }
@@ -284,7 +305,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
       onPointerDown, onPointerUp:cancelPress, onPointerLeave:cancelPress, onPointerCancel:cancelPress,
       onClick:handleClick,
       style:{
-        width:56, height:56, borderRadius:8, cursor:'pointer', position:'relative',
+        width:boxSize, height:boxSize, borderRadius:8, cursor:'pointer', position:'relative',
         border: topCard ? 'none' : '2px dashed #444',
         display:'flex', alignItems:'center', justifyContent:'center',
         boxShadow: (isSelected || isArmed) ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
@@ -292,7 +313,7 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
         transition:'box-shadow .2s, outline-color .2s'
       }
     },
-      topCard && h(CardFace, {showBack:false, size:52}),
+      topCard && h(CardFace, {showBack:false, size:cardSize, kind:type}),
       cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
     ),
@@ -308,6 +329,163 @@ function DiscardSlot({cards, selectedId, armedId, armedIdRef, hasSelectedTile, d
         {label:'🔀 Mélanger', onClick:onShuffleInPlace},
       ]
     })
+  );
+}
+
+// One deck group in the header (cases, sorts, or énergies): the défausse
+// stays fixed immediately before the piles — "toujours devant le premier
+// paquet" — as its own flex sibling, while the piles of THIS type alone
+// live in a separate 2-column CSS grid next to it. A plain 2-column grid
+// naturally gives the wrap pattern Gus asked for (◻️◻️ / ◻️ once a pile's
+// been split enough to produce a 3rd one): grid-auto-flow fills column 1
+// then column 2 then wraps to a new row on its own, no manual row-breaking
+// logic needed. The défausse sits outside that grid entirely, so it never
+// shifts position as splitting grows/shrinks the pile count.
+function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+  const groupPiles = piles.filter(p => p.type === type);
+  const groupDiscard = discardCards.filter(c => c.type === type);
+  return h('div', {style:{display:'flex', alignItems:'flex-start', gap:8}},
+    h(DiscardSlot, {
+      cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
+      armedId, armedIdRef, hasSelectedTile, disabled,
+      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect
+    }),
+    groupPiles.length
+      ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(2, ${boxSize}px)`, gap:6}},
+          groupPiles.map(p => h(PileStack, {
+            key:p.id, pile:p, boxSize, holding: holding.pileId === p.id,
+            armedId, armedIdRef, hasSelectedCard, disabled,
+            onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
+          }))
+        )
+      : h('div', {style:{width:boxSize, height:boxSize}})
+  );
+}
+
+// A player's equipped cards as one flat, ordered list — the "nature" slot
+// (if filled) first, then the sorts row, then the énergies row — so the
+// enlarge/carousel window's ‹/› can cycle through everything a player has
+// without needing a separate carousel per row. `slot` on each entry tracks
+// which array/slot it came from, for removeFooterItem/discardSelectedItem.
+function playerCardList(p){
+  return [
+    ...(p.natureSort ? [{...p.natureSort, slot:'nature'}] : []),
+    ...(p.sorts || []).map(c => ({...c, slot:'sort'})),
+    ...(p.energies || []).map(c => ({...c, slot:'energie'}))
+  ];
+}
+
+// Gesture engine for one row of equipped footer cards (or the single-card
+// "nature" slot, reusing the same machinery harmlessly since a 1-item list
+// never actually reorders). Modeled closely on utils.js's own useReorder
+// (refs for the live drag state, state only for the visual re-render) but
+// kept local here rather than generalizing that shared hook: the trigger is
+// gated behind a 500ms hold instead of starting immediately on pointerdown,
+// and it also disambiguates a short tap into a THIRD outcome (open the
+// enlarge window) — different enough from every other useReorder call site
+// in the app (which all start dragging immediately from a dedicated handle)
+// that folding it in would complicate that hook for everyone else.
+// Final gesture spec from Gus: short tap → enlarge; long-press without
+// moving → select for move (to grid/pile/défausse); long-press then drag →
+// live-reorder within this row; right-click → same as a completed
+// long-press (desktop equivalent, no separate drag path needed for it).
+function useFooterItemGestures(items, onReorder, onSelectForMove){
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+  const dragRef = useRef(null);
+  const overRef = useRef(null);
+  const rectsRef = useRef([]);
+  const pressTimerRef = useRef(null);
+  const startRef = useRef(null);
+  const firedRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const listElRef = useRef(null);
+
+  function armHold(index){
+    firedRef.current = true;
+    dragRef.current = index;
+    overRef.current = index;
+    setDragIndex(index);
+    setOverIndex(index);
+    if (listElRef.current) rectsRef.current = Array.from(listElRef.current.children).map(el => el.getBoundingClientRect());
+  }
+
+  function onMove(e){
+    if (!firedRef.current) {
+      const s = startRef.current;
+      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 6) clearTimeout(pressTimerRef.current);
+      return;
+    }
+    let next = overRef.current;
+    for (let i = 0; i < rectsRef.current.length; i++) {
+      const r = rectsRef.current[i];
+      if (e.clientX >= r.left && e.clientX < r.right) { next = i; break; }
+    }
+    if (next !== overRef.current) { overRef.current = next; setOverIndex(next); }
+  }
+  function onUp(){
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    clearTimeout(pressTimerRef.current);
+    if (firedRef.current) {
+      suppressClickRef.current = true; // the click that follows this release shouldn't also open the enlarge window
+      const from = dragRef.current, to = overRef.current;
+      dragRef.current = null; overRef.current = null;
+      setDragIndex(null); setOverIndex(null);
+      if (from !== null && to !== null && from !== to) {
+        const next = [...items];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        onReorder(next);
+      } else if (from !== null) {
+        onSelectForMove(items[from]);
+      }
+    }
+    firedRef.current = false;
+    startRef.current = null;
+  }
+  function onItemPointerDown(index, e){
+    if (e.pointerType === 'mouse' && e.button === 2) return; // right-click: onItemContextMenu handles it instead
+    startRef.current = {x:e.clientX, y:e.clientY};
+    firedRef.current = false;
+    clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = setTimeout(() => armHold(index), 500);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+  function onItemContextMenu(index, e){
+    e.preventDefault();
+    onSelectForMove(items[index]);
+  }
+  function onItemClick(index, item, onOpenEnlarge){
+    if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+    onOpenEnlarge(item);
+  }
+
+  const display = dragIndex === null ? items : (() => {
+    const next = [...items];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(overIndex, 0, moved);
+    return next;
+  })();
+
+  return { display, dragIndex, listElRef, onItemPointerDown, onItemContextMenu, onItemClick };
+}
+
+// One row (or the single-slot nature square) of equipped footer cards.
+function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMove, onOpenEnlarge}) {
+  const g = useFooterItemGestures(items, onReorder, onSelectForMove);
+  return h('div', {ref:g.listElRef, style:{display:'flex', gap:4}},
+    g.display.map((it, i) => h('div', {
+      key:it.id,
+      onPointerDown: e => g.onItemPointerDown(i, e),
+      onContextMenu: e => g.onItemContextMenu(i, e),
+      onClick: () => g.onItemClick(i, it, onOpenEnlarge),
+      style:{
+        cursor:'pointer', borderRadius:5, opacity: g.dragIndex === i ? 0.5 : 1,
+        boxShadow: selectedId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
+      }
+    }, h(CardFace, {showBack:false, size, kind})))
   );
 }
 
@@ -358,7 +536,7 @@ export function PlateauPage({onBack}) {
   const [visionMode, setVisionMode] = useState(false);
   const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids:[...], forVision}
   const [visionPlayerId, setVisionPlayerId] = useState(null);
-  const [piles, setPiles] = useState(saved?.piles || [{id:uid(), type:'case', cards:makeInitialDeck()}]);
+  const [piles, setPiles] = useState(saved?.piles || makeInitialPiles());
   const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
   const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
   const [heldTile, setHeldTile] = useState(null);
@@ -373,6 +551,33 @@ export function PlateauPage({onBack}) {
   // that's set/cleared — see clearTileSelection below.
   const [selectedTileMode, setSelectedTileMode] = useState(null);
   const [selectedDiscardCardId, setSelectedDiscardCardId] = useState(null);
+
+  // Sorts/énergies on the board (Couche 3) — small tokens, not full tiles,
+  // so they get their own array instead of reusing placedTiles: they don't
+  // rotate/flip, several can share a cell, and they render above tiles but
+  // below players (see cellGroups/boardItems rendering order below).
+  const [boardItems, setBoardItems] = useState(saved?.boardItems || []);
+  // Drawn from a sort/énergie pile, mirrors heldTile exactly (see its own
+  // comments) but for items: {cardId, itemType:'sort'|'energie', fromPileId}.
+  const [heldItem, setHeldItem] = useState(null);
+  // An item already on the board, picked up via long-press (items' dedicated
+  // gesture — see the grid long-press handlers below) — mirrors selectedTileId
+  // in 'moving' mode: stays in `boardItems` at its current cell while
+  // selected (glow highlight), a later tap elsewhere moves it. No 'placed'-
+  // style mode: items only ever need "move", never rotate/flip.
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  // An item picked up from a PLAYER's own footer slots via long-press (see
+  // FooterItemSlot) — mirrors selectedDiscardCardId: stays in the player's
+  // natureSort/sorts/energies array (glow highlight) until a later tap
+  // elsewhere (grid cell, a matching pile, a défausse) moves it out, or
+  // re-tapping deselects it. {playerId, slot:'nature'|'sort'|'energie', cardId}.
+  const [selectedFooterItem, setSelectedFooterItem] = useState(null);
+  // The big enlarge/carousel window for a single sort/énergie card — reused
+  // both from the Vision player modal and directly from your own footer
+  // slots. {playerId, index} where index is a position in that player's
+  // combined [natureSort?, ...sorts, ...energies] list, so ‹/› can cycle
+  // through everything without needing separate per-row carousels.
+  const [enlargedItem, setEnlargedItem] = useState(null);
   const armedPileIdRef = useRef(null);
   // handleSingleClick can run from a setTimeout scheduled well before its
   // own execution (the click/double-click debounce below) — by the time it
@@ -386,13 +591,15 @@ export function PlateauPage({onBack}) {
   // arming/merging.
   const liveRef = useRef({});
   useEffect(() => {
-    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex };
+    liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex,
+      boardItems, heldItem, selectedItemId, selectedFooterItem };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
   const resetAnchorRef = useRef(null);
   const cellPickerAnchorRef = useRef(null);
   const visionModalAnchorRef = useRef(null);
+  const enlargeModalAnchorRef = useRef(null);
 
   function armPile(id){
     armedPileIdRef.current = id;
@@ -415,8 +622,8 @@ export function PlateauPage({onBack}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles})); } catch {}
-  }, [players, currentIndex, piles, discardCards, placedTiles]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems})); } catch {}
+  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -567,7 +774,8 @@ export function PlateauPage({onBack}) {
     const live = liveRef.current;
     pastRef.current.push({
       players: live.players, piles: live.piles, discardCards: live.discardCards,
-      placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex
+      placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
+      boardItems: live.boardItems, heldItem: live.heldItem
     });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
@@ -579,6 +787,8 @@ export function PlateauPage({onBack}) {
     if ('placedTiles' in updates) setPlacedTiles(updates.placedTiles);
     if ('heldTile' in updates) setHeldTile(updates.heldTile);
     if ('currentIndex' in updates) setCurrentIndex(updates.currentIndex);
+    if ('boardItems' in updates) setBoardItems(updates.boardItems);
+    if ('heldItem' in updates) setHeldItem(updates.heldItem);
   }
 
   function commitPlayers(next){
@@ -592,11 +802,14 @@ export function PlateauPage({onBack}) {
     setPlacedTiles(snap.placedTiles);
     setHeldTile(snap.heldTile);
     setCurrentIndex(snap.currentIndex);
+    setBoardItems(snap.boardItems);
+    setHeldItem(snap.heldItem);
   }
 
   function currentSnapshot(){
     const live = liveRef.current;
-    return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex };
+    return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
+      boardItems: live.boardItems, heldItem: live.heldItem };
   }
 
   function undo(){
@@ -672,12 +885,13 @@ export function PlateauPage({onBack}) {
 
   // Sends a placed tile to the défausse — always face-up there regardless
   // of the tile's own flipped state at the time (the défausse never stores
-  // or tracks `flipped`, it just always renders face-up).
+  // or tracks `flipped`, it just always renders face-up). `type` tags the
+  // entry so it lands in the right one of the 3 défausses (see PileGroup).
   function discardTile(tileId){
     const live = liveRef.current;
     commitBoard({
       placedTiles: live.placedTiles.filter(t => t.id !== tileId),
-      discardCards: [...live.discardCards, {id:tileId}]
+      discardCards: [...live.discardCards, {id:tileId, type:'case'}]
     });
     clearTileSelection();
   }
@@ -686,16 +900,65 @@ export function PlateauPage({onBack}) {
     if (selectedTileId) discardTile(selectedTileId);
   }
 
-  // Clicking the défausse's own top card selects/deselects it (toggle) —
-  // it never needs to flip since it's already shown face-up.
+  // Removes a sort/énergie card from wherever it's equipped on a player —
+  // the "nature" slot holds a single card directly, the two rows are plain
+  // arrays. Shared by discardSelectedItem and insertSelectedCardIntoPile.
+  function removeFooterItem(players, sel){
+    return players.map(p => {
+      if (p.id !== sel.playerId) return p;
+      if (sel.slot === 'nature') return {...p, natureSort:null};
+      if (sel.slot === 'sort') return {...p, sorts:(p.sorts||[]).filter(c => c.id !== sel.cardId)};
+      return {...p, energies:(p.energies||[]).filter(c => c.id !== sel.cardId)};
+    });
+  }
+
+  // Item equivalent of discardSelectedTile: sends whichever item is
+  // currently selected — picked up from the board (selectedItemId) or from
+  // a player's own footer slots (selectedFooterItem) — to its matching
+  // défausse. Whichever DiscardSlot this got wired to already only calls it
+  // when its own type matches the selection (see hasSelectedForType below),
+  // so no type check is needed here.
+  function discardSelectedItem(){
+    const live = liveRef.current;
+    if (live.selectedItemId) {
+      const it = live.boardItems.find(x => x.id === live.selectedItemId);
+      if (!it) return;
+      commitBoard({
+        boardItems: live.boardItems.filter(x => x.id !== live.selectedItemId),
+        discardCards: [...live.discardCards, {id:it.id, type:it.type}]
+      });
+      setSelectedItemId(null);
+      return;
+    }
+    if (live.selectedFooterItem) {
+      const sel = live.selectedFooterItem;
+      commitBoard({
+        players: removeFooterItem(live.players, sel),
+        discardCards: [...live.discardCards, {id:sel.cardId, type: sel.slot === 'energie' ? 'energie' : 'sort'}]
+      });
+      setSelectedFooterItem(null);
+    }
+  }
+
+  // Clicking a défausse's own top card selects/deselects it (toggle) — it
+  // never needs to flip since it's already shown face-up. Fully generic
+  // across all 3 défausses (case/sort/énergie): `discardCards` entries carry
+  // their own `type`, so a selected id unambiguously belongs to one of them
+  // no matter which défausse it was toggled from.
   function toggleSelectDiscardCard(cardId){
     setSelectedDiscardCardId(prev => prev === cardId ? null : cardId);
     clearTileSelection();
     setSelectedId(null); // only one thing selected at a time
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
   }
 
-  // Feeds the currently-selected card (a placed tile, or the défausse's top
-  // card) into a pile, at whichever end was chosen in the Dessus/Dessous menu.
+  // Feeds the currently-selected card (a placed tile, a défausse's top
+  // card, a board item, or a footer-equipped item) into a pile, at whichever
+  // end was chosen in the Dessus/Dessous menu. Whichever PileStack this got
+  // wired to only opens that menu when its own type matches the current
+  // selection (see hasSelectedForType below), so the pile's type is already
+  // guaranteed to match — no extra check needed here either.
   function insertSelectedCardIntoPile(pileId, position){
     const live = liveRef.current;
     let cardId = null;
@@ -703,6 +966,12 @@ export function PlateauPage({onBack}) {
     if (live.selectedTileId) {
       cardId = live.selectedTileId;
       updates.placedTiles = live.placedTiles.filter(t => t.id !== live.selectedTileId);
+    } else if (live.selectedItemId) {
+      cardId = live.selectedItemId;
+      updates.boardItems = live.boardItems.filter(it => it.id !== live.selectedItemId);
+    } else if (live.selectedFooterItem) {
+      cardId = live.selectedFooterItem.cardId;
+      updates.players = removeFooterItem(live.players, live.selectedFooterItem);
     } else if (live.selectedDiscardCardId) {
       cardId = live.selectedDiscardCardId;
       updates.discardCards = live.discardCards.filter(cd => cd.id !== cardId);
@@ -714,15 +983,91 @@ export function PlateauPage({onBack}) {
     commitBoard(updates);
     clearTileSelection();
     setSelectedDiscardCardId(null);
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
   }
 
-  // Clears whatever card is selected (a placed tile or a défausse card) —
-  // wired to header/footer background clicks, so tapping anywhere outside
-  // the grid/piles also deselects, same spirit as every popup's "click
-  // elsewhere closes it" rule.
+  // Clears whatever card is selected (a placed tile, a défausse card, or a
+  // board/footer item) — wired to header/footer background clicks, so
+  // tapping anywhere outside the grid/piles/footer slots also deselects,
+  // same spirit as every popup's "click elsewhere closes it" rule.
   function clearCardSelection(){
     clearTileSelection();
     setSelectedDiscardCardId(null);
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
+  }
+
+  // Equips whichever item is currently held (fresh from a pile, heldItem)
+  // or selected on the board (selectedItemId) onto the CURRENT player —
+  // "peu importe où je clique dans cette zone avec un item" (Gus): any tap
+  // anywhere in the footer's nature/sorts/énergies zone does this, wired via
+  // onClickCapture below so it pre-empts the individual cards' own
+  // tap-to-enlarge click. The very first sort a player ever equips goes
+  // into the single "nature" slot; every one after (and every énergie
+  // always) appends to the end of its row.
+  function equipHeldOrSelectedItem(){
+    const live = liveRef.current;
+    const cur = live.players[live.currentIndex];
+    if (!cur) return;
+    let cardId = null, itemType = null;
+    const updates = {};
+    if (live.heldItem) {
+      cardId = live.heldItem.cardId;
+      itemType = live.heldItem.itemType;
+      updates.heldItem = null;
+    } else if (live.selectedItemId) {
+      const it = live.boardItems.find(x => x.id === live.selectedItemId);
+      if (!it) return;
+      cardId = it.id;
+      itemType = it.type;
+      updates.boardItems = live.boardItems.filter(x => x.id !== live.selectedItemId);
+    } else return;
+    updates.players = live.players.map(p => {
+      if (p.id !== cur.id) return p;
+      if (itemType === 'sort') {
+        if (!p.natureSort) return {...p, natureSort:{id:cardId}};
+        return {...p, sorts:[...(p.sorts || []), {id:cardId}]};
+      }
+      return {...p, energies:[...(p.energies || []), {id:cardId}]};
+    });
+    commitBoard(updates);
+    setSelectedItemId(null);
+  }
+
+  // Picks up an already-equipped card for the "move it elsewhere" flow
+  // (mirrors selectedTileId/selectedDiscardCardId): stays in the player's
+  // array (glow highlight) until a later tap on the grid/a matching pile/a
+  // défausse moves it out, or it's re-armed into a drag-reorder instead —
+  // see useFooterItemGestures/FooterItemRow above for how this gets called.
+  function selectFooterItem(playerId, slot, cardId){
+    setSelectedFooterItem({playerId, slot, cardId});
+    setSelectedId(null);
+    clearTileSelection();
+    setSelectedDiscardCardId(null);
+    setSelectedItemId(null);
+  }
+
+  function openEnlargeFor(playerId, slot, cardId){
+    const p = players.find(pl => pl.id === playerId);
+    if (!p) return;
+    const idx = playerCardList(p).findIndex(c => c.id === cardId && c.slot === slot);
+    if (idx === -1) return;
+    setEnlargedItem({playerId, index:idx});
+  }
+
+  // ‹/› in the enlarge window — cycles through that SAME player's full card
+  // list (nature + sorts + énergies combined, see playerCardList) so it can
+  // scroll from one card to the next without closing back to the list.
+  function shiftEnlarged(delta){
+    setEnlargedItem(prev => {
+      if (!prev) return prev;
+      const p = players.find(pl => pl.id === prev.playerId);
+      if (!p) return null;
+      const list = playerCardList(p);
+      if (!list.length) return null;
+      return {playerId:prev.playerId, index:(prev.index + delta + list.length) % list.length};
+    });
   }
 
   // Single click: player selection/movement, AND finishing whatever card
@@ -780,16 +1125,36 @@ export function PlateauPage({onBack}) {
       return;
     }
 
+    // A sort/énergie drawn from a pile — unlike tiles, several items can
+    // share a cell (they're small tokens, not case-covering tiles), so no
+    // occupancy check, and no 'placed'-style mode: items only ever need to
+    // be movable, nothing to orient.
+    if (live.heldItem) {
+      commitBoard({boardItems: [...live.boardItems, {id:live.heldItem.cardId, type:live.heldItem.itemType, row:r, col:c}], heldItem: null});
+      return;
+    }
+
     if (live.selectedDiscardCardId) {
-      if (live.placedTiles.some(t => t.row === r && t.col === c)) return;
-      const cardId = live.selectedDiscardCardId;
-      commitBoard({
-        discardCards: live.discardCards.filter(cd => cd.id !== cardId),
-        placedTiles: [...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]
-      });
-      setSelectedDiscardCardId(null);
-      setSelectedTileId(cardId);
-      setSelectedTileMode('placed');
+      const dcard = live.discardCards.find(cd => cd.id === live.selectedDiscardCardId);
+      if (!dcard) { setSelectedDiscardCardId(null); return; }
+      if (dcard.type === 'case') {
+        if (live.placedTiles.some(t => t.row === r && t.col === c)) return;
+        const cardId = live.selectedDiscardCardId;
+        commitBoard({
+          discardCards: live.discardCards.filter(cd => cd.id !== cardId),
+          placedTiles: [...live.placedTiles, {id:cardId, row:r, col:c, rotation:0, flipped:false}]
+        });
+        setSelectedDiscardCardId(null);
+        setSelectedTileId(cardId);
+        setSelectedTileMode('placed');
+      } else {
+        const cardId = live.selectedDiscardCardId;
+        commitBoard({
+          discardCards: live.discardCards.filter(cd => cd.id !== cardId),
+          boardItems: [...live.boardItems, {id:cardId, type:dcard.type, row:r, col:c}]
+        });
+        setSelectedDiscardCardId(null);
+      }
       return;
     }
 
@@ -805,6 +1170,28 @@ export function PlateauPage({onBack}) {
       if (live.placedTiles.some(x => x.row === r && x.col === c)) return; // blocked: another tile there
       commitBoard({placedTiles: live.placedTiles.map(x => x.id === live.selectedTileId ? {...x, row:r, col:c} : x)});
       clearTileSelection();
+      return;
+    }
+
+    // An item picked up on the board via long-press — mirrors selectedTileId
+    // in 'moving' mode, minus the occupancy check (items can stack).
+    if (live.selectedItemId) {
+      const it = live.boardItems.find(x => x.id === live.selectedItemId);
+      if (it && it.row === r && it.col === c) { setSelectedItemId(null); return; }
+      commitBoard({boardItems: live.boardItems.map(x => x.id === live.selectedItemId ? {...x, row:r, col:c} : x)});
+      setSelectedItemId(null);
+      return;
+    }
+
+    // An item picked up from a player's own footer slots — moving it onto
+    // the grid removes it from that player and drops it at this cell.
+    if (live.selectedFooterItem) {
+      const sel = live.selectedFooterItem;
+      commitBoard({
+        players: removeFooterItem(live.players, sel),
+        boardItems: [...live.boardItems, {id:sel.cardId, type: sel.slot === 'energie' ? 'energie' : 'sort', row:r, col:c}]
+      });
+      setSelectedFooterItem(null);
       return;
     }
 
@@ -862,6 +1249,7 @@ export function PlateauPage({onBack}) {
   // same double-click gesture, so instead of dropping the first click, we
   // run it immediately (flush it) and then schedule the new one normally.
   function onContentClick(e){
+    if (suppressNextClickRef.current) { suppressNextClickRef.current = false; return; } // the click that follows a successful item long-press
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     const clientX = e.clientX, clientY = e.clientY;
     const rect = contentRef.current.getBoundingClientRect();
@@ -896,6 +1284,8 @@ export function PlateauPage({onBack}) {
     setSelectedTileMode('moving');
     setSelectedDiscardCardId(null);
     setSelectedId(null); // only one thing selected at a time
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
   }
 
   function onContentDoubleClick(e){
@@ -908,6 +1298,68 @@ export function PlateauPage({onBack}) {
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
     selectTileAt(r, c);
+  }
+
+  // Items (sorts/énergies) use a THIRD, dedicated gesture — long-press —
+  // per the original "one gesture per entity type" design (see the big
+  // comment further up: tap = players, double-click = tiles). Implemented
+  // as a self-contained pointerdown/move/up trio on the content div,
+  // additive to the existing click/dblclick handlers above (content had no
+  // pointer handlers before this) rather than woven into them, to avoid any
+  // risk of regressing the already-fragile click/double-click/pan
+  // disambiguation those handle. Mirrors PileStack/DiscardSlot's own
+  // long-press-to-arm timer (500ms, cancel on movement past a small
+  // threshold) rather than inventing a new pattern.
+  const itemPressTimerRef = useRef(null);
+  const itemPressStartRef = useRef(null); // {x, y, row, col, moved}
+  // A long-press that successfully selects an item is still followed by a
+  // native 'click' on release (preventDefault on pointerdown doesn't cancel
+  // it) — which would otherwise fall into onContentClick's normal
+  // single-click handling right on top of the fresh selection. Set the
+  // instant the long-press fires, checked and cleared at the top of
+  // onContentClick.
+  const suppressNextClickRef = useRef(false);
+
+  function onContentPointerDown(e){
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // only the primary button starts an item long-press
+    const rect = contentRef.current.getBoundingClientRect();
+    const col = Math.floor((e.clientX - rect.left) / effectiveCell);
+    const row = Math.floor((e.clientY - rect.top) / effectiveCell);
+    itemPressStartRef.current = {x:e.clientX, y:e.clientY, row, col, moved:false};
+    clearTimeout(itemPressTimerRef.current);
+    itemPressTimerRef.current = setTimeout(() => {
+      const s = itemPressStartRef.current;
+      if (!s || s.moved) return;
+      if (handleItemLongPress(s.row, s.col)) suppressNextClickRef.current = true;
+    }, 500);
+  }
+  function onContentPointerMove(e){
+    const s = itemPressStartRef.current;
+    if (!s || s.moved) return;
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 6) { s.moved = true; clearTimeout(itemPressTimerRef.current); }
+  }
+  function onContentPointerUp(){
+    clearTimeout(itemPressTimerRef.current);
+    itemPressStartRef.current = null;
+  }
+
+  // Picks up an item at (r,c) for the SAME "select then tap elsewhere to
+  // move" flow tiles already use — see selectedItemId's own declaration
+  // comment. Returns true when it actually selected something, so the
+  // pointerdown timer above knows whether to suppress the click that
+  // follows. Vision mode and an in-hand pile card both block it, matching
+  // how the tile/discard gestures are already blocked in those states.
+  function handleItemLongPress(r, c){
+    const live = liveRef.current;
+    if (live.visionMode || live.heldTile || live.heldItem) return false;
+    const item = [...live.boardItems].reverse().find(it => it.row === r && it.col === c);
+    if (!item) return false;
+    setSelectedItemId(item.id);
+    setSelectedId(null);
+    clearTileSelection();
+    setSelectedDiscardCardId(null);
+    setSelectedFooterItem(null);
+    return true;
   }
 
   // Clicking a pile draws (flips its top card face-up and holds it) unless
@@ -925,6 +1377,33 @@ export function PlateauPage({onBack}) {
   // there's just no separate undo step for the draw itself, matching how
   // "click the same pile again" already cancels a draw directly.
   function drawFromPile(pileId){
+    const pile = piles.find(p => p.id === pileId);
+    if (!pile) return;
+
+    // Sort/énergie decks draw into heldItem instead of heldTile — same
+    // "click again to cancel" cycle, just tagged with the deck's type so it
+    // lands in boardItems (not placedTiles) once placed.
+    if (pile.type !== 'case') {
+      if (heldItem) {
+        if (heldItem.fromPileId === pileId) {
+          const cardId = heldItem.cardId;
+          setPiles(piles.map(p => p.id === pileId ? {...p, cards:[...p.cards, {id:cardId}]} : p));
+          setHeldItem(null);
+        }
+        return;
+      }
+      if (pile.cards.length === 0) return;
+      const card = pile.cards[pile.cards.length-1];
+      setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
+      setHeldItem({cardId:card.id, itemType:pile.type, fromPileId:pileId});
+      setSelectedItemId(null);
+      setSelectedFooterItem(null);
+      setSelectedDiscardCardId(null);
+      setSelectedId(null); // only one thing selected at a time
+      clearTileSelection();
+      return;
+    }
+
     if (heldTile) {
       if (heldTile.fromPileId === pileId) {
         const cardId = heldTile.cardId;
@@ -933,14 +1412,15 @@ export function PlateauPage({onBack}) {
       }
       return;
     }
-    const pile = piles.find(p => p.id === pileId);
-    if (!pile || pile.cards.length === 0) return;
+    if (pile.cards.length === 0) return;
     const card = pile.cards[pile.cards.length-1];
     setPiles(piles.map(p => p.id === pileId ? {...p, cards:p.cards.slice(0,-1)} : p));
     setHeldTile({cardId:card.id, fromPileId:pileId});
     clearTileSelection();
     setSelectedDiscardCardId(null);
     setSelectedId(null); // only one thing selected at a time
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
@@ -963,37 +1443,42 @@ export function PlateauPage({onBack}) {
 
   // Merging two piles together (unlike splitting) does shuffle the result —
   // this is how you reunite piles you'd split apart earlier. Only piles of
-  // the same card type can merge (irrelevant today with a single "case"
-  // deck, but keeps sorts/énergie piles from mixing once those exist).
-  // Takes the source pile id as an explicit argument (captured by the
+  // the same card type can merge — keeps cases/sorts/énergies from ever
+  // mixing. Takes the source id as an explicit argument (captured by the
   // target's own PileStack/DiscardSlot at pointerdown time — see their
   // comments) rather than reading armedPileIdRef here: by the time this
   // runs, the source pile's own popup has already disarmed it via the
   // outside-click listener (which fires on the target's pointerdown,
   // earlier than this click), so re-deriving the source from that ref at
-  // this point would already read back null too. The défausse can now be
-  // armed too (long-press, see DiscardSlot) — `sourceId === 'discard'`
-  // pulls from `discardCards` instead of `piles`, and (same as the
-  // existing merge-INTO-discard exception) skips the same-type check since
-  // the défausse doesn't track a type of its own.
+  // this point would already read back null too.
+  // Since there are now 3 défausses (one per deck type, see PileGroup), an
+  // armed défausse's id is the composite string 'discard:'+type rather than
+  // a bare 'discard' — `sourceId`/`targetPileId` starting with 'discard:'
+  // identifies which one and, sliced after the colon, its type; only its
+  // OWN type's cards ever move (the other défausses' cards, if any exist as
+  // separate entries in the same flat `discardCards` array, stay put).
   function mergeArmedInto(sourceId, targetPileId){
     const live = liveRef.current;
     if (!sourceId || sourceId === targetPileId) return;
-    if (sourceId === 'discard') {
+    if (sourceId.startsWith('discard:')) {
+      const dtype = sourceId.slice(8);
       const target = live.piles.find(p => p.id === targetPileId);
-      if (!target) return;
+      if (!target || target.type !== dtype) return;
+      const moving = live.discardCards.filter(c => c.type === dtype);
       commitBoard({
-        piles: live.piles.map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...live.discardCards])} : p),
-        discardCards: []
+        piles: live.piles.map(p => p.id === targetPileId ? {...p, cards:shuffle([...p.cards, ...moving])} : p),
+        discardCards: live.discardCards.filter(c => c.type !== dtype)
       });
       disarmPile();
       return;
     }
     const source = live.piles.find(p => p.id === sourceId);
     if (!source) return;
-    if (targetPileId === 'discard') {
+    if (targetPileId.startsWith('discard:')) {
+      const dtype = targetPileId.slice(8);
+      if (source.type !== dtype) return;
       commitBoard({
-        discardCards: shuffle([...live.discardCards, ...source.cards]),
+        discardCards: [...live.discardCards, ...shuffle(source.cards.map(c => ({...c, type:source.type})))],
         piles: live.piles.filter(p => p.id !== sourceId)
       });
     } else {
@@ -1121,13 +1606,17 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
     setCellPicker(null);
     setVisionPlayerId(null);
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
+    setEnlargedItem(null);
     zoomRef.current = 1;
     setZoom(1);
     const vp = viewportRef.current;
     if (vp) { vp.scrollLeft = CENTER_COL*CELL - vp.clientWidth/2; vp.scrollTop = CENTER_ROW*CELL - vp.clientHeight/2; }
     commitBoard({
-      players: [], piles: [{id:uid(), type:'case', cards:makeInitialDeck()}],
-      discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0
+      players: [], piles: makeInitialPiles(),
+      discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
+      boardItems: [], heldItem: null
     });
   }
 
@@ -1141,17 +1630,41 @@ export function PlateauPage({onBack}) {
     (cellGroups[key] = cellGroups[key] || []).push(p);
   });
 
+  // Same clustering idea for items sharing a cell — a smaller offset than
+  // players' since the tokens themselves are smaller (ITEM_BOARD_SIZE).
+  const itemCellGroups = {};
+  boardItems.forEach(it => {
+    const key = `${it.row}-${it.col}`;
+    (itemCellGroups[key] = itemCellGroups[key] || []).push(it);
+  });
+
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
+  const selectedItemObj = selectedItemId ? boardItems.find(it => it.id === selectedItemId) : null;
   // A tile fresh out of a pile/défausse ('placed' mode, rotate-only) isn't
   // "selected" as far as piles/défausse are concerned — Gus asked for those
   // to be completely inert (not even the Dessus/Dessous insert menu) while
   // it's in that state, matching how it also can't be moved or discarded
-  // yet. `pilesDisabled` below is what actually blocks the clicks; this
-  // just keeps the insert-menu gate consistent with it.
+  // yet. `pilesDisabled` below is what actually blocks the clicks (all 3
+  // deck groups, not just cases — a stray sort/énergie draw would be just
+  // as disruptive mid-rotation); this just keeps the insert-menu gate
+  // consistent with it.
   const isPlacedMode = selectedTileMode === 'placed';
   const pilesDisabled = isPlacedMode;
-  const hasSelectedCard = !!((selectedTileId && !isPlacedMode) || selectedDiscardCardId);
+  // Which deck type (if any) the currently-selected défausse/footer card
+  // belongs to — used below to gate each of the 3 header groups' insert-menu
+  // and quick-discard behavior to only the matching type, now that "the
+  // défausse" isn't a single thing anymore.
+  const discardSelType = selectedDiscardCardId ? discardCards.find(c => c.id === selectedDiscardCardId)?.type : null;
+  const footerSelType = selectedFooterItem ? (selectedFooterItem.slot === 'energie' ? 'energie' : 'sort') : null;
+  function hasSelectedCardOfType(type){
+    if (type === 'case') return !!(selectedTileId && !isPlacedMode) || discardSelType === 'case';
+    return (!!selectedItemObj && selectedItemObj.type === type) || discardSelType === type || footerSelType === type;
+  }
+  function hasSelectedForDiscardOfType(type){
+    if (type === 'case') return !!(selectedTileId && !isPlacedMode);
+    return (!!selectedItemObj && selectedItemObj.type === type) || footerSelType === type;
+  }
 
   // Shrinks the player squares (down to a 40px floor) once there isn't
   // enough room between header and footer to fit them all at the default
@@ -1163,6 +1676,29 @@ export function PlateauPage({onBack}) {
   const sidebarDesiredH = sidebarItemCount*SIDEBAR_DEFAULT_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
   const squareSize = sidebarDesiredH <= sidebarAvailH ? SIDEBAR_DEFAULT_SIZE
     : Math.max(SIDEBAR_MIN_SIZE, Math.floor((sidebarAvailH - (sidebarItemCount-1)*SIDEBAR_GAP) / sidebarItemCount));
+
+  // Same "shrink to fit, don't overflow" idea as squareSize above, applied
+  // to the header's 3 deck groups: each group is a défausse + a 2-column
+  // grid of however many piles that type has been split into (see
+  // PileGroup) — splitting enough of them could otherwise push the row wider
+  // than the screen. `groupNaturalWidth` mirrors what PileGroup actually
+  // renders (défausse, a gap, then min(2,count) columns) so the estimate
+  // matches the real layout.
+  const CASE_BOX = 56, HEADER_GROUP_GAP = 16, HEADER_PAD = 32, HEADER_MIN_SCALE = 0.5;
+  function groupNaturalWidth(count, box){
+    const cols = Math.min(2, Math.max(1, count));
+    return box + 8 + cols*box + (cols > 1 ? 6 : 0);
+  }
+  const caseCount = Math.max(1, piles.filter(p => p.type === 'case').length);
+  const sortCount = Math.max(1, piles.filter(p => p.type === 'sort').length);
+  const energieCount = Math.max(1, piles.filter(p => p.type === 'energie').length);
+  const naturalHeaderWidth = groupNaturalWidth(caseCount, CASE_BOX) + HEADER_GROUP_GAP
+    + groupNaturalWidth(sortCount, ITEM_BOX) + HEADER_GROUP_GAP
+    + groupNaturalWidth(energieCount, ITEM_BOX);
+  const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
+  const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
+  const caseBoxSize = Math.round(CASE_BOX * headerScale);
+  const itemBoxSize = Math.round(ITEM_BOX * headerScale);
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
@@ -1198,36 +1734,45 @@ export function PlateauPage({onBack}) {
         ),
         h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
       ),
-      h('div', {style:{display:'flex', alignItems:'flex-start', gap:10, padding:'0 16px 12px', overflowX:'auto'}},
-        h('div', {style:{display:'flex', flexDirection:'column', gap:8}},
-          // piles can hit 0 entries (the last one merged entirely into the
-          // défausse) — a blank spacer keeps the défausse slot aligned
-          // instead of crashing on piles[0] being undefined.
-          piles[0]
-            ? h(PileStack, {
-                pile:piles[0], holding: heldTile?.fromPileId === piles[0].id,
-                armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard, disabled:pilesDisabled,
-                onArm:armPile, onDisarm:disarmPile,
-                onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-                onInsertSelected:insertSelectedCardIntoPile
-              })
-            : h('div', {style:{width:56, height:56}}),
-          h(DiscardSlot, {
-            cards:discardCards, selectedId:selectedDiscardCardId,
-            armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedTile:!!(selectedTileId && !isPlacedMode), disabled:pilesDisabled,
-            onArm:armPile, onDisarm:disarmPile,
-            onMergeInto:mergeArmedInto, onShuffleInPlace:shuffleDiscardInPlace,
-            onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
-          })
-        ),
-        piles.slice(1).map(p => h(PileStack, {
-          key:p.id, pile:p, holding: heldTile?.fromPileId === p.id,
-          armedId:armedPileId, armedIdRef:armedPileIdRef, hasSelectedCard, disabled:pilesDisabled,
+      // Three deck groups side by side — cases, then sorts, then énergies
+      // (Gus: "les sorts à droite des cases et les énergies à droite des
+      // sorts") — each its own PileGroup (défausse + that type's piles,
+      // wrapping 2-per-row once split). Sizes shrink together via
+      // caseBoxSize/itemBoxSize (see their own comment) rather than letting
+      // the row overflow off-screen; overflowX stays as a last-resort
+      // fallback exactly like the sidebar's own squareSize floor+scroll.
+      h('div', {style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto'}},
+        h(PileGroup, {
+          type:'case', piles, discardCards, boxSize:caseBoxSize,
+          holding:{pileId: heldTile ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
+          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          hasSelectedCard:hasSelectedCardOfType('case'), hasSelectedTile:hasSelectedForDiscardOfType('case'), disabled:pilesDisabled,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile
-        })),
-        heldTile && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la tuile')
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
+        }),
+        h(PileGroup, {
+          type:'sort', piles, discardCards, boxSize:itemBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          hasSelectedCard:hasSelectedCardOfType('sort'), hasSelectedTile:hasSelectedForDiscardOfType('sort'), disabled:pilesDisabled,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
+        }),
+        h(PileGroup, {
+          type:'energie', piles, discardCards, boxSize:itemBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          hasSelectedCard:hasSelectedCardOfType('energie'), hasSelectedTile:hasSelectedForDiscardOfType('energie'), disabled:pilesDisabled,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
+        }),
+        (heldTile || heldItem) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
       )
     ),
 
@@ -1271,6 +1816,10 @@ export function PlateauPage({onBack}) {
         ref:contentRef,
         onClick:onContentClick,
         onDoubleClick:onContentDoubleClick,
+        onPointerDown:onContentPointerDown,
+        onPointerMove:onContentPointerMove,
+        onPointerUp:onContentPointerUp,
+        onPointerCancel:onContentPointerUp,
         style:{
           width:COLS*CELL, height:ROWS*CELL, position:'relative',
           transform:`scale(${zoom})`, transformOrigin:'0 0',
@@ -1293,6 +1842,20 @@ export function PlateauPage({onBack}) {
             boxShadow: selectedTileId === t.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : 'none'
           }
         }, h(CardFace, {showBack:t.flipped, size:CELL-4}))),
+        // Items render ABOVE tiles, BELOW players — plain DOM order (no
+        // z-index needed) already gives that: this block sits between the
+        // placedTiles block above and the player-tokens block below.
+        Object.entries(itemCellGroups).map(([key, group]) => group.map((it, i) => {
+          const cx = it.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/6) : 0);
+          const cy = it.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/6) : 0);
+          return h('div', {
+            key:it.id,
+            style:{
+              position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)', pointerEvents:'none',
+              borderRadius:5, boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
+            }
+          }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
+        })),
         Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
           const cx = p.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
           const cy = p.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);
@@ -1377,10 +1940,13 @@ export function PlateauPage({onBack}) {
     // VISION MODE — clicking a token opens its full detail window instead
     // of selecting it for movement. Same "closes on outside click" rule as
     // every other popup, plus an explicit red ✕ since it's a big window.
-    // This is the future home of the player's sorts/énergies cards.
+    // Now shows the player's real equipped cards (nature slot + sorts +
+    // énergies, Couche 3) instead of the old placeholder text — each one
+    // opens the same enlarge/carousel window as tapping it in the footer.
     visionPlayerId && (() => {
       const p = players.find(pl => pl.id === visionPlayerId);
       if (!p) return null;
+      const list = playerCardList(p);
       return h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:260, display:'flex', alignItems:'center', justifyContent:'center'}},
         h('div', {ref:visionModalAnchorRef, style:{position:'relative'}},
           h(Popup, {
@@ -1403,50 +1969,144 @@ export function PlateauPage({onBack}) {
                 h('span', {style:{fontSize:12, color:'#888'}}, 'Points de vie')
               ),
               h('hr', {style:{border:'none', borderTop:'1px solid rgba(255,255,255,.1)', margin:'12px 0'}}),
-              h('div', {style:{fontSize:12, color:'#666'}}, 'Sorts & Énergies — bientôt disponible')
+              h('div', {style:{fontSize:11, color:'#888', marginBottom:8, fontWeight:600}}, 'Sorts & Énergies'),
+              list.length
+                ? h('div', {style:{display:'flex', flexWrap:'wrap', gap:6}},
+                    list.map(c => h('div', {
+                      key:c.id, onClick:()=>setEnlargedItem({playerId:p.id, index:list.indexOf(c)}),
+                      style:{cursor:'pointer', borderRadius:5}
+                    }, h(CardFace, {showBack:false, size:ITEM_BOX-4, kind:c.slot==='energie'?'energie':'sort'})))
+                  )
+                : h('div', {style:{fontSize:12, color:'#666'}}, 'Aucune carte équipée pour l’instant')
             )
           })
         )
       );
     })(),
 
-    // FOOTER (sticky) — dice / PV heart, with room left for sorts & énergies
-    // (between dice and heart) once those exist, and the Vision mode toggle
-    // just left of the player-switch arrow. Clicking the footer's own
-    // background clears any selected card, same as the header.
-    h('div', {onClick:clearCardSelection, style:{flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between',
-      padding:'10px 14px', background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
+    // FOOTER (sticky) — a column: the current player's equipped sorts/
+    // énergies (only once items exist to show, Couche 3) stacked above the
+    // original dice/PV row, which keeps its own layout/behavior untouched.
+    // Clicking the footer's own background clears any selected card, same
+    // as the header.
+    h('div', {onClick:clearCardSelection, style:{flexShrink:0, display:'flex', flexDirection:'column',
+      background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
-      h('button', {onClick:()=>switchPlayer(-1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
 
-      h('div', {style:{display:'flex', alignItems:'center', gap:10}},
-        current ? h('button', {onClick:()=>rollDice(current.id), style:{background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`, borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
-          current.dice ? `🎲 ${current.dice}` : '🎲'
-        ) : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, color:'#444', padding:'6px 12px', fontSize:13}}, '🎲'),
-        current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-          h('button', {onClick:()=>updatePv(current.id,-1), style:pvBtnStyle(visionMode)}, '−'),
-          h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-            h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
-            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
-          ),
-          h('button', {onClick:()=>updatePv(current.id,1), style:pvBtnStyle(visionMode)}, '+')
-        ) : h('div', {onClick:e=>{ e.stopPropagation(); addPlayer(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+      // EQUIPPED ITEMS — "sort de nature" (single slot, left) beside two
+      // stacked rows (sorts, then énergies below). `onClickCapture` (fires
+      // BEFORE any child's own bubble-phase onClick) intercepts every tap
+      // in this zone while a card is held/board-selected and equips it here
+      // instead of letting an individual slot's own tap-to-enlarge handler
+      // run — "peu importe où je clique dans cette zone avec un item".
+      current && h('div', {
+        onClickCapture: e => {
+          const live = liveRef.current;
+          if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); }
+        },
+        style:{display:'flex', alignItems:'stretch', gap:8, padding:'8px 14px 0', justifyContent:'center'}
+      },
+        h('div', {style:{width:ITEM_BOX-4, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center',
+          border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:2}},
+          h(FooterItemRow, {
+            items: current.natureSort ? [current.natureSort] : [], kind:'sort', size:ITEM_BOX-8,
+            selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='nature' ? selectedFooterItem.cardId : null,
+            onReorder:()=>{}, // a single slot never has anything to reorder against
+            onSelectForMove:it=>selectFooterItem(current.id, 'nature', it.id),
+            onOpenEnlarge:it=>openEnlargeFor(current.id, 'nature', it.id)
+          })
+        ),
+        h('div', {style:{display:'flex', flexDirection:'column', gap:4, justifyContent:'center'}},
+          h(FooterItemRow, {
+            items: current.sorts || [], kind:'sort', size:ITEM_BOX-8,
+            selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='sort' ? selectedFooterItem.cardId : null,
+            onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, sorts:next} : p)}),
+            onSelectForMove:it=>selectFooterItem(current.id, 'sort', it.id),
+            onOpenEnlarge:it=>openEnlargeFor(current.id, 'sort', it.id)
+          }),
+          h(FooterItemRow, {
+            items: current.energies || [], kind:'energie', size:ITEM_BOX-8,
+            selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='energie' ? selectedFooterItem.cardId : null,
+            onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, energies:next} : p)}),
+            onSelectForMove:it=>selectFooterItem(current.id, 'energie', it.id),
+            onOpenEnlarge:it=>openEnlargeFor(current.id, 'energie', it.id)
+          })
+        )
       ),
 
-      h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-        h('button', {
-          onClick:toggleVisionMode,
-          title:'Mode Vision',
-          style:{
-            background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
-            border:`1px solid ${visionMode ? 'rgba(79,163,255,.7)' : '#444'}`,
-            borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:40, height:40, fontSize:18,
-            boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
-          }
-        }, '👁️'),
-        h('button', {onClick:()=>switchPlayer(1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
+      h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px'}},
+        h('button', {onClick:()=>switchPlayer(-1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
+
+        h('div', {style:{display:'flex', alignItems:'center', gap:10}},
+          current ? h('button', {onClick:()=>rollDice(current.id), style:{background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`, borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
+            current.dice ? `🎲 ${current.dice}` : '🎲'
+          ) : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, color:'#444', padding:'6px 12px', fontSize:13}}, '🎲'),
+          current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
+            h('button', {onClick:()=>updatePv(current.id,-1), style:pvBtnStyle(visionMode)}, '−'),
+            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+              h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
+              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
+            ),
+            h('button', {onClick:()=>updatePv(current.id,1), style:pvBtnStyle(visionMode)}, '+')
+          ) : h('div', {onClick:e=>{ e.stopPropagation(); addPlayer(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+        ),
+
+        h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+          h('button', {
+            onClick:toggleVisionMode,
+            title:'Mode Vision',
+            style:{
+              background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
+              border:`1px solid ${visionMode ? 'rgba(79,163,255,.7)' : '#444'}`,
+              borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:40, height:40, fontSize:18,
+              boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
+            }
+          }, '👁️'),
+          h('button', {onClick:()=>switchPlayer(1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
+        )
       )
-    )
+    ),
+
+    // ENLARGE/CAROUSEL WINDOW — a single sort/énergie card blown up, with
+    // ‹/› to cycle through that same player's full card list without
+    // closing back to the small view. Reachable from the Vision player
+    // modal (click a card there) and directly from your own footer slots
+    // (a short tap on an equipped card) — same window either way.
+    enlargedItem && (() => {
+      const p = players.find(pl => pl.id === enlargedItem.playerId);
+      if (!p) return null;
+      const list = playerCardList(p);
+      const card = list[enlargedItem.index];
+      if (!card) return null;
+      return h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:270, display:'flex', alignItems:'center', justifyContent:'center'}},
+        h('div', {ref:enlargeModalAnchorRef, style:{position:'relative'}},
+          h(Popup, {
+            onClose:()=>setEnlargedItem(null),
+            anchorRef:enlargeModalAnchorRef,
+            style:{position:'relative', padding:20, background:'transparent', border:'none', boxShadow:'none'},
+            children: h('div', {style:{position:'relative'}},
+              h('div', {
+                onClick:()=>setEnlargedItem(null),
+                style:{position:'absolute', top:-16, right:-16, width:28, height:28, borderRadius:'50%',
+                  background:'rgba(220,60,40,.25)', border:'1px solid rgba(220,60,40,.6)', color:'#f66',
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:15, zIndex:1}
+              }, '✕'),
+              h(CardFace, {showBack:false, size:140, kind: card.slot==='energie' ? 'energie' : 'sort'}),
+              list.length > 1 && h('div', {
+                onClick:()=>shiftEnlarged(-1),
+                style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+                  border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+              }, '‹'),
+              list.length > 1 && h('div', {
+                onClick:()=>shiftEnlarged(1),
+                style:{position:'absolute', right:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+                  border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+              }, '›')
+            )
+          })
+        )
+      );
+    })()
   );
 }
 
