@@ -639,6 +639,14 @@
       "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "urjtegfdqjh",
+      "nom": "Nouvelle case",
+      "statut": "Test 3",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "regles": [
