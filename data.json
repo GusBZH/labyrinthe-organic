@@ -638,7 +638,7 @@
       "statut": "Test 3",
       "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
       "quantite": 1,
-      "notes": ""
+      "notes": "Pourrais être utile dans un mode spécifique avec moins de case pour avoir plus de case tremblement "
     },
     {
       "id": "urjtegfdqjh",
