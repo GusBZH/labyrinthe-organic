@@ -30,6 +30,15 @@ const ITEM_BOARD_SIZE = 22;
 // gets centered — half the token's own size plus a small gap so it doesn't
 // visually touch the cell's edge.
 const ITEM_CORNER_INSET = ITEM_BOARD_SIZE/2 + 3;
+// Gus: "si il y a plusieurs joueurs sur une case on peut pas voir du tout
+// les tuiles ni la case... et pareil si y a pleins d'item sur une case on
+// peut pas voir la case" — every token that sits ON TOP of a tile (players,
+// monstres, marqueurs, items) renders at less than full opacity so the
+// tile/case underneath stays at least partly visible through it, no matter
+// how many of them stack on the same cell. Tiles themselves (cases/départ)
+// are excluded on purpose — they're the "background" layer everything else
+// sits on, so they stay fully opaque as the visual reference point.
+const BOARD_TOKEN_OPACITY = 0.85;
 // Footer-equipped cards render at DOUBLE the header pile size (Gus) — the
 // footer has more room to work with than the cramped header row, and
 // equipped cards are meant to be the easiest ones on the whole board to
@@ -469,7 +478,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
   // `allowPileDraw` (case piles only, see its own comment where it's
@@ -501,7 +510,11 @@ function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedI
           }))
         )
       : h('div', {style:{width:boxSize, height:boxSize}}),
-    h(DiscardSlot, {
+    // Cases de départ skip the défausse entirely (Gus: "pas besoin de
+    // défausse pour les cases de départ") — discarding one just deletes it
+    // outright instead (see discardTile's own comment). Everything else
+    // about the deck (draw/place/rotate/flip/Dessus-Dessous) stays generic.
+    !hideDiscard && h(DiscardSlot, {
       cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
       armedId, armedIdRef, hasSelectedTile, disabled, visionMode,
       onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect,
@@ -774,6 +787,12 @@ function DiceButton({player, onRoll, guardedBySelection, visionMode}){
 // inspecting — bubbling through untouched (no stopPropagation) lets the
 // header's own "click elsewhere deselects" handler run instead, exactly
 // like a disabled PileStack/DiscardSlot already does.
+// No circular chip/background (Gus: "pas dans un bouton en cercle... le fond
+// soit transparent... on voit strictement le drapeau et rien d'autre") — the
+// tap target (36x36) stays the same size for a comfortable hit area, it's
+// just invisible now. The "holding" (armed) feedback that used to be a blue
+// glow ring around that circle becomes a `drop-shadow` filter on the icon
+// itself instead, since there's no more box to put a box-shadow/outline on.
 function MarkerButton({type, holding, disabled, onClick}){
   function handleClick(e){
     if (disabled) return;
@@ -783,15 +802,13 @@ function MarkerButton({type, holding, disabled, onClick}){
   return h('div', {
     onClick:handleClick,
     style:{
-      width:36, height:36, borderRadius:8, flexShrink:0, cursor: disabled ? 'default' : 'pointer',
+      width:36, height:36, flexShrink:0, cursor: disabled ? 'default' : 'pointer',
       display:'flex', alignItems:'center', justifyContent:'center',
-      background:'rgba(255,255,255,.06)',
-      boxShadow: holding ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
-      outline: holding ? '2px solid #4fa3ff' : 'none',
+      filter: holding ? 'drop-shadow(0 0 6px rgba(79,163,255,.9))' : 'none',
       opacity: disabled ? 0.4 : 1,
-      transition:'box-shadow .2s, outline-color .2s, opacity .2s'
+      transition:'filter .2s, opacity .2s'
     }
-  }, h(MarkerIcon, {type, size:20}));
+  }, h(MarkerIcon, {type, size:22}));
 }
 
 export function PlateauPage({onBack}) {
@@ -1303,10 +1320,14 @@ export function PlateauPage({onBack}) {
   function discardTile(tileId){
     const live = liveRef.current;
     const t = live.placedTiles.find(x => x.id === tileId);
-    commitBoard({
-      placedTiles: live.placedTiles.filter(x => x.id !== tileId),
-      discardCards: [...live.discardCards, {id:tileId, type: t?.type || 'case'}]
-    });
+    const updates = {placedTiles: live.placedTiles.filter(x => x.id !== tileId)};
+    // Cases de départ have no défausse (Gus: "pas besoin de défausse pour
+    // les cases de départ") — discarding one just deletes it outright,
+    // every other type still lands in its own défausse as before.
+    if ((t?.type || 'case') !== 'depart') {
+      updates.discardCards = [...live.discardCards, {id:tileId, type: t?.type || 'case'}];
+    }
+    commitBoard(updates);
     clearTileSelection();
   }
 
@@ -1409,6 +1430,23 @@ export function PlateauPage({onBack}) {
   function drawMarkerOrCancelSelection(markerType){
     if (hasAnySelection()) { clearCardSelection(); return; }
     drawMarker(markerType);
+  }
+  // Clicking the button a SELECTED marker's own type matches deletes it
+  // directly instead of just cancelling the selection (Gus: "quand je
+  // sélectionne les nouveaux marqueurs... puis que je clique sur la
+  // 'pioche' d'où il vient il faut qu'il soit delete") — markers have no
+  // défausse, so their own MarkerButton plays the same "select it, tap its
+  // origin, it's gone" fast-discard role a défausse already plays for
+  // tiles/items/monsters (see hasSelectedForDiscardOfType/
+  // discardSelectedMonster). Any other case (nothing selected, a DIFFERENT
+  // marker selected, or an unrelated selection like a tile/item/player)
+  // falls straight through to the generic draw-or-cancel behavior.
+  function markerButtonClick(markerType){
+    if (selectedMarkerId) {
+      const mk = markers.find(m => m.id === selectedMarkerId);
+      if (mk && mk.type === markerType) { discardSelectedMarker(); return; }
+    }
+    drawMarkerOrCancelSelection(markerType);
   }
 
   // Clicking a défausse's own top card selects/deselects it (toggle) — it
@@ -2586,7 +2624,7 @@ export function PlateauPage({onBack}) {
         }
       },
         h(PileGroup, {
-          type:'depart', piles, discardCards, boxSize:headerBoxSize,
+          type:'depart', piles, discardCards, boxSize:headerBoxSize, hideDiscard:true,
           holding:{pileId: heldTile && heldTile.tileType === 'depart' ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('depart'), hasSelectedTile:hasSelectedForDiscardOfType('depart'), disabled:pilesDisabled,
@@ -2604,7 +2642,7 @@ export function PlateauPage({onBack}) {
         h('div', {style:{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', paddingTop:Math.max(0, (headerBoxSize-36)/2)}},
           MARKER_ORDER.map(type => h(MarkerButton, {
             key:type, type, holding: heldMarker?.markerType === type, disabled: pilesDisabled || visionMode,
-            onClick: () => drawMarkerOrCancelSelection(type)
+            onClick: () => markerButtonClick(type)
           }))
         )
       ),
@@ -2725,7 +2763,8 @@ export function PlateauPage({onBack}) {
             key:it.id,
             style:{
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)', pointerEvents:'none',
-              borderRadius:5, boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
+              borderRadius:5, opacity:BOARD_TOKEN_OPACITY,
+              boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
             }
           }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
         })),
@@ -2744,26 +2783,27 @@ export function PlateauPage({onBack}) {
                 position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
                 width:26, height:26, borderRadius:'50%', background:BACK_ACCENT.monstre,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:13, pointerEvents:'none',
+                fontSize:13, pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
                 boxShadow: selectedMonsterId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.5)'
               }
             }, '👹');
           }
           if (e.kind === 'marker') {
-            // Blue selection glow like a tile/player, NOT the monster's red —
-            // the icon shape alone already tells markers apart, no need for
-            // a dedicated color the way monsters (all identical 👹) needed one.
+            // No circular chip either (same "juste l'icône" request as
+            // MarkerButton above) — selection glow becomes a drop-shadow
+            // filter on the icon itself instead of a box-shadow on a
+            // now-nonexistent background box. Blue like a tile/player, NOT
+            // the monster's red — the icon shape alone already tells
+            // markers apart, no need for a dedicated color.
             return h('div', {
               key:e.id,
               style:{
                 position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
-                width:22, height:22, borderRadius:'50%', background:'rgba(20,20,20,.85)',
-                border:'1px solid rgba(255,255,255,.25)',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                pointerEvents:'none',
-                boxShadow: selectedMarkerId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
+                pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
+                filter: selectedMarkerId===e.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
               }
-            }, h(MarkerIcon, {type:e.type, size:13}));
+            }, h(MarkerIcon, {type:e.type, size:18}));
           }
           return h('div', {
             key:e.id,
@@ -2771,7 +2811,7 @@ export function PlateauPage({onBack}) {
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
               width:26, height:26, borderRadius:'50%', background:e.couleur,
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none',
+              fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
               boxShadow: selectedId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
             }
           }, e.nom.slice(0,1).toUpperCase());
@@ -3254,20 +3294,23 @@ export function PlateauPage({onBack}) {
       // instead of ALSO performing its own action when one exists (Gus's
       // general rule — see its own comment for the full reasoning).
       h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px'}},
-        h('button', {onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
-
-        h('div', {style:{display:'flex', alignItems:'center', gap:10}},
-          current ? h(DiceButton, {player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode})
-            : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, width:44, height:34, color:'#444', fontSize:16}}, '🎲'),
-          current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
-            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-              h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
-              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
-            ),
-            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
-          ) : h('div', {onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+        // Dice sits right next to ‹ now — "le miroir du bouton vision"
+        // (Gus): Vision sits right next to › on the other side, so this
+        // mirrors that grouping. Hidden entirely (not just disabled) when
+        // there's no current player — nothing to roll for.
+        h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+          h('button', {onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
+          current && h(DiceButton, {player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode})
         ),
+
+        current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
+          h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
+          h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+            h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
+            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
+          ),
+          h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+        ) : h('div', {onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur'),
 
         h('div', {style:{display:'flex', alignItems:'center', gap:8}},
           h('button', {
