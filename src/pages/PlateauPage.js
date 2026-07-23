@@ -140,18 +140,18 @@ function makeDeck(type){
 }
 
 function makeInitialPiles(){
-  return ['case', 'sort', 'energie'].map(type => ({id:uid(), type, cards:makeDeck(type)}));
+  return ['case', 'sort', 'energie', 'monstre'].map(type => ({id:uid(), type, cards:makeDeck(type)}));
 }
 
 // Back-of-card accent color per deck type — the only visual difference
 // between a case/sort/énergie card back for now ("le reste on verra plus
 // tard", per Gus): a plain dark back with a thin colored border, no other
 // content since the real card art isn't wired in yet.
-const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a'};
+const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a', monstre:'#8a2f2f'};
 // Front-face glyph per deck type: cases keep the original placeholder
-// cross, sorts get a wand, énergies a flame (Gus's choice) — purely
-// cosmetic placeholders until real card art exists.
-const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥'};
+// cross, sorts get a wand, énergies a flame (Gus's choice), monstres an
+// ogre — purely cosmetic placeholders until real card art exists.
+const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥', monstre:'👹'};
 
 // A real card square: black back (accent border by deck type), white front
 // with a glyph by type, flipped via a simple rotateY. Reused for the pile
@@ -602,6 +602,15 @@ export function PlateauPage({onBack}) {
   const [piles, setPiles] = useState(saved?.piles || makeInitialPiles());
   const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
   const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
+  // Monstres traités comme des "joueurs" (CLAUDE.md) : leur propre pioche/
+  // défausse (type 'monstre', générique via PileGroup — aucun changement
+  // nécessaire là-bas) et leur propre tableau d'entités sur le plateau,
+  // avec le MÊME système de sélection/déplacement à un clic que `players`
+  // (voir handleSingleClick) — juste un état séparé (`selectedMonsterId`
+  // à côté de `selectedId`) pour ne toucher à aucune logique déjà validée
+  // spécifique aux joueurs (sidebar, dé, PV, footer "joueur courant"...).
+  const [monsters, setMonsters] = useState(saved?.monsters || []);
+  const [selectedMonsterId, setSelectedMonsterId] = useState(null);
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
   const [selectedTileId, setSelectedTileId] = useState(null);
@@ -675,7 +684,7 @@ export function PlateauPage({onBack}) {
   const liveRef = useRef({});
   useEffect(() => {
     liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex,
-      boardItems, heldItem, selectedItemId, selectedFooterItem };
+      boardItems, heldItem, selectedItemId, selectedFooterItem, monsters, selectedMonsterId };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -706,8 +715,8 @@ export function PlateauPage({onBack}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems})); } catch {}
-  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters})); } catch {}
+  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -879,7 +888,7 @@ export function PlateauPage({onBack}) {
     pastRef.current.push({
       players: live.players, piles: live.piles, discardCards: live.discardCards,
       placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
-      boardItems: live.boardItems, heldItem: live.heldItem
+      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters
     });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
@@ -893,6 +902,7 @@ export function PlateauPage({onBack}) {
     if ('currentIndex' in updates) setCurrentIndex(updates.currentIndex);
     if ('boardItems' in updates) setBoardItems(updates.boardItems);
     if ('heldItem' in updates) setHeldItem(updates.heldItem);
+    if ('monsters' in updates) setMonsters(updates.monsters);
   }
 
   function commitPlayers(next){
@@ -908,12 +918,13 @@ export function PlateauPage({onBack}) {
     setCurrentIndex(snap.currentIndex);
     setBoardItems(snap.boardItems);
     setHeldItem(snap.heldItem);
+    setMonsters(snap.monsters || []);
   }
 
   function currentSnapshot(){
     const live = liveRef.current;
     return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
-      boardItems: live.boardItems, heldItem: live.heldItem };
+      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters };
   }
 
   function undo(){
@@ -1064,6 +1075,21 @@ export function PlateauPage({onBack}) {
     }
   }
 
+  // Monster equivalent of discardSelectedTile/discardSelectedItem — the
+  // last step of an encounter per CLAUDE.md ("il fait une sélection... puis
+  // clique sur la défausse pour le défausser"): the monster entity is
+  // removed from `monsters` and its card lands in the monster défausse,
+  // same défausse-per-type mechanism already shared by cases/sorts/énergies.
+  function discardSelectedMonster(){
+    const live = liveRef.current;
+    if (!live.selectedMonsterId) return;
+    commitBoard({
+      monsters: live.monsters.filter(m => m.id !== live.selectedMonsterId),
+      discardCards: [...live.discardCards, {id:live.selectedMonsterId, type:'monstre'}]
+    });
+    setSelectedMonsterId(null);
+  }
+
   // Clicking a défausse's own top card selects/deselects it (toggle) — it
   // never needs to flip since it's already shown face-up. Fully generic
   // across all 3 défausses (case/sort/énergie): `discardCards` entries carry
@@ -1075,6 +1101,7 @@ export function PlateauPage({onBack}) {
     setSelectedId(null); // only one thing selected at a time
     setSelectedItemId(null);
     setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
   }
 
   // Feeds the currently-selected card (a placed tile, a défausse's top
@@ -1096,6 +1123,9 @@ export function PlateauPage({onBack}) {
     } else if (live.selectedFooterItem) {
       cardId = live.selectedFooterItem.cardId;
       updates.players = removeFooterItem(live.players, live.selectedFooterItem);
+    } else if (live.selectedMonsterId) {
+      cardId = live.selectedMonsterId;
+      updates.monsters = live.monsters.filter(m => m.id !== live.selectedMonsterId);
     } else if (live.selectedDiscardCardId) {
       cardId = live.selectedDiscardCardId;
       updates.discardCards = live.discardCards.filter(cd => cd.id !== cardId);
@@ -1109,6 +1139,7 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
     setSelectedItemId(null);
     setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
   }
 
   // Clears whatever card is selected (a placed tile, a défausse card, or a
@@ -1170,6 +1201,7 @@ export function PlateauPage({onBack}) {
     clearTileSelection();
     setSelectedDiscardCardId(null);
     setSelectedItemId(null);
+    setSelectedMonsterId(null);
   }
 
   function openEnlargeFor(playerId, slot, cardId){
@@ -1239,7 +1271,10 @@ export function PlateauPage({onBack}) {
     if (live.visionMode) {
       const here = live.players.filter(p => p.row === r && p.col === c);
       if (here.length === 1) { setVisionPlayerId(here[0].id); setVisionPlayerFromSidebar(false); }
-      else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
+      // Monsters aren't inspectable in Vision mode yet (CLAUDE.md: "l'inspection
+      // détaillée d'une case/tuile/monstre reste à faire") — the picker only
+      // ever lists players here, monsterIds stays empty on purpose.
+      else if (here.length > 1) setCellPicker({clientX, clientY, playerIds:here.map(p=>p.id), monsterIds:[], forVision:true});
       return;
     }
 
@@ -1265,8 +1300,17 @@ export function PlateauPage({onBack}) {
     // A sort/énergie drawn from a pile — unlike tiles, several items can
     // share a cell (they're small tokens, not case-covering tiles), so no
     // occupancy check, and no 'placed'-style mode: items only ever need to
-    // be movable, nothing to orient.
+    // be movable, nothing to orient. A monster drawn from the monster pile
+    // rides this exact same held-card hand-off (drawFromPile doesn't
+    // distinguish pile.type past 'case' vs. everything else — see its own
+    // comment) but lands as a new `monsters` entity instead of a boardItem,
+    // since it's "traité comme un joueur" (CLAUDE.md), not a small item
+    // token — same "no occupancy check" as players sharing a cell.
     if (live.heldItem) {
+      if (live.heldItem.itemType === 'monstre') {
+        commitBoard({monsters: [...live.monsters, {id:live.heldItem.cardId, row:r, col:c}], heldItem: null});
+        return;
+      }
       commitBoard({boardItems: [...live.boardItems, {id:live.heldItem.cardId, type:live.heldItem.itemType, row:r, col:c}], heldItem: null});
       return;
     }
@@ -1284,6 +1328,13 @@ export function PlateauPage({onBack}) {
         setSelectedDiscardCardId(null);
         setSelectedTileId(cardId);
         setSelectedTileMode('placed');
+      } else if (dcard.type === 'monstre') {
+        const cardId = live.selectedDiscardCardId;
+        commitBoard({
+          discardCards: live.discardCards.filter(cd => cd.id !== cardId),
+          monsters: [...live.monsters, {id:cardId, row:r, col:c}]
+        });
+        setSelectedDiscardCardId(null);
       } else {
         const cardId = live.selectedDiscardCardId;
         commitBoard({
@@ -1339,9 +1390,31 @@ export function PlateauPage({onBack}) {
       setSelectedId(null);
       return;
     }
-    const here = live.players.filter(p => p.row === r && p.col === c);
-    if (here.length === 1) setSelectedId(here[0].id);
-    else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:false});
+    // A monster selected for movement — exactly the same "tap elsewhere
+    // moves it, same cell deselects" flow as a player above, just writing
+    // into `monsters` instead of `players` (CLAUDE.md: monsters follow the
+    // same selection/movement system as players, no separate mechanic).
+    if (live.selectedMonsterId) {
+      const sel = live.monsters.find(m => m.id === live.selectedMonsterId);
+      if (sel && sel.row === r && sel.col === c) { setSelectedMonsterId(null); return; }
+      commitBoard({monsters: live.monsters.map(m => m.id === live.selectedMonsterId ? {...m, row:r, col:c} : m)});
+      setSelectedMonsterId(null);
+      return;
+    }
+    // Nothing held/selected: a plain tap picks whatever's on this cell —
+    // players and monsters share the same click gesture, so both are
+    // gathered together here. A single match selects it directly; several
+    // (any mix of players/monsters) opens the disambiguation picker, now
+    // carrying both lists so it can show them in two columns (see its
+    // render below) instead of only ever listing players.
+    const herePlayers = live.players.filter(p => p.row === r && p.col === c);
+    const hereMonsters = live.monsters.filter(m => m.row === r && m.col === c);
+    if (herePlayers.length + hereMonsters.length === 1) {
+      if (herePlayers.length === 1) setSelectedId(herePlayers[0].id);
+      else setSelectedMonsterId(hereMonsters[0].id);
+    } else if (herePlayers.length + hereMonsters.length > 1) {
+      setCellPicker({clientX, clientY, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:false});
+    }
   }
 
   // Distinguishing a single click (select/move a player) from a double-click
@@ -1423,6 +1496,7 @@ export function PlateauPage({onBack}) {
     setSelectedId(null); // only one thing selected at a time
     setSelectedItemId(null);
     setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
   }
 
   function onContentDoubleClick(e){
@@ -1519,6 +1593,7 @@ export function PlateauPage({onBack}) {
     clearTileSelection();
     setSelectedDiscardCardId(null);
     setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
     return true;
   }
 
@@ -1560,6 +1635,7 @@ export function PlateauPage({onBack}) {
       setSelectedFooterItem(null);
       setSelectedDiscardCardId(null);
       setSelectedId(null); // only one thing selected at a time
+      setSelectedMonsterId(null);
       clearTileSelection();
       return;
     }
@@ -1581,6 +1657,7 @@ export function PlateauPage({onBack}) {
     setSelectedId(null); // only one thing selected at a time
     setSelectedItemId(null);
     setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
@@ -1747,6 +1824,7 @@ export function PlateauPage({onBack}) {
       setSelectedId(null);
       clearTileSelection();
       setSelectedDiscardCardId(null);
+      setSelectedMonsterId(null);
     }
     setVisionMode(!visionMode);
   }
@@ -1779,11 +1857,12 @@ export function PlateauPage({onBack}) {
     setSelectedItemId(null);
     setSelectedFooterItem(null);
     setEnlargedItem(null);
+    setSelectedMonsterId(null);
     centerView();
     commitBoard({
       players: [], piles: makeInitialPiles(),
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
-      boardItems: [], heldItem: null
+      boardItems: [], heldItem: null, monsters: []
     });
   }
 
@@ -1803,6 +1882,20 @@ export function PlateauPage({onBack}) {
   boardItems.forEach(it => {
     const key = `${it.row}-${it.col}`;
     (itemCellGroups[key] = itemCellGroups[key] || []).push(it);
+  });
+
+  // Monster tokens get their OWN clustering rather than being merged into
+  // `cellGroups` above — a monster most often appears on the SAME cell as
+  // the player who triggered the encounter (CLAUDE.md's described flow), so
+  // reusing the exact same near-center jitter formula as players would sit
+  // them on top of each other. Reusing the item corner-quadrant positioning
+  // instead (same math as itemCellGroups) keeps a monster visually distinct
+  // from a player sharing its cell without touching the already-validated
+  // player clustering code at all.
+  const monsterCellGroups = {};
+  monsters.forEach(m => {
+    const key = `${m.row}-${m.col}`;
+    (monsterCellGroups[key] = monsterCellGroups[key] || []).push(m);
   });
 
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
@@ -1826,10 +1919,12 @@ export function PlateauPage({onBack}) {
   const footerSelType = selectedFooterItem ? (selectedFooterItem.slot === 'energie' ? 'energie' : 'sort') : null;
   function hasSelectedCardOfType(type){
     if (type === 'case') return !!(selectedTileId && !isPlacedMode) || discardSelType === 'case';
+    if (type === 'monstre') return !!selectedMonsterId || discardSelType === 'monstre';
     return (!!selectedItemObj && selectedItemObj.type === type) || discardSelType === type || footerSelType === type;
   }
   function hasSelectedForDiscardOfType(type){
     if (type === 'case') return !!(selectedTileId && !isPlacedMode);
+    if (type === 'monstre') return !!selectedMonsterId;
     return (!!selectedItemObj && selectedItemObj.type === type) || footerSelType === type;
   }
 
@@ -1880,9 +1975,11 @@ export function PlateauPage({onBack}) {
   const caseCount = Math.max(1, piles.filter(p => p.type === 'case').length);
   const sortCount = Math.max(1, piles.filter(p => p.type === 'sort').length);
   const energieCount = Math.max(1, piles.filter(p => p.type === 'energie').length);
-  const naturalHeaderWidth = groupNaturalWidth(caseCount, HEADER_ITEM_BOX) + HEADER_GROUP_GAP*2
+  const monstreCount = Math.max(1, piles.filter(p => p.type === 'monstre').length);
+  const naturalHeaderWidth = groupNaturalWidth(caseCount, HEADER_ITEM_BOX) + HEADER_GROUP_GAP*3
     + groupNaturalWidth(sortCount, HEADER_ITEM_BOX)
-    + groupNaturalWidth(energieCount, HEADER_ITEM_BOX);
+    + groupNaturalWidth(energieCount, HEADER_ITEM_BOX)
+    + groupNaturalWidth(monstreCount, HEADER_ITEM_BOX);
   const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
   const headerBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
@@ -1972,6 +2069,23 @@ export function PlateauPage({onBack}) {
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
           onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
+        }),
+        h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
+        // Monstres — 4ème groupe, à droite des énergies. Piocher/déplacer/
+        // défausser un monstre passe par les mêmes callbacks génériques que
+        // les 3 autres groupes (PileGroup/PileStack/DiscardSlot ne savent
+        // même pas qu'un 4ème type existe) — seul `discardSelectedMonster`
+        // est spécifique, exactement comme `discardSelectedTile`/
+        // `discardSelectedItem` le sont déjà pour les cases/sorts-énergies.
+        h(PileGroup, {
+          type:'monstre', piles, discardCards, boxSize:headerBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'monstre' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          armedId:armedPileId, armedIdRef:armedPileIdRef,
+          hasSelectedCard:hasSelectedCardOfType('monstre'), hasSelectedTile:hasSelectedForDiscardOfType('monstre'), disabled:pilesDisabled,
+          onArm:armPile, onDisarm:disarmPile,
+          onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCard
         }),
         (heldTile || heldItem) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
       )
@@ -2081,6 +2195,26 @@ export function PlateauPage({onBack}) {
             }
           }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
         })),
+        // Monster tokens — rendered above items, below players (DOM order
+        // gives that for free, no z-index needed), using the item-style
+        // corner offset (see monsterCellGroups' own comment) so a monster
+        // sharing a cell with the player who triggered it doesn't sit
+        // exactly on top of that player's own token.
+        Object.entries(monsterCellGroups).map(([key, group]) => group.map((m, i) => {
+          const q = i % 4;
+          const cx = m.col*CELL + (q % 2 === 0 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
+          const cy = m.row*CELL + (q < 2 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
+          return h('div', {
+            key:m.id,
+            style:{
+              position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
+              width:22, height:22, borderRadius:'50%', background:BACK_ACCENT.monstre,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:12, pointerEvents:'none',
+              boxShadow: selectedMonsterId===m.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.6)'
+            }
+          }, '👹');
+        })),
         Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
           const cx = p.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
           const cy = p.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);
@@ -2133,33 +2267,63 @@ export function PlateauPage({onBack}) {
       )
     ),
 
-    // MULTI-PLAYER CELL PICKER — several players sharing a cell means a
-    // single click can't tell which one you mean, so a small popup asks.
-    // Positioned at the raw tap coordinates (outside the pannable/zoomed
-    // content, no transform math needed). Tiles never appear here anymore:
-    // they're selected via double-click, an entirely separate gesture.
+    // MULTI-PLAYER/MONSTER CELL PICKER — several players and/or monsters
+    // sharing a cell means a single click can't tell which one you mean, so
+    // a small popup asks. Positioned at the raw tap coordinates (outside the
+    // pannable/zoomed content, no transform math needed). Tiles never appear
+    // here anymore: they're selected via double-click, an entirely separate
+    // gesture. Two rendering paths: with no monsters on this cell (the
+    // original, still-validated case — Vision mode never puts any monsters
+    // here either, see handleSingleClick) it's the exact same single-column
+    // `items` list as before; once monsters join a cell (CLAUDE.md: "la
+    // fenêtre de choix joueurs/monstres (deux colonnes)"), it switches to a
+    // two-column `children` layout mirroring itemCellPicker's own
+    // sorts/énergies split — joueurs left, monstres right.
     cellPicker && h('div', {
       ref:cellPickerAnchorRef,
       style:{position:'fixed', left:cellPicker.clientX, top:cellPicker.clientY, zIndex:250}
     },
-      h(Popup, {
-        onClose:()=>setCellPicker(null),
-        anchorRef:cellPickerAnchorRef,
-        style:{left:0, top:0, width:220},
-        // Bigger tap targets than the default .popup-item — this picker
-        // exists specifically to make an easy, unambiguous choice when a
-        // cell has several players on it, so it should be the easiest
-        // popup in the app to hit, not the default compact size shared
-        // with menus like Diviser/Mélanger.
-        itemStyle:{padding:'12px 14px', fontSize:15, gap:10},
-        items: cellPicker.ids.map(id => {
-          const p = players.find(pl => pl.id === id);
-          return {
-            label:p.nom, dot:p.couleur,
-            onClick:() => { if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerFromSidebar(false); } else setSelectedId(id); }
-          };
-        })
-      })
+      cellPicker.monsterIds.length === 0
+        ? h(Popup, {
+            onClose:()=>setCellPicker(null),
+            anchorRef:cellPickerAnchorRef,
+            style:{left:0, top:0, width:220},
+            // Bigger tap targets than the default .popup-item — this picker
+            // exists specifically to make an easy, unambiguous choice when a
+            // cell has several players on it, so it should be the easiest
+            // popup in the app to hit, not the default compact size shared
+            // with menus like Diviser/Mélanger.
+            itemStyle:{padding:'12px 14px', fontSize:15, gap:10},
+            items: cellPicker.playerIds.map(id => {
+              const p = players.find(pl => pl.id === id);
+              return {
+                label:p.nom, dot:p.couleur,
+                onClick:() => { if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerFromSidebar(false); } else setSelectedId(id); }
+              };
+            })
+          })
+        : h(Popup, {
+            onClose:()=>setCellPicker(null),
+            anchorRef:cellPickerAnchorRef,
+            style:{left:0, top:0, padding:10},
+            children: h('div', {style:{display:'flex', gap:12}},
+              h('div', {style:{display:'flex', flexDirection:'column', gap:6}},
+                cellPicker.playerIds.map(id => {
+                  const p = players.find(pl => pl.id === id);
+                  return h('div', {
+                    key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
+                    onClick:() => { setSelectedId(id); setCellPicker(null); }
+                  }, h('div', {style:{width:8,height:8,borderRadius:'50%',background:p.couleur}}), p.nom);
+                })
+              ),
+              h('div', {style:{display:'flex', flexDirection:'column', gap:6}},
+                cellPicker.monsterIds.map(id => h('div', {
+                  key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
+                  onClick:() => { setSelectedMonsterId(id); setCellPicker(null); }
+                }, '👹 Monstre'))
+              )
+            )
+          })
     ),
 
     // MULTI-ITEM CELL PICKER — several sorts/énergies sharing a cell can't

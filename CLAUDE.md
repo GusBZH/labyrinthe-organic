@@ -307,15 +307,74 @@ déjà en place) pour ne pas laisser un glow de sélection sans aucun moyen d'ag
 Une tuile *tenue* depuis une pioche (`heldTile`) n'est volontairement pas annulée à
 l'entrée en mode Vision : elle attend simplement, non posable, jusqu'à la sortie du mode.
 
-### Monstres traités comme des "joueurs"
+### Monstres traités comme des "joueurs" — implémenté
 Les monstres suivent le même système de sélection/déplacement que les joueurs (pas de
-mécanique séparée à coder). Flux d'une rencontre :
+mécanique séparée codée pour eux — confirmé en pratique : quasiment tout le mécanisme
+pioche/pose/sélection/défausse existant a été réutilisé tel quel). Flux d'une rencontre :
 1. Le joueur arrive sur une case monstre.
-2. Il clique sur la pioche monstre, puis sur sa propre case → le monstre apparaît sur
-   la case (traité désormais comme une entité "joueur" sélectionnable dessus).
-3. Le joueur lance le dé (bouton dé).
-4. S'il gagne, il fait une sélection prolongée sur la case pour cibler le monstre, puis
-   clique sur la défausse pour le défausser.
+2. Il clique sur la pioche monstre (4ème groupe du header, à droite des énergies, type
+   `'monstre'` — générique via `PileGroup`/`PileStack`/`DiscardSlot`, qui ne savaient déjà
+   pas ce qu'était un "type" avant celui-ci, donc aucun changement là-bas), puis sur sa
+   propre case → le monstre apparaît sur la case, en tant qu'entité **séparée** des
+   joueurs (`monsters`, tableau à côté de `players`, même forme minimale `{id, row, col}`
+   — pas de nom/couleur/dé/PV, un simple jeton).
+3. Le joueur lance le dé (bouton dé existant, rien de spécifique aux monstres).
+4. S'il gagne, il sélectionne le monstre (clic simple, comme un joueur — si la case
+   contient plusieurs entités, le `cellPicker` s'ouvre, voir plus bas) puis clique sur la
+   défausse monstre pour le défausser (`discardSelectedMonster`, même schéma que
+   `discardSelectedTile`/`discardSelectedItem`).
+
+**État séparé, pas fusionné dans `players`** : `selectedMonsterId` à côté de `selectedId`
+plutôt qu'un seul id générique — évite de toucher tout le code déjà validé qui suppose
+`selectedId`/`players[currentIndex]` = un joueur (sidebar, dé, PV, zone d'équipement du
+footer). Toute mutation (`heldItem` tenant un monstre, déplacement, défausse, insertion
+Dessus/Dessous dans la pioche) passe par `commitBoard({monsters:...})` exactement comme
+les autres tableaux persistés — undoable pour rien de plus à écrire, `monsters` a
+simplement rejoint la liste des clés de snapshot (`commitBoard`/`applySnapshot`/
+`currentSnapshot`, + `localStorage`).
+
+**Piocher/tenir/poser un monstre réutilise `heldItem` tel quel** (`itemType:'monstre'`) :
+`drawFromPile` ne distingue déjà que `pile.type === 'case'` vs le reste (voir son propre
+commentaire) — un monstre suit donc EXACTEMENT le même cycle pioche/annule qu'un sort ou
+une énergie, sans rien à modifier dans `drawFromPile`. Seule la étape finale de POSE
+diffère : `handleSingleClick` regarde `heldItem.itemType` et route vers `monsters`
+(nouvelle entité `{id, row, col}`) au lieu de `boardItems` quand c'est un monstre — aucune
+vérification d'occupation (comme les joueurs, plusieurs entités peuvent partager une
+case ; c'est même le cas normal, un monstre apparaît sur la case du joueur qui l'a
+rencontré). Même chose pour reposer un monstre depuis sa défausse
+(`selectedDiscardCardId` avec `dcard.type === 'monstre'`, nouvelle branche à côté du
+`'case'` déjà existant) et pour le ranger Dessus/Dessous dans une pioche
+(`insertSelectedCardIntoPile`, branche `selectedMonsterId` ajoutée au même endroit que
+`selectedItemId`).
+
+**Jeton sur le plateau — pas fusionné avec le rendu des joueurs** : `monsterCellGroups`
+est un regroupement par case séparé de `cellGroups` (jamais touché), positionné avec le
+MÊME calcul de coin/quadrant que les items du plateau (`ITEM_CORNER_INSET`) plutôt que le
+jitter quasi-centré des joueurs — un monstre partage très souvent sa case avec LE joueur
+qui vient de le rencontrer (le flux normal ci-dessus), donc réutiliser le placement
+joueur l'aurait fait atterrir exactement sur son jeton. Rendu dans le DOM entre les items
+et les joueurs (au-dessus des items, sous les joueurs, sans besoin de z-index). Glow de
+sélection en rouge (`0 0 10px 3px #f66`) plutôt que le bleu habituel, pour distinguer au
+premier coup d'œil "un monstre est sélectionné" de "un joueur/une carte est
+sélectionné(e)".
+
+**`cellPicker` généralisé en deux colonnes quand des monstres partagent la case** (CLAUDE.md
+prévoyait déjà cette évolution avant même l'existence des monstres — "la fenêtre de choix
+joueurs/monstres (deux colonnes)") : `cellPicker` porte maintenant `playerIds`/
+`monsterIds` séparément (au lieu d'un seul `ids`). Tant qu'une case n'a que des joueurs
+(le mode Vision n'y ajoute jamais de monstres, voir plus bas), le picker reste EXACTEMENT
+le rendu à une colonne déjà validé (`Popup` en mode `items`, grandes cibles de tap) — dès
+qu'un monstre rejoint la case, il bascule en mode `children` à deux colonnes (même
+schéma que `itemCellPicker` pour sorts/énergies) : joueurs à gauche (nom + pastille de
+couleur), monstres à droite ("👹 Monstre" répété par entrée, cartes placeholder
+identiques pour l'instant). Vérifié qu'aucune régression n'affecte le cas "plusieurs
+joueurs, aucun monstre" (toujours 220px, une seule colonne).
+
+**Mode Vision : les monstres restent hors de portée pour l'instant**, par choix — le
+volet "inspection détaillée d'une case/tuile/monstre" (affichage de stats/récompenses)
+n'est pas encore implémenté (pas de contenu réel de carte monstre à afficher). Le clic en
+mode Vision ne regarde donc toujours que `players`, `cellPicker.monsterIds` y est
+volontairement toujours vide.
 
 ### Pioche et pose de tuiles (labyrinthe) — Couche 2, implémentée
 **Visuel des cartes** (`CardFace` dans `PlateauPage.js`) : une vraie carte carrée à deux
@@ -536,8 +595,10 @@ le texte complet de la carte en grand plutôt que d'exécuter l'action normale a
 à la sélection — ex: sélectionner un monstre en mode Vision affichera ses stats et
 récompenses en plein écran, au lieu du menu d'action habituel. **Le volet joueurs est
 fait** (fenêtre `visionPlayerId`, voir "Couche 3" plus bas pour son contenu réel
-sorts/énergies) ; l'inspection détaillée d'une case/tuile/monstre reste à faire (pas
-encore de monstres sur le plateau). L'**ambiance visuelle du toggle est
+sorts/énergies) ; l'inspection détaillée d'une case/tuile/monstre reste à faire (les
+monstres existent maintenant sur le plateau — voir "Monstres traités comme des
+'joueurs'" — mais le mode Vision les ignore volontairement pour l'instant, faute de
+contenu réel de carte monstre à afficher). L'**ambiance visuelle du toggle est
 implémentée** : overlay bleuté sur les lignes de la grille du Plateau (même dégradé
 répété que le fond de grille, teinté bleu par-dessus, cf. `visionGridStyle` dans
 `PlateauPage.js`), avec un effet glitch inspiré du mode édition à l'activation/
@@ -945,7 +1006,10 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      (avec la couleur en pastille) pour choisir explicitement lequel
      sélectionner ; se ferme comme toute popup au clic extérieur. La fenêtre
      de choix joueurs/**monstres** (deux colonnes) de "Système de sélection
-     par geste" attend toujours les monstres de la Couche 3.
+     par geste" est maintenant implémentée — voir "Monstres traités comme des
+     'joueurs'" plus bas pour le détail (bascule en deux colonnes uniquement
+     quand un monstre partage la case, sinon reste la liste à une colonne
+     ci-dessus, inchangée).
      Barre des joueurs façon "groupe Dofus" : colonne collée à **droite**
      de l'écran, centrée verticalement, un carré par joueur (fond = couleur du
      joueur en attendant un visuel par personnage, nom éditable par double-clic
