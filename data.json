@@ -693,7 +693,7 @@
     },
     {
       "id": "r8",
-      "nom": "PV — 1 ou 2 ?",
+      "nom": "PV — 1 ou 2 ou 3 ?",
       "statut": "Test 1",
       "effet": "À tester : 2 PV vs one shot (1 PV). Comparer rythme et durée des combats.",
       "notes": ""
