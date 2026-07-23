@@ -865,17 +865,22 @@ undoable) contenant deux choses nouvelles :
   elles-mêmes** (Gus : "si il y a plusieurs joueurs sur une case on peut pas voir du
   tout les tuiles ni la case... est-ce qu'on pourrait pas faire des opacité réduite
   pour voir les items si ya des monstres et joueurs dessus ? Et même items pour voir
-  la carte en dessous ?") — nouvelle constante `BOARD_TOKEN_OPACITY` (0.85 au premier
-  essai, ramenée à **0.66** après test en vrai jeu), appliquée aux jetons joueur/
-  monstre/marqueur (`cellGroups`) et aux items posés (`boardItems`), jamais aux cases/
-  tuiles elles-mêmes (`placedTiles`, qui restent la couche "fond" de référence,
-  toujours pleinement opaque) — **ni aux mêmes cartes affichées dans une fenêtre**
-  (agrandie, pied de page, modale Vision joueur...) : la baisse d'opacité ne touche
-  que les 4 sites de rendu DANS le conteneur de grille transformé, jamais les `CardFace`
-  rendues ailleurs dans l'app, qui restent à 100%. `pointerEvents:'none'` sur tous ces
-  jetons (déjà le cas avant) donc la baisse d'opacité ne change rien à la détection de
-  clic, qui passe par les coordonnées du clic sur le conteneur `content`, pas par un
-  hit-test DOM par élément.
+  la carte en dessous ?") — appliquée aux jetons joueur/monstre/marqueur (`cellGroups`)
+  et aux items posés (`boardItems`), jamais aux cases/tuiles elles-mêmes (`placedTiles`,
+  qui restent la couche "fond" de référence, toujours pleinement opaque) — **ni aux
+  mêmes cartes affichées dans une fenêtre** (agrandie, pied de page, modale Vision
+  joueur...) : la baisse d'opacité ne touche que les 4 sites de rendu DANS le conteneur
+  de grille transformé, jamais les `CardFace` rendues ailleurs dans l'app, qui restent à
+  100%. `pointerEvents:'none'` sur tous ces jetons (déjà le cas avant) donc la baisse
+  d'opacité ne change rien à la détection de clic, qui passe par les coordonnées du
+  clic sur le conteneur `content`, pas par un hit-test DOM par élément.
+  **Devenue conditionnelle au mode Vision plutôt qu'une constante fixe** (Gus, après
+  avoir testé un premier passage à une valeur fixe — 85% puis 66% — en vrai jeu : "100%
+  en mode normal et 50% en mode vision !") — `boardTokenOpacity` (calculé une fois par
+  rendu depuis `visionMode`, `BOARD_TOKEN_OPACITY_NORMAL = 1` / `BOARD_TOKEN_OPACITY_VISION
+  = 0.5`) remplace l'ancienne constante fixe aux 4 mêmes sites de rendu. Cohérent avec le
+  rôle du mode Vision ("voir ce qu'il y a en dessous") : les pièces se lisent le mieux à
+  100% en jeu normal, et c'est justement en mode Vision qu'on veut voir à travers la pile.
 
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,

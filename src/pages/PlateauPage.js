@@ -33,12 +33,19 @@ const ITEM_CORNER_INSET = ITEM_BOARD_SIZE/2 + 3;
 // Gus: "si il y a plusieurs joueurs sur une case on peut pas voir du tout
 // les tuiles ni la case... et pareil si y a pleins d'item sur une case on
 // peut pas voir la case" — every token that sits ON TOP of a tile (players,
-// monstres, marqueurs, items) renders at less than full opacity so the
+// monstres, marqueurs, items) can render at less than full opacity so the
 // tile/case underneath stays at least partly visible through it, no matter
 // how many of them stack on the same cell. Tiles themselves (cases/départ)
 // are excluded on purpose — they're the "background" layer everything else
 // sits on, so they stay fully opaque as the visual reference point.
-const BOARD_TOKEN_OPACITY = 0.66;
+// Started as a constant 66% at all times (after an even lighter first try
+// at 85%), then Gus had a better idea: full opacity normally (pieces read
+// clearest at 100% during actual play) and only dim them in Vision mode —
+// which is already the "inspect what's underneath" mode, so that's exactly
+// when seeing through the stack matters most. `boardTokenOpacity` below is
+// computed per-render from `visionMode` rather than a fixed constant.
+const BOARD_TOKEN_OPACITY_NORMAL = 1;
+const BOARD_TOKEN_OPACITY_VISION = 0.5;
 // Footer-equipped cards render at DOUBLE the header pile size (Gus) — the
 // footer has more room to work with than the cramped header row, and
 // equipped cards are meant to be the easiest ones on the whole board to
@@ -2356,6 +2363,7 @@ export function PlateauPage({onBack}) {
   // cell of the player who encountered it) they split the same jitter
   // positions players already use amongst themselves, instead of a monster
   // corner-token stacking underneath the player's own token.
+  const boardTokenOpacity = visionMode ? BOARD_TOKEN_OPACITY_VISION : BOARD_TOKEN_OPACITY_NORMAL;
   const cellGroups = {};
   players.forEach(p => {
     const key = `${p.row}-${p.col}`;
@@ -2763,7 +2771,7 @@ export function PlateauPage({onBack}) {
             key:it.id,
             style:{
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)', pointerEvents:'none',
-              borderRadius:5, opacity:BOARD_TOKEN_OPACITY,
+              borderRadius:5, opacity:boardTokenOpacity,
               boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
             }
           }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
@@ -2783,7 +2791,7 @@ export function PlateauPage({onBack}) {
                 position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
                 width:26, height:26, borderRadius:'50%', background:BACK_ACCENT.monstre,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:13, pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
+                fontSize:13, pointerEvents:'none', opacity:boardTokenOpacity,
                 boxShadow: selectedMonsterId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.5)'
               }
             }, '👹');
@@ -2800,7 +2808,7 @@ export function PlateauPage({onBack}) {
               style:{
                 position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
+                pointerEvents:'none', opacity:boardTokenOpacity,
                 filter: selectedMarkerId===e.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
               }
             }, h(MarkerIcon, {type:e.type, size:18}));
@@ -2811,7 +2819,7 @@ export function PlateauPage({onBack}) {
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
               width:26, height:26, borderRadius:'50%', background:e.couleur,
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none', opacity:BOARD_TOKEN_OPACITY,
+              fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none', opacity:boardTokenOpacity,
               boxShadow: selectedId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
             }
           }, e.nom.slice(0,1).toUpperCase());
