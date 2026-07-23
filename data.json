@@ -593,19 +593,19 @@
       "notes": ""
     },
     {
-      "id": "c4",
-      "nom": "Case Énergie",
-      "statut": "Validé",
-      "effet": "La première fois par tour qu'on y entre, piocher une énergie dans la pile de son choix.",
-      "quantite": 10,
-      "notes": ""
-    },
-    {
       "id": "c5",
       "nom": "Case Fontaine",
       "statut": "Validé",
       "effet": "Restaure tous les PV quand on finit son tour dessus.",
       "quantite": 15,
+      "notes": ""
+    },
+    {
+      "id": "c4",
+      "nom": "Case Énergie",
+      "statut": "Validé",
+      "effet": "La première fois par tour qu'on y entre, piocher une énergie dans la pile de son choix.",
+      "quantite": 10,
       "notes": ""
     },
     {
