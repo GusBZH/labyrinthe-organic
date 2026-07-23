@@ -678,17 +678,17 @@
       "notes": ""
     },
     {
-      "id": "r6",
-      "nom": "Combat",
-      "statut": "Validé",
-      "effet": "Chacun lance un dé. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'à 0 PV. Égalité contre monstre = joueur gagne. Plusieurs dés = toujours garder le meilleur.",
-      "notes": ""
-    },
-    {
       "id": "r7",
       "nom": "Mort",
       "statut": "Validé",
       "effet": "Lâchez un item au choix sur votre case et réapparaissez sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",
+      "notes": ""
+    },
+    {
+      "id": "r6",
+      "nom": "Combat",
+      "statut": "Validé",
+      "effet": "Chacun lance un dé. Le plus haut gagne. Le perdant perd 1 PV. On relance jusqu'à 0 PV. Égalité contre monstre = joueur gagne. Plusieurs dés = toujours garder le meilleur.",
       "notes": ""
     },
     {
