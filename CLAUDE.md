@@ -675,21 +675,43 @@ bouton dans la grille — "juste déplacer c'est suffisant".
 - **Plusieurs items sur la même case → petite fenêtre de choix** ("je dois pouvoir
   choisir entre chaque item en ouvrant une fenêtre") : `handleItemLongPress` ne prend
   plus juste le dernier item posé sur la case — s'il y en a plus d'un, il ouvre
-  `itemCellPicker` (même esprit que le `cellPicker` multi-joueurs), une liste "🪄 Sort" /
-  "🔥 Énergie" par item. Positionnée 40px SOUS le point d'appui plutôt qu'exactement
-  dessus : le popup s'ouvre pendant que le doigt/la souris est encore appuyé(e) (au
-  seuil des 500ms, comme le menu Diviser/Mélanger d'une pioche) — la placer pile sous le
-  pointeur encore actif aurait risqué que le relâchement qui suit tombe directement sur
-  une des options et la sélectionne par accident.
+  `itemCellPicker` (même esprit que le `cellPicker` multi-joueurs). Positionnée 40px
+  SOUS le point d'appui plutôt qu'exactement dessus : le popup s'ouvre pendant que le
+  doigt/la souris est encore appuyé(e) (au seuil des 500ms, comme le menu Diviser/
+  Mélanger d'une pioche) — la placer pile sous le pointeur encore actif aurait risqué
+  que le relâchement qui suit tombe directement sur une des options et la sélectionne
+  par accident.
+  - **Deux colonnes, sorts à gauche / énergies à droite** (Gus : "à gauche les sorts
+    sur une colonne et à droite les énergies") plutôt qu'une seule liste verticale
+    mélangée : `itemCellPicker` utilise le mode `children` (libre) de `Popup` plutôt
+    que son mode `items` (qui ne rend jamais qu'une seule colonne) — un `<div>` flex
+    avec deux sous-colonnes, chacune filtrant `itemCellPicker.items` par type. Chaque
+    ligne partage la classe `.popup-item` (mêmes styles que le mode `items`) mais
+    ferme le picker elle-même (`setItemCellPicker(null)` dans son propre `onClick`,
+    puisque le mode `children` de `Popup` ne le fait plus automatiquement pour nous
+    contrairement au mode `items`).
 - **Mode Vision = aperçu en grand en restant appuyé** ("je dois être capable d'afficher
   le sort sur le plateau en restant appuyé") : contrairement aux autres gestes de carte,
   l'appui long sur un item N'EST PAS bloqué en mode Vision — il affiche `visionPeekItem`
-  (la carte en grand, sans `‹`/`›` ni croix — juste un aperçu, pas un navigateur) tant
-  que le doigt/la souris reste appuyé(e), refermé automatiquement au relâchement
-  (`peekingRef`, vérifié dans `onContentPointerUp`). Sur une case à items multiples en
-  mode Vision, le picker ci-dessus s'ouvre à la place — le choisir affiche alors le même
-  aperçu, mais cette fois comme une fenêtre normale (fermeture au tap extérieur) puisque
-  le geste d'appui a déjà pris fin avant que le choix ne soit fait.
+  (la carte en grand) tant que le doigt/la souris reste appuyé(e), refermé
+  automatiquement au relâchement (`peekingRef`, vérifié dans `onContentPointerUp`). Sur
+  une case à items multiples en mode Vision, le picker ci-dessus s'ouvre à la place — le
+  choisir affiche alors le même aperçu, mais cette fois comme une fenêtre normale
+  (fermeture au tap extérieur) puisque le geste d'appui a déjà pris fin avant que le
+  choix ne soit fait.
+  - **`‹`/`›` pour parcourir les AUTRES items de la même case** (Gus : "il y ait les
+    flèches pour afficher les autres items présents sur cette case uniquement") :
+    `visionPeekItem` est passé de "un item" à `{items, index}` — `items` est la liste
+    complète des items du picker (ou `[item]` seul dans le cas "rester appuyé" sur une
+    case à un seul item, d'où l'absence de flèches dans ce cas précis, `items.length`
+    valant alors 1), `index` la position actuelle. `shiftVisionPeek(dir)` fait défiler
+    en boucle, même mécanique que `shiftEnlarged` pour la fenêtre agrandie des items
+    équipés d'un joueur, mais volontairement une fonction séparée : les deux carrousels
+    parcourent des listes de nature différente (items d'UNE case du plateau vs. items
+    équipés d'UN joueur), aucune raison de les faire dépendre l'un de l'autre. La
+    carte + les flèches stoppent la propagation de leur clic (`e.stopPropagation()`) —
+    sans ça, cliquer une flèche remonterait jusqu'au fond plein écran qui ferme la
+    fenêtre, empêchant tout parcours.
 
 **Équiper un item sur un joueur** — nouvelle zone dans le pied de page, juste au-dessus
 de la ligne dé/PV existante (jamais touchée), visible seulement s'il y a un joueur
@@ -763,22 +785,34 @@ energie:'🔥'}`) — le dos garde le même traitement sombre uni + bordure d'ac
 colorée pour les 3 types (`BACK_ACCENT`, inchangé), seul le glyphe de la face change.
 
 **Fenêtre `visionPlayerId` (sidebar + mode Vision) — mise en page revue** : nom + cœur
-de PV à GAUCHE (colonne étroite), sorts/énergies équipés à DROITE, disposés exactement
-comme dans le pied de page (même emplacement nature + mêmes lignes en pointillés,
-`FooterItemRow` réutilisé avec `onReorder`/`onSelectForMove` en no-op — cette fenêtre
-peut afficher N'IMPORTE QUEL joueur, pas seulement le joueur courant, donc rien n'y est
-équipable/réordonnable, seulement consultable en cliquant une carte pour l'agrandir),
-à une taille réduite (`VISION_ITEM_SIZE`) pour tenir dans la largeur de la fenêtre.
-- **`VISION_ITEM_SIZE` doublé (28 → 56px), fenêtre élargie en conséquence** (Gus :
-  "agrandir du double la taille des items, comme ça on peut lire sans forcément
-  agrandir l'item... essaye de garder le nom et le cœur à la même taille, si tu peux
-  prendre la place sur le côté droit de la fenêtre") : seule la constante
-  `VISION_ITEM_SIZE` change — `VISION_ROW_HEIGHT`/`VISION_ROW_WIDTH` en dérivent déjà
-  automatiquement (paramétrés depuis une session précédente), rien à retoucher côté
-  calcul. La colonne nom+cœur de PV (gauche) garde sa taille propre, indépendante de
-  `VISION_ITEM_SIZE` — seule la colonne de droite (sorts/énergies) grossit. Largeur
-  max de la `Popup` portée de `min(92vw,420px)` à `min(95vw,560px)` pour donner la
-  place nécessaire à droite sans écraser la colonne de gauche.
+de PV en HAUT (une rangée horizontale), sorts/énergies équipés EN DESSOUS, disposés
+exactement comme dans le pied de page (même emplacement nature + mêmes lignes en
+pointillés, `FooterItemRow` réutilisé avec `onReorder`/`onSelectForMove` en no-op —
+cette fenêtre peut afficher N'IMPORTE QUEL joueur, pas seulement le joueur courant,
+donc rien n'y est équipable/réordonnable, seulement consultable en cliquant une carte
+pour l'agrandir), à une taille réduite (`VISION_ITEM_SIZE`) pour tenir dans la largeur
+de la fenêtre.
+- **`VISION_ITEM_SIZE` doublé (28 → 56px)** (Gus : "agrandir du double la taille des
+  items, comme ça on peut lire sans forcément agrandir l'item... essaye de garder le
+  nom et le cœur à la même taille") : seule la constante `VISION_ITEM_SIZE` change —
+  `VISION_ROW_HEIGHT`/`VISION_ROW_WIDTH` en dérivent déjà automatiquement (paramétrés
+  depuis une session précédente), rien à retoucher côté calcul.
+- **Nom+cœur et la croix passés en rangée du HAUT, items en dessous — remplace le
+  layout "nom+cœur à gauche, items à droite"** (Gus : "la fenêtre... est trop grande
+  par rapport à mon écran, mets nom et cœur en haut, même hauteur toute à droite la
+  croix, et en bas les items... tu déplaces juste les éléments et la fenêtre tient sur
+  le tel") : la largeur nécessaire pour caser nom+cœur ET tous les items CÔTE À CÔTE
+  (comme avant, la largeur avait dû être portée à `min(95vw,560px)` pour ça) ne rentrait
+  plus sur un écran de téléphone. Empiler les deux zones au lieu de les juxtaposer ramène
+  la largeur requise à celle de la SEULE zone d'items (la plus large des deux) — la
+  `Popup` revient donc à `min(95vw,420px)` (sa largeur d'avant l'élargissement de la
+  session précédente). Rien ne change de TAILLE (ni `VISION_ITEM_SIZE`, ni les polices
+  nom/cœur) — uniquement l'agencement : une rangée `flex` (nom+cœur à gauche, ✕ à
+  droite, `justifyContent:'space-between'`) au-dessus d'une rangée d'items en
+  `flexWrap:'wrap'` pleine largeur, au lieu de deux colonnes côte à côte. La croix
+  n'est plus `position:'absolute'` (elle avait besoin de flotter tant que nom+cœur et
+  items partageaient la même rangée) — elle est maintenant un troisième élément flex de
+  la rangée du haut, `flexShrink:0`.
 - **`‹`/`›` pour changer de joueur, mais seulement depuis la barre latérale** ("la
   fenêtre... ce serait cool d'avoir en bas les <> pour passer de joueurs en joueur...
   mais en mode vision et qu'on clique sur un joueur pas besoin de <>") : nouveau state

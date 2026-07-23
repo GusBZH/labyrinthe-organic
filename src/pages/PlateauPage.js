@@ -641,12 +641,21 @@ export function PlateauPage({onBack}) {
   // combined [natureSort?, ...sorts, ...energies] list, so ‹/› can cycle
   // through everything without needing separate per-row carousels.
   const [enlargedItem, setEnlargedItem] = useState(null);
-  // Vision-mode "hold to peek" — an item object (not just an id, since it
-  // may not even be selectable) shown big while a board item is held down
-  // during Vision mode, or opened from itemCellPicker when several items
-  // shared the cell (see handleItemLongPress). No ‹/› here, unlike
-  // enlargedItem — it's a quick peek at ONE card, not a browse.
+  // Vision-mode "hold to peek" — {items, index}: items is the full list of
+  // board items sharing that cell (just [item] when there's only one, e.g.
+  // the hold-to-peek path below), index is which one is currently shown.
+  // Shown big while a board item is held down during Vision mode, or opened
+  // from itemCellPicker when several items shared the cell (see
+  // handleItemLongPress). ‹/› cycle through `items` when there's more than
+  // one — mirrors enlargedItem's carousel, but scoped to THIS cell only.
   const [visionPeekItem, setVisionPeekItem] = useState(null);
+  function shiftVisionPeek(dir){
+    setVisionPeekItem(prev => {
+      if (!prev) return prev;
+      const len = prev.items.length;
+      return {...prev, index: (prev.index + dir + len) % len};
+    });
+  }
   // Several items sharing a cell can't be disambiguated by a single
   // long-press — this offers a small choice popup instead (mirrors the
   // multi-player cellPicker). `forVision` decides whether picking one opens
@@ -1504,7 +1513,7 @@ export function PlateauPage({onBack}) {
       return true;
     }
     const item = items[0];
-    if (live.visionMode) { setVisionPeekItem(item); return 'peek'; }
+    if (live.visionMode) { setVisionPeekItem({items:[item], index:0}); return 'peek'; }
     setSelectedItemId(item.id);
     setSelectedId(null);
     clearTileSelection();
@@ -2157,7 +2166,10 @@ export function PlateauPage({onBack}) {
     // be told apart by a single long-press, so it offers a choice popup
     // instead (see handleItemLongPress). `forVision` decides whether
     // picking one opens visionPeekItem (Vision mode) or selects it for the
-    // normal move flow.
+    // normal move flow. Laid out as two columns (sorts left, énergies
+    // right, Gus) rather than one flat list — a custom `children` layout
+    // instead of Popup's own `items` list mode, since that mode only ever
+    // renders a single column.
     itemCellPicker && h('div', {
       ref:itemCellPickerAnchorRef,
       style:{position:'fixed', left:itemCellPicker.clientX, top:itemCellPicker.clientY, zIndex:250}
@@ -2165,35 +2177,64 @@ export function PlateauPage({onBack}) {
       h(Popup, {
         onClose:()=>setItemCellPicker(null),
         anchorRef:itemCellPickerAnchorRef,
-        style:{left:0, top:0, width:180},
-        itemStyle:{padding:'12px 14px', fontSize:15, gap:10},
-        items: itemCellPicker.items.map(it => ({
-          label: it.type === 'energie' ? '🔥 Énergie' : '🪄 Sort',
-          onClick: () => {
-            if (itemCellPicker.forVision) { setVisionPeekItem(it); return; }
-            setSelectedItemId(it.id);
-            setSelectedId(null);
-            clearTileSelection();
-            setSelectedDiscardCardId(null);
-            setSelectedFooterItem(null);
-          }
-        }))
+        style:{left:0, top:0, padding:10},
+        children: h('div', {style:{display:'flex', gap:12}},
+          ['sort', 'energie'].map(kind => h('div', {key:kind, style:{display:'flex', flexDirection:'column', gap:6}},
+            itemCellPicker.items.filter(it => (it.type === 'energie') === (kind === 'energie')).map(it =>
+              h('div', {
+                key:it.id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
+                onClick: () => {
+                  if (itemCellPicker.forVision) {
+                    setVisionPeekItem({items: itemCellPicker.items, index: itemCellPicker.items.findIndex(x => x.id === it.id)});
+                  } else {
+                    setSelectedItemId(it.id);
+                    setSelectedId(null);
+                    clearTileSelection();
+                    setSelectedDiscardCardId(null);
+                    setSelectedFooterItem(null);
+                  }
+                  setItemCellPicker(null);
+                }
+              }, kind === 'energie' ? '🔥 Énergie' : '🪄 Sort')
+            )
+          ))
+        )
       })
     ),
 
-    // VISION MODE "HOLD TO PEEK" — a big, arrow-less preview of a single
-    // card, either live while the board item is held down (auto-clears on
-    // release, see onContentPointerUp) or opened from itemCellPicker (stays
-    // until dismissed by tapping outside, like any other window — this
-    // click-to-close backdrop handler covers that case; the hold case never
-    // actually needs it since the pointer never reaches the backdrop before
-    // release already clears it).
-    visionPeekItem && h('div', {
-      onClick:()=>setVisionPeekItem(null),
-      style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
-    },
-      h(CardFace, {showBack:false, size:140, kind: visionPeekItem.type === 'energie' ? 'energie' : 'sort'})
-    ),
+    // VISION MODE "HOLD TO PEEK" — a big preview of a card, either live
+    // while the board item is held down (auto-clears on release, see
+    // onContentPointerUp — always a single item, no arrows since there's
+    // nothing else to browse to) or opened from itemCellPicker when several
+    // items shared the cell (stays until dismissed by tapping outside, like
+    // any other window). In the multi-item case, ‹/› cycle through the
+    // OTHER items sharing that same cell (visionPeekItem.items) — mirrors
+    // enlargedItem's carousel but scoped to this cell instead of a player's
+    // full equipment. The card+arrows stop propagation so tapping an arrow
+    // (or the card itself) doesn't also bubble up to the backdrop's
+    // close-on-outside-click.
+    visionPeekItem && (() => {
+      const item = visionPeekItem.items[visionPeekItem.index];
+      if (!item) return null;
+      return h('div', {
+        onClick:()=>setVisionPeekItem(null),
+        style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
+      },
+        h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
+          h(CardFace, {showBack:false, size:140, kind: item.type === 'energie' ? 'energie' : 'sort'}),
+          visionPeekItem.items.length > 1 && h('div', {
+            onClick:()=>shiftVisionPeek(-1),
+            style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '‹'),
+          visionPeekItem.items.length > 1 && h('div', {
+            onClick:()=>shiftVisionPeek(1),
+            style:{position:'absolute', right:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '›')
+        )
+      );
+    })(),
 
     // VISION MODE / SIDEBAR — clicking a token (Vision mode) or a sidebar
     // square opens this player's detail window. Same "closes on outside
@@ -2225,23 +2266,32 @@ export function PlateauPage({onBack}) {
             // tap now closes the TOPMOST window first, as expected.
             onClose:()=>{ if (!enlargedItem) setVisionPlayerId(null); },
             anchorRef:visionModalAnchorRef,
-            style:{position:'relative', width:'min(95vw,560px)', maxHeight:'80vh', overflow:'auto', padding:20},
+            style:{position:'relative', width:'min(95vw,420px)', maxHeight:'80vh', overflow:'auto', padding:20},
+            // Layout: name+heart and the ✕ share a single top row (same
+            // height, Gus: "même hauteur toute à droite la croix"), items
+            // stacked below spanning the full width — a previous version
+            // put name+heart in a narrow LEFT column with items to its
+            // RIGHT, which forced the window wide enough for both side by
+            // side and didn't fit a phone screen. Nothing here changes
+            // size (VISION_ITEM_SIZE, VISION_ROW_WIDTH, the heart/name
+            // fonts) — only the arrangement moves, per Gus's ask.
             children: h('div', {},
-              h('div', {
-                onClick:()=>setVisionPlayerId(null),
-                style:{position:'absolute', top:8, right:8, width:26, height:26, borderRadius:'50%',
-                  background:'rgba(220,60,40,.2)', border:'1px solid rgba(220,60,40,.5)', color:'#f66',
-                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14, zIndex:1}
-              }, '✕'),
-              h('div', {style:{display:'flex', gap:16, paddingRight:20}},
-                h('div', {style:{flexShrink:0, width:80, display:'flex', flexDirection:'column', alignItems:'center', gap:10}},
-                  h('div', {style:{fontSize:16, fontWeight:700, color:'#eee', textAlign:'center', wordBreak:'break-word'}}, p.nom),
-                  h('div', {style:{position:'relative', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center'}},
+              h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14}},
+                h('div', {style:{display:'flex', alignItems:'center', gap:10, minWidth:0}},
+                  h('div', {style:{fontSize:16, fontWeight:700, color:'#eee', wordBreak:'break-word'}}, p.nom),
+                  h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
                     h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
                   )
                 ),
-                h('div', {style:{display:'flex', gap:8, alignItems:'center'}},
+                h('div', {
+                  onClick:()=>setVisionPlayerId(null),
+                  style:{width:26, height:26, flexShrink:0, borderRadius:'50%',
+                    background:'rgba(220,60,40,.2)', border:'1px solid rgba(220,60,40,.5)', color:'#f66',
+                    display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14}
+                }, '✕')
+              ),
+              h('div', {style:{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}},
                   h('div', {style:{width:VISION_ROW_HEIGHT, height:VISION_ROW_HEIGHT, flexShrink:0, boxSizing:'border-box',
                     display:'flex', justifyContent:'center', alignItems:'center',
                     border:'1px dashed #444', borderRadius:6, padding:FOOTER_SLOT_PAD}},
@@ -2268,8 +2318,7 @@ export function PlateauPage({onBack}) {
                       })
                     )
                   )
-                )
-              ),
+                ),
               visionPlayerFromSidebar && players.length > 1 && h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:18}},
                 h('button', {onClick:()=>shiftVisionPlayer(-1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '‹'),
                 h('button', {onClick:()=>shiftVisionPlayer(1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '›')
