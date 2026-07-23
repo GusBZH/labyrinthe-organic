@@ -646,7 +646,7 @@
       "id": "r1",
       "nom": "Mise en place",
       "statut": "Validé",
-      "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature (sort qui ne peut être ni détruit ni volé)\nPlacez les 2 autres en bas de la pioche. \nToutes les pioches sauf les cases sont coupées en deux.",
+      "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, placez les 2 autres en bas de la pioche. \nToutes les pioches sauf les cases sont coupées en deux.",
       "notes": ""
     },
     {
