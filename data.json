@@ -572,7 +572,7 @@
       "id": "c1",
       "nom": "Case de Départ",
       "statut": "Validé",
-      "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. 4 portes",
+      "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. Cul-de-sac (1 porte).",
       "quantite": 10,
       "notes": ""
     },
@@ -609,6 +609,14 @@
       "notes": ""
     },
     {
+      "id": "c6",
+      "nom": "Case Œil",
+      "statut": "Validé",
+      "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. Toujours 4 portes.",
+      "quantite": 7,
+      "notes": ""
+    },
+    {
       "id": "c7",
       "nom": "Case Monstre",
       "statut": "Validé",
@@ -625,11 +633,11 @@
       "notes": ""
     },
     {
-      "id": "c6",
-      "nom": "Case Œil",
-      "statut": "Validé",
-      "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. 4 portes.",
-      "quantite": 7,
+      "id": "c9",
+      "nom": "Case Levier",
+      "statut": "Test 3",
+      "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
+      "quantite": 1,
       "notes": ""
     },
     {
@@ -647,14 +655,6 @@
       "effet": "Utile dans certains mode de jeu",
       "quantite": 1,
       "notes": ""
-    },
-    {
-      "id": "c9",
-      "nom": "Case Levier",
-      "statut": "Test 3",
-      "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
-      "quantite": 1,
-      "notes": "Pourrais être utile dans un mode spécifique avec moins de case pour avoir plus de case tremblement "
     }
   ],
   "regles": [
