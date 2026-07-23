@@ -16,10 +16,15 @@ const CENTER_ROW = Math.floor(ROWS/2), CENTER_COL = Math.floor(COLS/2);
 const MIN_ZOOM = 0.4, MAX_ZOOM = 2.5;
 const MAX_HISTORY = 50;
 const DEFAULT_PV = 3;
-// Sorts/énergies are "2 fois plus petites" than a tile card everywhere they
-// appear: header pioches/défausses (ITEM_BOX vs. the tile pile's 56px box)
-// and here on the board (ITEM_BOARD_SIZE vs. the tile's CELL-4 card size).
+// Sorts/énergies are smaller than a tile card everywhere they appear —
+// ITEM_BOX is the base size used to derive the footer's own (doubled) card
+// size below, and on the board (ITEM_BOARD_SIZE vs. the tile's CELL-4 card
+// size). The header's own pile/défausse box is now a SEPARATE, bigger size
+// (HEADER_ITEM_BOX): Gus asked for header items "moitié plus grand" —
+// between the original 30px and a full 56px tile box, not tied to ITEM_BOX
+// so bumping it doesn't also inflate the footer/board sizes.
 const ITEM_BOX = 30;
+const HEADER_ITEM_BOX = 45;
 const ITEM_BOARD_SIZE = 22;
 // Distance from a cell's own corner to where an item token sitting there
 // gets centered — half the token's own size plus a small gap so it doesn't
@@ -29,21 +34,20 @@ const ITEM_CORNER_INSET = ITEM_BOARD_SIZE/2 + 3;
 // footer has more room to work with than the cramped header row, and
 // equipped cards are meant to be the easiest ones on the whole board to
 // glance at/tap. FOOTER_SLOT_PAD/HEIGHT size the dashed "slot" outlines
-// (nature square + the 2 long rows) around them, all sharing the same
-// fixed height so none of the three ever resizes based on whether it's
-// empty or full.
+// around them (nature = a square the size of ONE card, same height as
+// either of the 2 long rows — Gus asked for the square instead of a taller
+// rectangle spanning both rows), all sharing the same fixed height so none
+// of the three ever resizes based on whether it's empty or full.
 const FOOTER_ITEM_SIZE = (ITEM_BOX - 8) * 2;
 const FOOTER_SLOT_PAD = 4;
 const FOOTER_SLOT_GAP = 4;
 const FOOTER_ROW_HEIGHT = FOOTER_ITEM_SIZE + FOOTER_SLOT_PAD*2;
-const FOOTER_NATURE_HEIGHT = FOOTER_ROW_HEIGHT*2 + FOOTER_SLOT_GAP;
 const FOOTER_ROW_WIDTH = FOOTER_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 // Same slot layout as the footer (nature square + 2 long rows), reused in
 // the player detail window ("disposée de la même manière que dans le
 // footer") but sized down to fit that window's narrower right column.
 const VISION_ITEM_SIZE = 28;
 const VISION_ROW_HEIGHT = VISION_ITEM_SIZE + FOOTER_SLOT_PAD*2;
-const VISION_NATURE_HEIGHT = VISION_ROW_HEIGHT*2 + FOOTER_SLOT_GAP;
 const VISION_ROW_WIDTH = VISION_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 
 function loadSession(){
@@ -905,10 +909,30 @@ export function PlateauPage({onBack}) {
     commitPlayers([...players, {id:uid(), nom:nextPlayerName(), couleur:nextColor(), pv:DEFAULT_PV, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
   }
 
+  // Removing a player used to just drop their equipped cards along with
+  // them — Gus asked for those to land in their matching défausse instead
+  // (nature slot + sorts count as 'sort', énergies as 'energie'), same
+  // spirit as discarding a tile/item: nothing the app manages just
+  // vanishes. Goes through commitBoard directly (not the commitPlayers
+  // wrapper) so the player removal and the discard land in the SAME undo
+  // step.
   function removePlayer(id){
     const idx = players.findIndex(p => p.id === id);
-    commitPlayers(players.filter(p => p.id !== id));
+    const removed = players.find(p => p.id === id);
+    const updates = {players: players.filter(p => p.id !== id)};
+    if (removed) {
+      const toDiscard = [
+        ...(removed.natureSort ? [{id:removed.natureSort.id, type:'sort'}] : []),
+        ...(removed.sorts || []).map(c => ({id:c.id, type:'sort'})),
+        ...(removed.energies || []).map(c => ({id:c.id, type:'energie'}))
+      ];
+      if (toDiscard.length) updates.discardCards = [...discardCards, ...toDiscard];
+    }
+    commitBoard(updates);
     if (selectedId === id) setSelectedId(null);
+    if (selectedFooterItem?.playerId === id) setSelectedFooterItem(null);
+    if (enlargedItem?.playerId === id) setEnlargedItem(null);
+    if (visionPlayerId === id) setVisionPlayerId(null);
     if (idx !== -1 && currentIndex >= players.length - 1) setCurrentIndex(Math.max(0, players.length - 2));
   }
 
@@ -1786,12 +1810,12 @@ export function PlateauPage({onBack}) {
   const sortCount = Math.max(1, piles.filter(p => p.type === 'sort').length);
   const energieCount = Math.max(1, piles.filter(p => p.type === 'energie').length);
   const naturalHeaderWidth = groupNaturalWidth(caseCount, CASE_BOX) + HEADER_GROUP_GAP*2
-    + groupNaturalWidth(sortCount, ITEM_BOX)
-    + groupNaturalWidth(energieCount, ITEM_BOX);
+    + groupNaturalWidth(sortCount, HEADER_ITEM_BOX)
+    + groupNaturalWidth(energieCount, HEADER_ITEM_BOX);
   const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
   const caseBoxSize = Math.round(CASE_BOX * headerScale);
-  const itemBoxSize = Math.round(ITEM_BOX * headerScale);
+  const itemBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
 
   return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
 
@@ -2118,8 +2142,8 @@ export function PlateauPage({onBack}) {
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
                   )
                 ),
-                h('div', {style:{display:'flex', gap:8, alignItems:'stretch'}},
-                  h('div', {style:{width:VISION_ROW_HEIGHT, height:VISION_NATURE_HEIGHT, flexShrink:0, boxSizing:'border-box',
+                h('div', {style:{display:'flex', gap:8, alignItems:'center'}},
+                  h('div', {style:{width:VISION_ROW_HEIGHT, height:VISION_ROW_HEIGHT, flexShrink:0, boxSizing:'border-box',
                     display:'flex', justifyContent:'center', alignItems:'center',
                     border:'1px dashed #444', borderRadius:6, padding:FOOTER_SLOT_PAD}},
                     h(FooterItemRow, {
@@ -2180,9 +2204,9 @@ export function PlateauPage({onBack}) {
           const live = liveRef.current;
           if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); }
         },
-        style:{display:'flex', alignItems:'stretch', gap:8, padding:'8px 14px 0', justifyContent:'center'}
+        style:{display:'flex', alignItems:'center', gap:8, padding:'8px 14px 0', justifyContent:'center'}
       },
-        h('div', {style:{width:FOOTER_ROW_HEIGHT, height:FOOTER_NATURE_HEIGHT, flexShrink:0, boxSizing:'border-box',
+        h('div', {style:{width:FOOTER_ROW_HEIGHT, height:FOOTER_ROW_HEIGHT, flexShrink:0, boxSizing:'border-box',
           display:'flex', justifyContent:'center', alignItems:'center',
           border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:FOOTER_SLOT_PAD}},
           h(FooterItemRow, {

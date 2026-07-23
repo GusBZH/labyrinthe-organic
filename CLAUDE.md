@@ -608,6 +608,13 @@ contre `CELL-4` pour une tuile) — `PileStack`/`DiscardSlot` prennent maintenan
   théorique. `HEADER_GROUP_GAP` réduit à 6px (Gus : "trop d'écart... rapproche-les") avec
   un fin séparateur vertical (1px, `rgba(255,255,255,.12)`) entre chaque groupe pour
   garder les 3 types visuellement distincts malgré l'espacement resserré.
+- **Cartes sort/énergie 50% plus grandes dans le header** ("entre mes maps et items
+  actuel", ni la taille d'une carte case ni la petite taille d'avant) : `HEADER_ITEM_BOX`
+  (45px) remplace `ITEM_BOX` (30px, inchangé) dans le calcul `groupNaturalWidth`/
+  `itemBoxSize` du header — délibérément une constante SÉPARÉE plutôt qu'un simple bump
+  de `ITEM_BOX`, puisque ce dernier sert aussi de base au calcul de `FOOTER_ITEM_SIZE`
+  (voir "Équiper un item sur un joueur" plus bas) : grossir `ITEM_BOX` aurait aussi fait
+  gonfler les cartes du pied de page, jamais demandé cette fois.
 
 **Items sur le plateau** — nouvel état `boardItems` (`{id, type, row, col}`), rendu
 entre les tuiles et les jetons joueurs dans le DOM (donc au-dessus des cases, en
@@ -668,16 +675,22 @@ n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
 - **Slots à taille fixe** ("le carré du slot du sort nature change de taille... il faut
   aussi une zone slot... pour les sorts et une autre pour les énergies") : les 3
   contours en pointillés (nature + les 2 lignes) ont maintenant chacun une taille CSS
-  figée (`FOOTER_ROW_HEIGHT`/`FOOTER_NATURE_HEIGHT`/`FOOTER_ROW_WIDTH`, `box-sizing:
-  'border-box'`) au lieu de se dimensionner sur leur contenu — avant ce fix, le carré
-  nature changeait littéralement de taille selon qu'il contenait 0 ou 1 carte, puisque
-  rien ne bornait sa hauteur/largeur. Les lignes sorts/énergies ont maintenant elles
-  aussi un contour visible (elles n'en avaient aucun avant), assez large pour ~3 cartes
-  (`overflowX:'auto'` si plus). La hauteur du carré nature = exactement les 2 lignes
-  empilées + leur espacement, pour rester aligné avec elles comme prévu à l'origine.
-- **Cartes deux fois plus grandes que dans le header** (`FOOTER_ITEM_SIZE`, le double de
-  la taille pioche/défausse d'un sort/énergie) : le pied de page a plus de place que le
-  header serré, et ce sont les cartes qu'on regarde/tape le plus souvent.
+  figée (`FOOTER_ROW_HEIGHT`/`FOOTER_ROW_WIDTH`, `box-sizing:'border-box'`) au lieu de
+  se dimensionner sur leur contenu — avant ce fix, le carré nature changeait
+  littéralement de taille selon qu'il contenait 0 ou 1 carte, puisque rien ne bornait sa
+  hauteur/largeur. Les lignes sorts/énergies ont maintenant elles aussi un contour
+  visible (elles n'en avaient aucun avant), assez large pour ~3 cartes (`overflowX:
+  'auto'` si plus). **Le carré nature est un vrai carré** (`FOOTER_ROW_HEIGHT` ×
+  `FOOTER_ROW_HEIGHT`, la taille d'UNE carte) plutôt qu'un rectangle haut couvrant les 2
+  lignes — Gus a demandé ce changement après coup ("je préfère un carré de la taille de
+  la carte") ; le conteneur qui l'accueille est passé de `alignItems:'stretch'` à
+  `'center'` pour le garder centré verticalement à côté du bloc des 2 lignes, plus haut
+  que lui. Même correction appliquée à la fenêtre `visionPlayerId`, qui reprend cette
+  disposition à l'identique.
+- **Cartes deux fois plus grandes que dans le header** (`FOOTER_ITEM_SIZE`) : le pied de
+  page a plus de place que le header serré, et ce sont les cartes qu'on regarde/tape le
+  plus souvent. Dérivée d'une base indépendante du header (`ITEM_BOX`) plutôt que de sa
+  propre taille — voir le point suivant sur pourquoi les deux ont dû se découpler.
 - **"Peu importe où je clique dans cette zone avec un item"** : `onClickCapture` sur la
   zone entière (phase de capture, donc déclenché AVANT le clic propre de n'importe quel
   slot enfant) équipe directement `heldItem`/`selectedItemId` s'il y en a un, et
@@ -690,6 +703,14 @@ n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
   joueur jusqu'à un tap ailleurs (case du plateau, pioche/défausse assortie) qui le
   déplace réellement. `removeFooterItem()` centralise le retrait (nature/sorts/
   énergies) pour `insertSelectedCardIntoPile`/`discardSelectedItem`/le tap sur la grille.
+- **Supprimer un joueur envoie ses cartes équipées dans les défausses assorties**
+  (nature + sorts → défausse sort, énergies → défausse énergie) plutôt que de les faire
+  disparaître avec lui — Gus : "ce serait bien que les items aillent dans les défausses
+  respectives". `removePlayer` construit ce lot et l'ajoute à `discardCards` dans le
+  MÊME `commitBoard` que le retrait du joueur (un seul pas d'undo pour les deux), plutôt
+  que de passer par le wrapper `commitPlayers`. Nettoie aussi toute sélection/fenêtre qui
+  pointait vers ce joueur (`selectedFooterItem`/`enlargedItem`/`visionPlayerId`) pour
+  éviter qu'une action différée agisse sur un joueur qui n'existe plus.
 - **Geste final sur un item déjà équipé** (dernière clarification de Gus, remplace une
   première idée plus simple) : **un tap** ouvre directement la fenêtre agrandie ;
   **appui long SANS bouger** sélectionne pour déplacer ailleurs (grille/pioche/
