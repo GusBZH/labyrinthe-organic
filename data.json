@@ -1005,12 +1005,6 @@
       "date": "21/07/2026",
       "meta": "Test",
       "notes": "Test\n"
-    },
-    {
-      "id": "4opg6bwljfc",
-      "date": "23/07/2026",
-      "meta": "",
-      "notes": ""
     }
   ],
   "ideeEnVrac": "Faire une catégorie de note pour l'appli\n\nFaire des opacité réduite pour voir les items si ya des monstre et joueur dessus ? Et même items pour voir la carte en dessous ?\n\nSur les notes des monstres par exemple, on peut pas faire double entrer, ce serait bien d'ajouter ça \n\nCe serait cool sur les notes personnelles des blocs, d'avoir comme une petite pastille de notification pour savoir combien de notes il y a par rapport à un bloc\n\nEst-ce que je peux demander à Claude code des petites modifs alors qu'on est en pleine game (avec version actuelle en local)\nEt pareil quand ce sera avec le serveur ?\n\nQuand j'aurai mis les cartes sur l'App, tester si je peux bien déplacer les items du header entre eux \n\n",
