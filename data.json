@@ -7,6 +7,17 @@
   "materielNotes": "",
   "sorts": [
     {
+      "id": "s1",
+      "nom": "Grenade",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s2",
       "nom": "Lance Flamme",
       "element": "Feu",
@@ -36,17 +47,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Après avoir gagné un combat, rejouez immédiatement un tour entier.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s1",
-      "nom": "Grenade",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
       "quantite": 1,
       "notes": ""
     },
