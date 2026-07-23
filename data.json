@@ -40,6 +40,17 @@
       "notes": ""
     },
     {
+      "id": "s1",
+      "nom": "Grenade",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s5",
       "nom": "Chacal",
       "element": "Feu",
@@ -69,17 +80,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort possédé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s8",
-      "nom": "J'ai Soif !",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "",
-      "effet": "Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",
       "quantite": 1,
       "notes": ""
     },
@@ -304,13 +304,13 @@
       "notes": ""
     },
     {
-      "id": "s1",
-      "nom": "Grenade",
+      "id": "s8",
+      "nom": "J'ai Soif !",
       "element": "Feu",
       "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",
       "quantite": 1,
       "notes": ""
     }
