@@ -618,6 +618,30 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   `cellPicker`/la modale Vision le font déjà avec succès. `anchorRef` reste inchangé
   (toujours nécessaire pour la fermeture au clic extérieur de `Popup`, indépendante
   du positionnement visuel).
+- **Ces popups peuvent quand même sortir de l'écran (bord droit surtout) — clampées
+  maintenant** (Gus : "possible de vérifier si la fenêtre a la place pour s'ouvrir
+  avant ? et si non qu'elle se déplace un peu") : `clampPopupPos(left, top, width,
+  height)` (fonction pure, en haut du fichier) borne la position calculée pour
+  qu'aucun bord ne dépasse l'écran (marge de 8px). Comme ces fenêtres s'ouvrent
+  AVANT leur premier rendu (rien à mesurer dans le DOM à ce moment-là), largeur/
+  hauteur sont estimées plutôt que mesurées — précis maintenant que ces menus sont
+  tous emoji-only (voir juste en dessous), donc de taille prévisible. `pickerDims
+  (colACount, colBCount, twoColumn)` calcule cette estimation pour `cellPicker`/
+  `itemCellPicker` à partir du nombre d'entrées de chaque colonne ; les menus de
+  pioche/défausse (Diviser/Mélanger/Dessus/Dessous) utilisent des tailles fixes
+  (peu d'entrées, toujours 1-2 lignes). Vérifié qu'un menu qui déborderait à droite
+  se recale bien à gauche plutôt que de dépasser (testé en réduisant la largeur de
+  la fenêtre jusqu'à forcer le débordement).
+- **Menus/pickers passés en emoji seul, sans le texte** (Gus : "enlève les noms des
+  fenêtres pour choisir différentes choses sur une même case, garde juste les
+  emoji... pareil pour les pioches quand on veut mélanger, diviser, mettre au
+  dessus ou en dessous") : "✂️ Diviser"/"🔀 Mélanger"/"⬆️ Dessus"/"⬇️ Dessous" →
+  juste l'emoji ; "👹 Monstre" (colonne monstres de `cellPicker`) → "👹" ; "🪄
+  Sort"/"🔥 Énergie" (`itemCellPicker`) → juste l'emoji. Les joueurs dans
+  `cellPicker` gardent leur nom + pastille de couleur (aucun emoji ne les
+  représente, et le nom est la seule info qui les distingue réellement — contrairement
+  aux entrées monstre/sort/énergie, identiques entre elles, où le texte répété
+  n'apportait rien).
 
 ### Pioches et défausses (mécanique générique, s'applique à toute pioche/défausse du jeu) — implémentée pour les tuiles
 - **Pioches et défausse totalement inertes tant qu'une tuile est en mode `'placed'`**
@@ -1214,6 +1238,13 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      maintenant dynamiquement (`squareSize`, plancher 40px) pour tenir dans
      l'espace mesuré, et si même le plancher ne suffit pas, la colonne devient
      scrollable (`overflowY:'auto'`) plutôt que de continuer à déborder.
+     **Taille de base réduite ×0.8** (Gus : "réduire la taille de base des carrés
+     des joueurs de un cinquième... scale x0.8") : `SIDEBAR_DEFAULT_SIZE` passe de
+     64 à 51px. `PlayerSquare` calcule déjà `scale = size/64` en interne pour
+     dériver proportionnellement toutes ses tailles internes (polices, badges,
+     border-radius) à partir de la taille reçue — avec le nouveau défaut de 51,
+     `scale` vaut de lui-même ≈0.8, donc rien à retoucher dans `PlayerSquare`.
+     Plancher (`SIDEBAR_MIN_SIZE`, 40px) laissé inchangé.
      **Piège rencontré (`sidebarBounds` figé après coup — les carrés
      repassaient derrière le header, le pied de page débordait en bas)** :
      `sidebarBounds` n'était re-mesuré que sur l'évènement `resize` de la
@@ -1266,6 +1297,24 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      pied de page affiche et fait lancer le dé du joueur courant uniquement,
      donc passer au joueur suivant (flèches ‹/›) affiche son propre dernier
      lancer (ou aucun s'il n'a pas encore lancé), indépendamment des autres.
+     **Animation de lancer** (`DiceButton`, Gus : "l'emoji du dé se met à
+     trembler pendant une seconde... puis le chiffre apparaît... si le chiffre
+     peut être représenté comme les points noirs d'un dé c'est mieux") : état
+     local `phase` (`idle`/`shrinking`/`shaking`/`growing`), purement de la
+     présentation — `rollDice` (génération de la valeur, toujours pas suivie
+     par l'undo, voir son propre commentaire) et `guardedBySelection` restent
+     inchangés, juste appelés au bon moment dans la séquence. Clic sur un dé
+     "à froid" (aucun résultat affiché) : `shaking` (emoji 🎲 tremble ~1s via
+     la classe CSS `.dice-shake`, mouvement irrégulier par petits paliers de
+     keyframes) → à la fin, `rollDice()` génère la valeur puis `growing`
+     (carré blanc avec les points du dé, `DiceFace`, qui grandit très petit
+     jusqu'à sa taille pleine — légèrement plus grand que l'emoji pour bien
+     le cacher dessous) → `idle`. Relancer alors qu'un résultat est déjà
+     affiché ajoute une étape `shrinking` AVANT le tremblement (le carré du
+     résultat précédent rétrécit pour révéler l'emoji), tout le reste de la
+     séquence est identique. `DiceFace` place les points selon la disposition
+     standard d'un dé (grille 3×3, table `DICE_PIPS` par valeur 1-6) plutôt
+     qu'un simple chiffre.
      Les flèches ‹/› changent quel joueur est "courant" (celui dont le cœur/PV
      et le dé s'affichent dans le pied de page, et plus tard ses sorts/
      énergies) — c'est indépendant de la sélection de déplacement sur la
