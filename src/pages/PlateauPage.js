@@ -21,6 +21,30 @@ const DEFAULT_PV = 3;
 // and here on the board (ITEM_BOARD_SIZE vs. the tile's CELL-4 card size).
 const ITEM_BOX = 30;
 const ITEM_BOARD_SIZE = 22;
+// Distance from a cell's own corner to where an item token sitting there
+// gets centered — half the token's own size plus a small gap so it doesn't
+// visually touch the cell's edge.
+const ITEM_CORNER_INSET = ITEM_BOARD_SIZE/2 + 3;
+// Footer-equipped cards render at DOUBLE the header pile size (Gus) — the
+// footer has more room to work with than the cramped header row, and
+// equipped cards are meant to be the easiest ones on the whole board to
+// glance at/tap. FOOTER_SLOT_PAD/HEIGHT size the dashed "slot" outlines
+// (nature square + the 2 long rows) around them, all sharing the same
+// fixed height so none of the three ever resizes based on whether it's
+// empty or full.
+const FOOTER_ITEM_SIZE = (ITEM_BOX - 8) * 2;
+const FOOTER_SLOT_PAD = 4;
+const FOOTER_SLOT_GAP = 4;
+const FOOTER_ROW_HEIGHT = FOOTER_ITEM_SIZE + FOOTER_SLOT_PAD*2;
+const FOOTER_NATURE_HEIGHT = FOOTER_ROW_HEIGHT*2 + FOOTER_SLOT_GAP;
+const FOOTER_ROW_WIDTH = FOOTER_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
+// Same slot layout as the footer (nature square + 2 long rows), reused in
+// the player detail window ("disposée de la même manière que dans le
+// footer") but sized down to fit that window's narrower right column.
+const VISION_ITEM_SIZE = 28;
+const VISION_ROW_HEIGHT = VISION_ITEM_SIZE + FOOTER_SLOT_PAD*2;
+const VISION_NATURE_HEIGHT = VISION_ROW_HEIGHT*2 + FOOTER_SLOT_GAP;
+const VISION_ROW_WIDTH = VISION_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 
 function loadSession(){
   try {
@@ -106,9 +130,13 @@ function makeInitialPiles(){
 // tard", per Gus): a plain dark back with a thin colored border, no other
 // content since the real card art isn't wired in yet.
 const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a'};
+// Front-face glyph per deck type: cases keep the original placeholder
+// cross, sorts get a wand, énergies a flame (Gus's choice) — purely
+// cosmetic placeholders until real card art exists.
+const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥'};
 
 // A real card square: black back (accent border by deck type), white front
-// with a black cross, flipped via a simple rotateY. Reused for the pile
+// with a glyph by type, flipped via a simple rotateY. Reused for the pile
 // stack, the held tile/item, the défausses (always shown face-up), and
 // tiles/items on the board.
 function CardFace({showBack, size, kind='case'}) {
@@ -122,7 +150,7 @@ function CardFace({showBack, size, kind='case'}) {
       h('div', {style:{position:'absolute', inset:0, borderRadius:6, background:'#fff',
         border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)',
         display:'flex', alignItems:'center', justifyContent:'center'}},
-        h('div', {style:{fontSize:size*0.5, color:'#111', fontWeight:900, lineHeight:1}}, '+')
+        h('div', {style:{fontSize:size*0.5, color:'#111', fontWeight:900, lineHeight:1}}, FRONT_GLYPH[kind] || FRONT_GLYPH.case)
       )
     )
   );
@@ -333,32 +361,39 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
 }
 
 // One deck group in the header (cases, sorts, or énergies): the défausse
-// stays fixed immediately before the piles — "toujours devant le premier
-// paquet" — as its own flex sibling, while the piles of THIS type alone
-// live in a separate 2-column CSS grid next to it. A plain 2-column grid
+// sits BELOW the pile(s) of this type (Gus asked for that instead of beside
+// them, for every deck type) — its own flex sibling under a separate
+// 2-column CSS grid holding THIS type's piles. A plain 2-column grid
 // naturally gives the wrap pattern Gus asked for (◻️◻️ / ◻️ once a pile's
 // been split enough to produce a 3rd one): grid-auto-flow fills column 1
 // then column 2 then wraps to a new row on its own, no manual row-breaking
-// logic needed. The défausse sits outside that grid entirely, so it never
-// shifts position as splitting grows/shrinks the pile count.
+// logic needed. The défausse sits outside that grid entirely, so it always
+// stays right after the last pile regardless of how many there are.
 function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
-  return h('div', {style:{display:'flex', alignItems:'flex-start', gap:8}},
-    h(DiscardSlot, {
-      cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
-      armedId, armedIdRef, hasSelectedTile, disabled,
-      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect
-    }),
+  return h('div', {style:{display:'flex', flexDirection:'column', alignItems:'center', gap:5}},
     groupPiles.length
-      ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(2, ${boxSize}px)`, gap:6}},
+      // CSS grid reserves the FULL declared column count regardless of how
+      // many children actually exist — with the usual 1 pile (no splits
+      // yet), a fixed `repeat(2, ...)` left a whole empty 2nd column's
+      // worth of blank space, which is also what threw off the défausse's
+      // centering underneath (it centers under the grid's OWN width, not
+      // under wherever its 1 real pile happens to sit). Only ever declaring
+      // as many columns as there are piles (capped at 2) fixes both.
+      ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(${Math.min(2, groupPiles.length)}, ${boxSize}px)`, gap:5}},
           groupPiles.map(p => h(PileStack, {
             key:p.id, pile:p, boxSize, holding: holding.pileId === p.id,
             armedId, armedIdRef, hasSelectedCard, disabled,
             onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
           }))
         )
-      : h('div', {style:{width:boxSize, height:boxSize}})
+      : h('div', {style:{width:boxSize, height:boxSize}}),
+    h(DiscardSlot, {
+      cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
+      armedId, armedIdRef, hasSelectedTile, disabled,
+      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect
+    })
   );
 }
 
@@ -536,6 +571,11 @@ export function PlateauPage({onBack}) {
   const [visionMode, setVisionMode] = useState(false);
   const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids:[...], forVision}
   const [visionPlayerId, setVisionPlayerId] = useState(null);
+  // Whether the currently-open player detail window was opened from the
+  // sidebar's row of squares (‹/› cycles through `players` in that same
+  // order) or from tapping a token on the grid in Vision mode (no ‹/› —
+  // "en mode vision et qu'on clique sur un joueur pas besoin de <>").
+  const [visionPlayerFromSidebar, setVisionPlayerFromSidebar] = useState(false);
   const [piles, setPiles] = useState(saved?.piles || makeInitialPiles());
   const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
   const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
@@ -578,6 +618,17 @@ export function PlateauPage({onBack}) {
   // combined [natureSort?, ...sorts, ...energies] list, so ‹/› can cycle
   // through everything without needing separate per-row carousels.
   const [enlargedItem, setEnlargedItem] = useState(null);
+  // Vision-mode "hold to peek" — an item object (not just an id, since it
+  // may not even be selectable) shown big while a board item is held down
+  // during Vision mode, or opened from itemCellPicker when several items
+  // shared the cell (see handleItemLongPress). No ‹/› here, unlike
+  // enlargedItem — it's a quick peek at ONE card, not a browse.
+  const [visionPeekItem, setVisionPeekItem] = useState(null);
+  // Several items sharing a cell can't be disambiguated by a single
+  // long-press — this offers a small choice popup instead (mirrors the
+  // multi-player cellPicker). `forVision` decides whether picking one opens
+  // visionPeekItem or selects it for the normal move flow.
+  const [itemCellPicker, setItemCellPicker] = useState(null); // {clientX, clientY, items, forVision}
   const armedPileIdRef = useRef(null);
   // handleSingleClick can run from a setTimeout scheduled well before its
   // own execution (the click/double-click debounce below) — by the time it
@@ -600,6 +651,7 @@ export function PlateauPage({onBack}) {
   const cellPickerAnchorRef = useRef(null);
   const visionModalAnchorRef = useRef(null);
   const enlargeModalAnchorRef = useRef(null);
+  const itemCellPickerAnchorRef = useRef(null);
 
   function armPile(id){
     armedPileIdRef.current = id;
@@ -1070,6 +1122,19 @@ export function PlateauPage({onBack}) {
     });
   }
 
+  // ‹/› in the player detail window — ONLY shown when it was opened from
+  // the sidebar (visionPlayerFromSidebar), cycles through `players` in the
+  // same order they appear there. A token clicked in Vision mode is a
+  // one-off inspection, not a browse, so it deliberately gets none of this.
+  function shiftVisionPlayer(delta){
+    setVisionPlayerId(prev => {
+      if (!prev || players.length === 0) return prev;
+      const idx = players.findIndex(p => p.id === prev);
+      if (idx === -1) return prev;
+      return players[(idx + delta + players.length) % players.length].id;
+    });
+  }
+
   // Single click: player selection/movement, AND finishing whatever card
   // is currently in hand (a held pile draw, a selected défausse card, or a
   // tile already picked up via double-click) — placing/moving those only
@@ -1101,7 +1166,7 @@ export function PlateauPage({onBack}) {
     // off) — only players can be inspected here.
     if (live.visionMode) {
       const here = live.players.filter(p => p.row === r && p.col === c);
-      if (here.length === 1) setVisionPlayerId(here[0].id);
+      if (here.length === 1) { setVisionPlayerId(here[0].id); setVisionPlayerFromSidebar(false); }
       else if (here.length > 1) setCellPicker({clientX, clientY, ids:here.map(p=>p.id), forVision:true});
       return;
     }
@@ -1319,6 +1384,12 @@ export function PlateauPage({onBack}) {
   // instant the long-press fires, checked and cleared at the top of
   // onContentClick.
   const suppressNextClickRef = useRef(false);
+  // True while a Vision-mode "hold to peek" is active (see
+  // handleItemLongPress) — onContentPointerUp uses this to know the peek
+  // card should disappear the instant the finger/mouse lifts, unlike the
+  // picker-opened peek below which stays open until dismissed like any
+  // other window.
+  const peekingRef = useRef(false);
 
   function onContentPointerDown(e){
     if (e.pointerType === 'mouse' && e.button !== 0) return; // only the primary button starts an item long-press
@@ -1330,7 +1401,9 @@ export function PlateauPage({onBack}) {
     itemPressTimerRef.current = setTimeout(() => {
       const s = itemPressStartRef.current;
       if (!s || s.moved) return;
-      if (handleItemLongPress(s.row, s.col)) suppressNextClickRef.current = true;
+      const result = handleItemLongPress(s.row, s.col, s.x, s.y);
+      if (result === 'peek') peekingRef.current = true;
+      else if (result) suppressNextClickRef.current = true;
     }, 500);
   }
   function onContentPointerMove(e){
@@ -1341,19 +1414,34 @@ export function PlateauPage({onBack}) {
   function onContentPointerUp(){
     clearTimeout(itemPressTimerRef.current);
     itemPressStartRef.current = null;
+    if (peekingRef.current) { setVisionPeekItem(null); peekingRef.current = false; }
   }
 
   // Picks up an item at (r,c) for the SAME "select then tap elsewhere to
   // move" flow tiles already use — see selectedItemId's own declaration
-  // comment. Returns true when it actually selected something, so the
-  // pointerdown timer above knows whether to suppress the click that
-  // follows. Vision mode and an in-hand pile card both block it, matching
-  // how the tile/discard gestures are already blocked in those states.
-  function handleItemLongPress(r, c){
+  // comment — UNLESS Vision mode is active, in which case it shows the card
+  // enlarged instead ("je dois être capable d'afficher le sort... en
+  // restant appuyé", no move/select happens in Vision, matching how it
+  // already blocks every other card gesture). Several items sharing a cell
+  // can't be told apart by a single long-press, so instead of silently
+  // grabbing whichever was placed last, it opens a small picker (mirrors
+  // the multi-player cellPicker) offset BELOW the press point — placing it
+  // right under the still-down pointer would let the release that follows
+  // land on one of the picker's own options by accident.
+  // Returns 'peek' (continuous-hold preview, cleared on release above),
+  // true (selected something / opened a picker — suppress the trailing
+  // click either way), or false (nothing there).
+  function handleItemLongPress(r, c, clientX, clientY){
     const live = liveRef.current;
-    if (live.visionMode || live.heldTile || live.heldItem) return false;
-    const item = [...live.boardItems].reverse().find(it => it.row === r && it.col === c);
-    if (!item) return false;
+    if (live.heldTile || live.heldItem) return false;
+    const items = live.boardItems.filter(it => it.row === r && it.col === c);
+    if (!items.length) return false;
+    if (items.length > 1) {
+      setItemCellPicker({clientX, clientY: clientY + 40, items, forVision: live.visionMode});
+      return true;
+    }
+    const item = items[0];
+    if (live.visionMode) { setVisionPeekItem(item); return 'peek'; }
     setSelectedItemId(item.id);
     setSelectedId(null);
     clearTileSelection();
@@ -1678,22 +1766,27 @@ export function PlateauPage({onBack}) {
     : Math.max(SIDEBAR_MIN_SIZE, Math.floor((sidebarAvailH - (sidebarItemCount-1)*SIDEBAR_GAP) / sidebarItemCount));
 
   // Same "shrink to fit, don't overflow" idea as squareSize above, applied
-  // to the header's 3 deck groups: each group is a défausse + a 2-column
-  // grid of however many piles that type has been split into (see
-  // PileGroup) — splitting enough of them could otherwise push the row wider
-  // than the screen. `groupNaturalWidth` mirrors what PileGroup actually
-  // renders (défausse, a gap, then min(2,count) columns) so the estimate
-  // matches the real layout.
-  const CASE_BOX = 56, HEADER_GROUP_GAP = 16, HEADER_PAD = 32, HEADER_MIN_SCALE = 0.5;
+  // to the header's 3 deck groups: each group is now a 2-column grid of
+  // however many piles that type has been split into, with its défausse
+  // BELOW it (see PileGroup) — splitting enough of them could otherwise
+  // push the row wider than the screen. `groupNaturalWidth` mirrors what
+  // PileGroup actually renders (min(2,count) columns, défausse stacked
+  // underneath so it no longer adds to the WIDTH) so the estimate matches
+  // the real layout. Gus wants the header to NEVER need horizontal
+  // scrolling — "pile poil la taille de l'écran" — so unlike the sidebar's
+  // squareSize this has only a token floor (just to avoid the boxes
+  // shrinking to nothing in an extreme case), not a real minimum size;
+  // overflowX:'auto' on the row stays only as an ultimate safety net.
+  const CASE_BOX = 56, HEADER_GROUP_GAP = 6, HEADER_PAD = 32, HEADER_MIN_SCALE = 0.2;
   function groupNaturalWidth(count, box){
     const cols = Math.min(2, Math.max(1, count));
-    return box + 8 + cols*box + (cols > 1 ? 6 : 0);
+    return cols*box + (cols > 1 ? 5 : 0);
   }
   const caseCount = Math.max(1, piles.filter(p => p.type === 'case').length);
   const sortCount = Math.max(1, piles.filter(p => p.type === 'sort').length);
   const energieCount = Math.max(1, piles.filter(p => p.type === 'energie').length);
-  const naturalHeaderWidth = groupNaturalWidth(caseCount, CASE_BOX) + HEADER_GROUP_GAP
-    + groupNaturalWidth(sortCount, ITEM_BOX) + HEADER_GROUP_GAP
+  const naturalHeaderWidth = groupNaturalWidth(caseCount, CASE_BOX) + HEADER_GROUP_GAP*2
+    + groupNaturalWidth(sortCount, ITEM_BOX)
     + groupNaturalWidth(energieCount, ITEM_BOX);
   const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
@@ -1736,8 +1829,11 @@ export function PlateauPage({onBack}) {
       ),
       // Three deck groups side by side — cases, then sorts, then énergies
       // (Gus: "les sorts à droite des cases et les énergies à droite des
-      // sorts") — each its own PileGroup (défausse + that type's piles,
-      // wrapping 2-per-row once split). Sizes shrink together via
+      // sorts") — each its own PileGroup (piles above their défausse,
+      // wrapping 2-per-row once split), separated by a thin vertical
+      // divider (Gus: "trop d'écart... rapproche-les" — a tight
+      // HEADER_GROUP_GAP plus a divider reads as 3 distinct groups without
+      // needing wide spacing to do it). Sizes shrink together via
       // caseBoxSize/itemBoxSize (see their own comment) rather than letting
       // the row overflow off-screen; overflowX stays as a last-resort
       // fallback exactly like the sidebar's own squareSize floor+scroll.
@@ -1752,6 +1848,7 @@ export function PlateauPage({onBack}) {
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
           onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCard
         }),
+        h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
           type:'sort', piles, discardCards, boxSize:itemBoxSize,
           holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
@@ -1762,6 +1859,7 @@ export function PlateauPage({onBack}) {
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
           onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCard
         }),
+        h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
           type:'energie', piles, discardCards, boxSize:itemBoxSize,
           holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
@@ -1798,7 +1896,7 @@ export function PlateauPage({onBack}) {
       players.map((p,i) => h(PlayerSquare, {
         key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
         onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v),
-        onOpenInfo:()=>setVisionPlayerId(p.id)
+        onOpenInfo:()=>{ setVisionPlayerId(p.id); setVisionPlayerFromSidebar(true); }
       })),
       h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:addPlayer}))
     ),
@@ -1845,9 +1943,16 @@ export function PlateauPage({onBack}) {
         // Items render ABOVE tiles, BELOW players — plain DOM order (no
         // z-index needed) already gives that: this block sits between the
         // placedTiles block above and the player-tokens block below.
+        // Gus asked for a lone item to sit on a CORNER of its tile rather
+        // than dead center (center is where a player token/the tile's own
+        // controls tend to be) — so every item, even a group of 1, picks a
+        // quadrant by index (i%4) and sits near that corner; a 2nd/3rd/4th
+        // item sharing the cell just takes the next corner over instead of
+        // needing a separate "single vs. multiple" branch.
         Object.entries(itemCellGroups).map(([key, group]) => group.map((it, i) => {
-          const cx = it.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/6) : 0);
-          const cy = it.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/6) : 0);
+          const q = i % 4;
+          const cx = it.col*CELL + (q % 2 === 0 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
+          const cy = it.row*CELL + (q < 2 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
           return h('div', {
             key:it.id,
             style:{
@@ -1931,53 +2036,121 @@ export function PlateauPage({onBack}) {
           const p = players.find(pl => pl.id === id);
           return {
             label:p.nom, dot:p.couleur,
-            onClick:() => { if (cellPicker.forVision) setVisionPlayerId(id); else setSelectedId(id); }
+            onClick:() => { if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerFromSidebar(false); } else setSelectedId(id); }
           };
         })
       })
     ),
 
-    // VISION MODE — clicking a token opens its full detail window instead
-    // of selecting it for movement. Same "closes on outside click" rule as
-    // every other popup, plus an explicit red ✕ since it's a big window.
-    // Now shows the player's real equipped cards (nature slot + sorts +
-    // énergies, Couche 3) instead of the old placeholder text — each one
-    // opens the same enlarge/carousel window as tapping it in the footer.
+    // MULTI-ITEM CELL PICKER — several sorts/énergies sharing a cell can't
+    // be told apart by a single long-press, so it offers a choice popup
+    // instead (see handleItemLongPress). `forVision` decides whether
+    // picking one opens visionPeekItem (Vision mode) or selects it for the
+    // normal move flow.
+    itemCellPicker && h('div', {
+      ref:itemCellPickerAnchorRef,
+      style:{position:'fixed', left:itemCellPicker.clientX, top:itemCellPicker.clientY, zIndex:250}
+    },
+      h(Popup, {
+        onClose:()=>setItemCellPicker(null),
+        anchorRef:itemCellPickerAnchorRef,
+        style:{left:0, top:0, width:180},
+        itemStyle:{padding:'12px 14px', fontSize:15, gap:10},
+        items: itemCellPicker.items.map(it => ({
+          label: it.type === 'energie' ? '🔥 Énergie' : '🪄 Sort',
+          onClick: () => {
+            if (itemCellPicker.forVision) { setVisionPeekItem(it); return; }
+            setSelectedItemId(it.id);
+            setSelectedId(null);
+            clearTileSelection();
+            setSelectedDiscardCardId(null);
+            setSelectedFooterItem(null);
+          }
+        }))
+      })
+    ),
+
+    // VISION MODE "HOLD TO PEEK" — a big, arrow-less preview of a single
+    // card, either live while the board item is held down (auto-clears on
+    // release, see onContentPointerUp) or opened from itemCellPicker (stays
+    // until dismissed by tapping outside, like any other window — this
+    // click-to-close backdrop handler covers that case; the hold case never
+    // actually needs it since the pointer never reaches the backdrop before
+    // release already clears it).
+    visionPeekItem && h('div', {
+      onClick:()=>setVisionPeekItem(null),
+      style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
+    },
+      h(CardFace, {showBack:false, size:140, kind: visionPeekItem.type === 'energie' ? 'energie' : 'sort'})
+    ),
+
+    // VISION MODE / SIDEBAR — clicking a token (Vision mode) or a sidebar
+    // square opens this player's detail window. Same "closes on outside
+    // click" rule as every other popup, plus an explicit red ✕ since it's a
+    // big window. Layout: name + PV heart on the LEFT, the player's
+    // equipped cards on the RIGHT laid out the same way as the footer
+    // (nature slot + long sorts/énergies rows) — each card opens the same
+    // enlarge/carousel window as tapping it in the footer. `visionPlayerFromSidebar`
+    // gates the ‹/› row at the bottom: only the sidebar entry point cycles
+    // between players (in sidebar order), a Vision-mode tap is a one-off
+    // inspection with nothing to browse.
     visionPlayerId && (() => {
       const p = players.find(pl => pl.id === visionPlayerId);
       if (!p) return null;
-      const list = playerCardList(p);
       return h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:260, display:'flex', alignItems:'center', justifyContent:'center'}},
         h('div', {ref:visionModalAnchorRef, style:{position:'relative'}},
           h(Popup, {
             onClose:()=>setVisionPlayerId(null),
             anchorRef:visionModalAnchorRef,
-            style:{position:'relative', width:'min(90vw,380px)', maxHeight:'80vh', overflow:'auto', padding:20},
+            style:{position:'relative', width:'min(92vw,420px)', maxHeight:'80vh', overflow:'auto', padding:20},
             children: h('div', {},
               h('div', {
                 onClick:()=>setVisionPlayerId(null),
                 style:{position:'absolute', top:8, right:8, width:26, height:26, borderRadius:'50%',
                   background:'rgba(220,60,40,.2)', border:'1px solid rgba(220,60,40,.5)', color:'#f66',
-                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14}
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14, zIndex:1}
               }, '✕'),
-              h('div', {style:{fontSize:18, fontWeight:700, color:'#eee', marginBottom:14, paddingRight:30}}, p.nom),
-              h('div', {style:{display:'flex', alignItems:'center', gap:10, marginBottom:16}},
-                h('div', {style:{position:'relative', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}},
-                  h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
-                  h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
-                ),
-                h('span', {style:{fontSize:12, color:'#888'}}, 'Points de vie')
-              ),
-              h('hr', {style:{border:'none', borderTop:'1px solid rgba(255,255,255,.1)', margin:'12px 0'}}),
-              h('div', {style:{fontSize:11, color:'#888', marginBottom:8, fontWeight:600}}, 'Sorts & Énergies'),
-              list.length
-                ? h('div', {style:{display:'flex', flexWrap:'wrap', gap:6}},
-                    list.map(c => h('div', {
-                      key:c.id, onClick:()=>setEnlargedItem({playerId:p.id, index:list.indexOf(c)}),
-                      style:{cursor:'pointer', borderRadius:5}
-                    }, h(CardFace, {showBack:false, size:ITEM_BOX-4, kind:c.slot==='energie'?'energie':'sort'})))
+              h('div', {style:{display:'flex', gap:16, paddingRight:20}},
+                h('div', {style:{flexShrink:0, width:80, display:'flex', flexDirection:'column', alignItems:'center', gap:10}},
+                  h('div', {style:{fontSize:16, fontWeight:700, color:'#eee', textAlign:'center', wordBreak:'break-word'}}, p.nom),
+                  h('div', {style:{position:'relative', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center'}},
+                    h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
+                    h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
                   )
-                : h('div', {style:{fontSize:12, color:'#666'}}, 'Aucune carte équipée pour l’instant')
+                ),
+                h('div', {style:{display:'flex', gap:8, alignItems:'stretch'}},
+                  h('div', {style:{width:VISION_ROW_HEIGHT, height:VISION_NATURE_HEIGHT, flexShrink:0, boxSizing:'border-box',
+                    display:'flex', justifyContent:'center', alignItems:'center',
+                    border:'1px dashed #444', borderRadius:6, padding:FOOTER_SLOT_PAD}},
+                    h(FooterItemRow, {
+                      items: p.natureSort ? [p.natureSort] : [], kind:'sort', size:VISION_ITEM_SIZE, selectedId:null,
+                      onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'nature', it.id)
+                    })
+                  ),
+                  h('div', {style:{display:'flex', flexDirection:'column', gap:FOOTER_SLOT_GAP}},
+                    h('div', {style:{height:VISION_ROW_HEIGHT, minWidth:VISION_ROW_WIDTH, boxSizing:'border-box',
+                      display:'flex', alignItems:'center', overflowX:'auto',
+                      border:'1px dashed #444', borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
+                      h(FooterItemRow, {
+                        items: p.sorts || [], kind:'sort', size:VISION_ITEM_SIZE, selectedId:null,
+                        onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'sort', it.id)
+                      })
+                    ),
+                    h('div', {style:{height:VISION_ROW_HEIGHT, minWidth:VISION_ROW_WIDTH, boxSizing:'border-box',
+                      display:'flex', alignItems:'center', overflowX:'auto',
+                      border:'1px dashed #444', borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
+                      h(FooterItemRow, {
+                        items: p.energies || [], kind:'energie', size:VISION_ITEM_SIZE, selectedId:null,
+                        onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'energie', it.id)
+                      })
+                    )
+                  )
+                )
+              ),
+              visionPlayerFromSidebar && players.length > 1 && h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:18}},
+                h('button', {onClick:()=>shiftVisionPlayer(-1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '‹'),
+                h('button', {onClick:()=>shiftVisionPlayer(1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '›')
+              )
             )
           })
         )
@@ -1993,8 +2166,11 @@ export function PlateauPage({onBack}) {
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
 
-      // EQUIPPED ITEMS — "sort de nature" (single slot, left) beside two
-      // stacked rows (sorts, then énergies below). `onClickCapture` (fires
+      // EQUIPPED ITEMS — "sort de nature" (single fixed-size slot, left)
+      // beside two long fixed-size row slots (sorts, then énergies below) —
+      // all 3 dashed outlines share FOOTER_SLOT_HEIGHT so none of them ever
+      // changes size depending on whether it's empty or full (Gus flagged
+      // the nature square doing exactly that). `onClickCapture` (fires
       // BEFORE any child's own bubble-phase onClick) intercepts every tap
       // in this zone while a card is held/board-selected and equips it here
       // instead of letting an individual slot's own tap-to-enlarge handler
@@ -2006,31 +2182,40 @@ export function PlateauPage({onBack}) {
         },
         style:{display:'flex', alignItems:'stretch', gap:8, padding:'8px 14px 0', justifyContent:'center'}
       },
-        h('div', {style:{width:ITEM_BOX-4, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center',
-          border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:2}},
+        h('div', {style:{width:FOOTER_ROW_HEIGHT, height:FOOTER_NATURE_HEIGHT, flexShrink:0, boxSizing:'border-box',
+          display:'flex', justifyContent:'center', alignItems:'center',
+          border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:FOOTER_SLOT_PAD}},
           h(FooterItemRow, {
-            items: current.natureSort ? [current.natureSort] : [], kind:'sort', size:ITEM_BOX-8,
+            items: current.natureSort ? [current.natureSort] : [], kind:'sort', size:FOOTER_ITEM_SIZE,
             selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='nature' ? selectedFooterItem.cardId : null,
             onReorder:()=>{}, // a single slot never has anything to reorder against
             onSelectForMove:it=>selectFooterItem(current.id, 'nature', it.id),
             onOpenEnlarge:it=>openEnlargeFor(current.id, 'nature', it.id)
           })
         ),
-        h('div', {style:{display:'flex', flexDirection:'column', gap:4, justifyContent:'center'}},
-          h(FooterItemRow, {
-            items: current.sorts || [], kind:'sort', size:ITEM_BOX-8,
-            selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='sort' ? selectedFooterItem.cardId : null,
-            onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, sorts:next} : p)}),
-            onSelectForMove:it=>selectFooterItem(current.id, 'sort', it.id),
-            onOpenEnlarge:it=>openEnlargeFor(current.id, 'sort', it.id)
-          }),
-          h(FooterItemRow, {
-            items: current.energies || [], kind:'energie', size:ITEM_BOX-8,
-            selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='energie' ? selectedFooterItem.cardId : null,
-            onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, energies:next} : p)}),
-            onSelectForMove:it=>selectFooterItem(current.id, 'energie', it.id),
-            onOpenEnlarge:it=>openEnlargeFor(current.id, 'energie', it.id)
-          })
+        h('div', {style:{display:'flex', flexDirection:'column', gap:FOOTER_SLOT_GAP}},
+          h('div', {style:{height:FOOTER_ROW_HEIGHT, minWidth:FOOTER_ROW_WIDTH, boxSizing:'border-box',
+            display:'flex', alignItems:'center', overflowX:'auto',
+            border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
+            h(FooterItemRow, {
+              items: current.sorts || [], kind:'sort', size:FOOTER_ITEM_SIZE,
+              selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='sort' ? selectedFooterItem.cardId : null,
+              onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, sorts:next} : p)}),
+              onSelectForMove:it=>selectFooterItem(current.id, 'sort', it.id),
+              onOpenEnlarge:it=>openEnlargeFor(current.id, 'sort', it.id)
+            })
+          ),
+          h('div', {style:{height:FOOTER_ROW_HEIGHT, minWidth:FOOTER_ROW_WIDTH, boxSizing:'border-box',
+            display:'flex', alignItems:'center', overflowX:'auto',
+            border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
+            h(FooterItemRow, {
+              items: current.energies || [], kind:'energie', size:FOOTER_ITEM_SIZE,
+              selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='energie' ? selectedFooterItem.cardId : null,
+              onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, energies:next} : p)}),
+              onSelectForMove:it=>selectFooterItem(current.id, 'energie', it.id),
+              onOpenEnlarge:it=>openEnlargeFor(current.id, 'energie', it.id)
+            })
+          )
         )
       ),
 

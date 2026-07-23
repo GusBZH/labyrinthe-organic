@@ -586,31 +586,50 @@ contre `CELL-4` pour une tuile) — `PileStack`/`DiscardSlot` prennent maintenan
   existent comme d'autres entrées du même tableau `discardCards`, restent en place).
 - **Wrap 2 colonnes quand une pioche se divise** (motif demandé par Gus : `◻️◻️` puis
   `◻️` sur une nouvelle ligne au 3ème paquet) : `PileGroup` affiche les piles d'UN type
-  dans une simple CSS grid `gridTemplateColumns:'repeat(2, ...)'` — une grid 2 colonnes
-  remplit naturellement colonne 1 puis colonne 2 puis repasse en colonne 1 d'une
-  nouvelle ligne, sans logique de découpage manuel. La défausse reste un sibling flex
-  EN DEHORS de cette grid ("toujours devant le premier paquet") : diviser/fusionner des
-  piles fait grandir/rétrécir la grid sans jamais déplacer la défausse elle-même.
-- **Rétrécit au lieu de déborder** ("comme les carrés des joueurs") : même principe que
-  `squareSize` de la sidebar, appliqué à la largeur totale des 3 groupes du header
-  (`caseBoxSize`/`itemBoxSize`, calculés depuis `groupNaturalWidth()` vs
-  `window.innerWidth`, plancher `HEADER_MIN_SCALE`=0.5×) — `overflowX:'auto'` reste un
-  filet de sécurité si même ce plancher ne suffit pas.
+  dans une simple CSS grid — une grid 2 colonnes remplit naturellement colonne 1 puis
+  colonne 2 puis repasse en colonne 1 d'une nouvelle ligne, sans logique de découpage
+  manuel. **La défausse est maintenant sous cette grid** (Gus : "la défausse doit être
+  en dessous de la pioche pas à côté, pour toutes les pioches" — un premier essai la
+  mettait à côté), toujours juste après le dernier paquet, quel que soit leur nombre.
+  **Piège rencontré** : `gridTemplateColumns:'repeat(2, ...)'` en dur réservait TOUJOURS
+  la largeur de 2 colonnes même avec un seul paquet (CSS grid dimensionne le conteneur
+  d'après le nombre de colonnes déclarées, pas le nombre d'enfants réels) — ça laissait
+  un vide d'une colonne entière à droite du paquet, et décalait aussi la défausse en
+  dessous (centrée sous la grid entière, donc sous ce vide, pas sous le vrai paquet).
+  Fix : `repeat(Math.min(2, groupPiles.length), ...)` — jamais plus de colonnes que de
+  paquets réels.
+- **Rétrécit au lieu de déborder, sans jamais scroller** ("comme les carrés des
+  joueurs", mais en plus strict — Gus a signalé un scroll horizontal persistant) : même
+  principe que `squareSize` de la sidebar, appliqué à la largeur totale des 3 groupes du
+  header (`caseBoxSize`/`itemBoxSize`, calculés depuis `groupNaturalWidth()` vs
+  `window.innerWidth`). Contrairement à `squareSize`, le plancher `HEADER_MIN_SCALE` est
+  volontairement très bas (0.2× plutôt que 0.5×) : l'objectif est "pile poil la taille de
+  l'écran", jamais de scroll réel — `overflowX:'auto'` ne reste qu'un filet de sécurité
+  théorique. `HEADER_GROUP_GAP` réduit à 6px (Gus : "trop d'écart... rapproche-les") avec
+  un fin séparateur vertical (1px, `rgba(255,255,255,.12)`) entre chaque groupe pour
+  garder les 3 types visuellement distincts malgré l'espacement resserré.
 
 **Items sur le plateau** — nouvel état `boardItems` (`{id, type, row, col}`), rendu
 entre les tuiles et les jetons joueurs dans le DOM (donc au-dessus des cases, en
 dessous des joueurs, sans besoin de z-index — l'ordre du DOM suffit). Contrairement aux
-tuiles, plusieurs items peuvent partager une case (petit décalage de regroupement,
-même principe que `cellGroups` pour les joueurs, juste `itemCellGroups`) et un item n'a
-ni rotation ni flip ni bouton dans la grille — "juste déplacer c'est suffisant".
+tuiles, plusieurs items peuvent partager une case et un item n'a ni rotation ni flip ni
+bouton dans la grille — "juste déplacer c'est suffisant".
+- **Positionné sur un coin de la case, jamais centré** ("quand il y a que un item sur
+  une map j'aimerais qu'il aille sur un coin de la carte map plutôt qu'au centre") :
+  chaque item choisit un quadrant (`i % 4` sur son index dans le groupe de la case,
+  `ITEM_CORNER_INSET` = demi-taille du jeton + 3px de marge) plutôt que d'être centré —
+  un item seul (groupe de taille 1) prend simplement le quadrant 0 (coin haut-gauche),
+  et un 2ème/3ème/4ème item partageant la case prend le coin suivant. Remplace l'ancien
+  `itemCellGroups` à décalage centré (même esprit que le regroupement des joueurs, mais
+  ne correspondait pas à ce que Gus voulait pour un item seul).
 - **Troisième geste dédié : l'appui long**, exactement le design d'origine prévu dans
   "Système de sélection par geste" (clic = joueurs, double-clic = tuiles, appui long =
   items) — implémenté en autonome via `onContentPointerDown`/`Move`/`Up` sur le div
   `content` (qui n'avait aucun handler pointer avant), sans toucher au système clic/
   double-clic existant : un timer de 500ms (même durée que l'armement des pioches),
   annulé si le pointeur bouge de plus de 6px (seuil un peu plus large que le drag de
-  pan, pour laisser le pan tactile natif tranquille). `heldTile`/`visionMode` bloquent
-  la sélection, comme les autres gestes de carte.
+  pan, pour laisser le pan tactile natif tranquille). `heldTile`/`heldItem` bloquent la
+  sélection (une carte déjà en main doit être résolue avant d'en toucher une autre).
 - **Un vrai `click` natif suit toujours un appui long réussi** (le `preventDefault` sur
   `pointerdown` n'annule pas le `click` qui arrive au relâchement) — `suppressNextClickRef`
   (mis à `true` par `handleItemLongPress` quand il sélectionne réellement quelque chose,
@@ -621,6 +640,24 @@ ni rotation ni flip ni bouton dans la grille — "juste déplacer c'est suffisan
   déjà posé, ramassé par appui long) suivent exactement le même schéma "un seul tap
   suffit pour finir le geste" que les tuiles, sans le mode `'placed'` rotation-only (pas
   besoin, rien à orienter).
+- **Plusieurs items sur la même case → petite fenêtre de choix** ("je dois pouvoir
+  choisir entre chaque item en ouvrant une fenêtre") : `handleItemLongPress` ne prend
+  plus juste le dernier item posé sur la case — s'il y en a plus d'un, il ouvre
+  `itemCellPicker` (même esprit que le `cellPicker` multi-joueurs), une liste "🪄 Sort" /
+  "🔥 Énergie" par item. Positionnée 40px SOUS le point d'appui plutôt qu'exactement
+  dessus : le popup s'ouvre pendant que le doigt/la souris est encore appuyé(e) (au
+  seuil des 500ms, comme le menu Diviser/Mélanger d'une pioche) — la placer pile sous le
+  pointeur encore actif aurait risqué que le relâchement qui suit tombe directement sur
+  une des options et la sélectionne par accident.
+- **Mode Vision = aperçu en grand en restant appuyé** ("je dois être capable d'afficher
+  le sort sur le plateau en restant appuyé") : contrairement aux autres gestes de carte,
+  l'appui long sur un item N'EST PAS bloqué en mode Vision — il affiche `visionPeekItem`
+  (la carte en grand, sans `‹`/`›` ni croix — juste un aperçu, pas un navigateur) tant
+  que le doigt/la souris reste appuyé(e), refermé automatiquement au relâchement
+  (`peekingRef`, vérifié dans `onContentPointerUp`). Sur une case à items multiples en
+  mode Vision, le picker ci-dessus s'ouvre à la place — le choisir affiche alors le même
+  aperçu, mais cette fois comme une fenêtre normale (fermeture au tap extérieur) puisque
+  le geste d'appui a déjà pris fin avant que le choix ne soit fait.
 
 **Équiper un item sur un joueur** — nouvelle zone dans le pied de page, juste au-dessus
 de la ligne dé/PV existante (jamais touchée), visible seulement s'il y a un joueur
@@ -628,6 +665,19 @@ courant : à gauche un **emplacement unique "sort de nature"** (`player.natureSo
 carré en pointillés tant qu'il est vide), à droite deux lignes empilées — sorts puis
 énergies (`player.sorts`/`player.energies`, tableaux, sans limite dure de 3 — l'app
 n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
+- **Slots à taille fixe** ("le carré du slot du sort nature change de taille... il faut
+  aussi une zone slot... pour les sorts et une autre pour les énergies") : les 3
+  contours en pointillés (nature + les 2 lignes) ont maintenant chacun une taille CSS
+  figée (`FOOTER_ROW_HEIGHT`/`FOOTER_NATURE_HEIGHT`/`FOOTER_ROW_WIDTH`, `box-sizing:
+  'border-box'`) au lieu de se dimensionner sur leur contenu — avant ce fix, le carré
+  nature changeait littéralement de taille selon qu'il contenait 0 ou 1 carte, puisque
+  rien ne bornait sa hauteur/largeur. Les lignes sorts/énergies ont maintenant elles
+  aussi un contour visible (elles n'en avaient aucun avant), assez large pour ~3 cartes
+  (`overflowX:'auto'` si plus). La hauteur du carré nature = exactement les 2 lignes
+  empilées + leur espacement, pour rester aligné avec elles comme prévu à l'origine.
+- **Cartes deux fois plus grandes que dans le header** (`FOOTER_ITEM_SIZE`, le double de
+  la taille pioche/défausse d'un sort/énergie) : le pied de page a plus de place que le
+  header serré, et ce sont les cartes qu'on regarde/tape le plus souvent.
 - **"Peu importe où je clique dans cette zone avec un item"** : `onClickCapture` sur la
   zone entière (phase de capture, donc déclenché AVANT le clic propre de n'importe quel
   slot enfant) équipe directement `heldItem`/`selectedItemId` s'il y en a un, et
@@ -660,8 +710,27 @@ note de design différée d'une session précédente. `playerCardList(p)` aplati
 les flèches défilent sur TOUT ce que le joueur possède sans avoir besoin d'un carrousel
 séparé par ligne. Accessible de deux endroits qui partagent exactement la même fenêtre :
 un tap sur un item déjà équipé dans son propre pied de page, ou un clic sur une carte
-listée dans la fenêtre Vision `visionPlayerId` (qui affiche maintenant vraiment les
-cartes du joueur au lieu du placeholder "bientôt disponible").
+listée dans la fenêtre Vision `visionPlayerId`.
+
+**Dos/face des cartes sort/énergie** : `FRONT_GLYPH` (`{case:'+', sort:'🪄',
+energie:'🔥'}`) — le dos garde le même traitement sombre uni + bordure d'accent
+colorée pour les 3 types (`BACK_ACCENT`, inchangé), seul le glyphe de la face change.
+
+**Fenêtre `visionPlayerId` (sidebar + mode Vision) — mise en page revue** : nom + cœur
+de PV à GAUCHE (colonne étroite), sorts/énergies équipés à DROITE, disposés exactement
+comme dans le pied de page (même emplacement nature + mêmes lignes en pointillés,
+`FooterItemRow` réutilisé avec `onReorder`/`onSelectForMove` en no-op — cette fenêtre
+peut afficher N'IMPORTE QUEL joueur, pas seulement le joueur courant, donc rien n'y est
+équipable/réordonnable, seulement consultable en cliquant une carte pour l'agrandir),
+à une taille réduite (`VISION_ITEM_SIZE`) pour tenir dans la largeur de la fenêtre.
+- **`‹`/`›` pour changer de joueur, mais seulement depuis la barre latérale** ("la
+  fenêtre... ce serait cool d'avoir en bas les <> pour passer de joueurs en joueur...
+  mais en mode vision et qu'on clique sur un joueur pas besoin de <>") : nouveau state
+  `visionPlayerFromSidebar` (booléen), mis à `true` uniquement par `PlayerSquare.onOpenInfo`
+  (le carré dans la sidebar) et à `false` par les deux chemins d'ouverture depuis le
+  plateau en mode Vision (tap direct sur un jeton, ou `cellPicker` si plusieurs joueurs
+  partagent la case) — les flèches (`shiftVisionPlayer`, cycle sur `players` dans le même
+  ordre que la sidebar) ne s'affichent que si ce flag est vrai.
 
 ### Pan et zoom
 - Mobile : glisser (tap qui traverse plusieurs cases, cf. seuils ci-dessus) pour
