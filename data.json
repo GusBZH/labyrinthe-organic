@@ -860,7 +860,7 @@
       "style": "Escape Combat",
       "joueurs": "2-10",
       "contenu": "Rôles :\nDocteur Fou — contrôle lab partout, pas sprint, pas clé, 1 sort + 1 énergie, tp fontaine 3 PA. S'il bat un Héros, ce Héros devient Zombie.\nZombies — contrôle lab adjacent, pas sprint, pas clé, 1 sort + 1 énergie.\nHéros — contrôle lab adjacent, sprint, clé, 3 sorts + 3 énergies, 2 dés contre méchant.\n\nMise en place : carré 5x5 révélé. Docteur place sa case d'abord. Retirer le carré. Docteur joue en premier. Retirer item Edge.\n\nVictoire Héros : s'échapper par la Porte avec la Clé.\nVictoire Docteur : tous les Héros deviennent Zombies.",
-      "notes": "Priorité de modification\nÀ tester : 7x7, tp fontaine 1 PA, -1 au dé méchants\nProblème : snowball, difficile changer de cible"
+      "notes": "Priorité de modification\nÀ tester : 7x7, tp fontaine 1 PA, -1 au dé méchants\nProblème : snowball, difficile changer de cible\n\n\nTester avec les PV : pour transformer en zombie, le docteur doit tuer un joueur ou faire perdre un nombre de pv égal au nombre de méchant actuellement dans la partie."
     },
     {
       "id": "md4",
