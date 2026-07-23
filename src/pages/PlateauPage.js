@@ -118,6 +118,17 @@ function TargetIcon(){
   );
 }
 
+// Eye glyph for the "voir en grand" button on a selected monster/item —
+// same thin-stroke SVG treatment as Rotate/Flip/Target above, for the same
+// reason (a font glyph like 👁️ isn't visually centered the same way across
+// platforms).
+function EyeIcon(){
+  return h('svg', {width:14, height:14, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.2, strokeLinecap:'round', strokeLinejoin:'round'},
+    h('path', {d:'M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z'}),
+    h('circle', {cx:12, cy:12, r:3})
+  );
+}
+
 function shuffle(arr){
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) {
@@ -303,7 +314,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
 // pioche afterward reshuffles the whole défausse into it, letting you
 // recycle discarded cards back into circulation without picking them up
 // one at a time. Mirrors PileStack's own long-press-to-arm structure.
-function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSelectedTile, disabled, boxSize=56, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSelectedTile, disabled, visionMode, boxSize=56, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, onOpenVisionPeek}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
@@ -316,7 +327,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
   const isArmed = armedId === armedSelfId;
 
   function onPointerDown(){
-    if (disabled) return;
+    if (disabled || visionMode) return; // Vision mode: no arming/merging either, only the click-to-browse below
     pendingArmedRef.current = armedIdRef.current;
     startPress();
   }
@@ -332,7 +343,13 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
   function cancelPress(){
     clearTimeout(pressTimer.current);
   }
+  // Vision mode repurposes a défausse click entirely: instead of the usual
+  // select/merge/discard-selection logic, it opens the whole pile browsable
+  // in the enlarged view (see visionDiscardPeek) — the top card is already
+  // known/face-up here, unlike a pioche's hidden top card (see PileGroup's
+  // own comment on why pioches just go inert instead in Vision mode).
   function handleClick(e){
+    if (visionMode) { e.stopPropagation(); if (topCard) onOpenVisionPeek(); return; }
     if (disabled) return; // let it bubble to the header's "click elsewhere deselects" handler instead
     e.stopPropagation();
     if (showMenu) return; // the click that follows a long-press shouldn't also act
@@ -387,14 +404,21 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
   // `allowPileDraw` (case piles only, see its own comment where it's
   // passed in) lets a click through to draw normally even while `disabled`
   // would otherwise block it — long-press-to-arm stays blocked either way
-  // (`blockArm`), just the plain click behaves differently.
-  const pileClickDisabled = disabled && !allowPileDraw;
+  // (`blockArm`), just the plain click behaves differently. Vision mode
+  // overrides that entirely: a pioche's top card is FACE-DOWN/unknown, so
+  // there's nothing meaningful to preview — Gus asked for it to just do
+  // nothing there ("pas pouvoir cliquer sur les pioches"), unconditionally,
+  // `allowPileDraw` included (that override only ever existed for the
+  // 'placed' tile mode UX, unrelated to Vision — the two states can't
+  // overlap anyway, entering Vision always clears any tile selection).
+  const pileClickDisabled = visionMode ? true : (disabled && !allowPileDraw);
+  const pileArmBlocked = visionMode || disabled;
   return h('div', {style:{display:'flex', flexDirection:'column', alignItems:'center', gap:5}},
     groupPiles.length
       // CSS grid reserves the FULL declared column count regardless of how
@@ -407,15 +431,16 @@ function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedI
       ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(${Math.min(2, groupPiles.length)}, ${boxSize}px)`, gap:5}},
           groupPiles.map(p => h(PileStack, {
             key:p.id, pile:p, boxSize, holding: holding.pileId === p.id,
-            armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:disabled,
+            armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:pileArmBlocked,
             onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
           }))
         )
       : h('div', {style:{width:boxSize, height:boxSize}}),
     h(DiscardSlot, {
       cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
-      armedId, armedIdRef, hasSelectedTile, disabled,
-      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect
+      armedId, armedIdRef, hasSelectedTile, disabled, visionMode,
+      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect,
+      onOpenVisionPeek: () => onOpenDiscardPeek(type)
     })
   );
 }
@@ -664,6 +689,48 @@ export function PlateauPage({onBack}) {
       const len = prev.items.length;
       return {...prev, index: (prev.index + dir + len) % len};
     });
+  }
+  // Monster card, shown big — reachable from a Vision-mode click on a
+  // monster-only cell (direct, no picker step needed since there's no
+  // player to disambiguate against) or from the eye button on a selected
+  // monster in normal mode (see the in-grid monster controls further down).
+  // Not vision-exclusive despite living next to visionPeekItem — same
+  // multi-entry-point pattern as enlargedItem (footer tap + Vision modal).
+  // {monsterIds, index}: monsterIds is every monster sharing that monster's
+  // OWN cell, so ‹/› can browse them without needing a separate picker.
+  const [enlargedMonster, setEnlargedMonster] = useState(null);
+  function shiftEnlargedMonster(dir){
+    setEnlargedMonster(prev => {
+      if (!prev) return prev;
+      const len = prev.monsterIds.length;
+      return {...prev, index: (prev.index + dir + len) % len};
+    });
+  }
+  // Défausse browsing in Vision mode — clicking a défausse (any of the 4
+  // deck types) opens its top card enlarged with ‹/› to page through the
+  // WHOLE pile (Gus: "afficher la carte en grand avec des < et > en bas
+  // pour faire défiler toutes les cartes de la défausse"), not just the
+  // top one. {type, index}: index 0 is the TOP (most recent) card — see
+  // discardBrowseList below for the top-first ordering. Deliberately
+  // NON-looping (Gus: "il faut pas de loop") — shiftDiscardPeek clamps
+  // instead of wrapping, so the top card only ever shows › (nothing
+  // "newer" to look at) and the oldest card only ever shows ‹.
+  const [visionDiscardPeek, setVisionDiscardPeek] = useState(null);
+  function discardBrowseList(type){
+    return discardCards.filter(c => c.type === type).slice().reverse();
+  }
+  function shiftDiscardPeek(dir){
+    setVisionDiscardPeek(prev => {
+      if (!prev) return prev;
+      const list = discardBrowseList(prev.type);
+      const next = prev.index + dir;
+      if (next < 0 || next >= list.length) return prev;
+      return {...prev, index: next};
+    });
+  }
+  function openDiscardPeek(type){
+    if (discardBrowseList(type).length === 0) return;
+    setVisionDiscardPeek({type, index:0});
   }
   // Several items sharing a cell can't be disambiguated by a single
   // long-press — this offers a small choice popup instead (mirrors the
@@ -1269,12 +1336,17 @@ export function PlateauPage({onBack}) {
     // held/selected card just waits, untouched, until Vision is turned back
     // off) — only players can be inspected here.
     if (live.visionMode) {
-      const here = live.players.filter(p => p.row === r && p.col === c);
-      if (here.length === 1) { setVisionPlayerId(here[0].id); setVisionPlayerFromSidebar(false); }
-      // Monsters aren't inspectable in Vision mode yet (CLAUDE.md: "l'inspection
-      // détaillée d'une case/tuile/monstre reste à faire") — the picker only
-      // ever lists players here, monsterIds stays empty on purpose.
-      else if (here.length > 1) setCellPicker({clientX, clientY, playerIds:here.map(p=>p.id), monsterIds:[], forVision:true});
+      const herePlayers = live.players.filter(p => p.row === r && p.col === c);
+      const hereMonsters = live.monsters.filter(m => m.row === r && m.col === c);
+      if (herePlayers.length === 0 && hereMonsters.length === 0) return;
+      // Monster-only cell: no player to disambiguate against, so the card
+      // opens directly (with ‹/› if several monsters share it) rather than
+      // going through the picker first.
+      if (herePlayers.length === 0) { setEnlargedMonster({monsterIds:hereMonsters.map(m=>m.id), index:0}); return; }
+      if (herePlayers.length === 1 && hereMonsters.length === 0) { setVisionPlayerId(herePlayers[0].id); setVisionPlayerFromSidebar(false); return; }
+      // Several players, or players mixed with monsters: disambiguate via
+      // the same two-column picker the normal (non-Vision) flow uses.
+      setCellPicker({clientX, clientY, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), forVision:true});
       return;
     }
 
@@ -1869,11 +1941,23 @@ export function PlateauPage({onBack}) {
   const current = players[currentIndex] || null;
 
   // Cluster same-cell tokens into a small 2-column pattern so several
-  // players sharing a cell don't fully overlap each other.
+  // entities sharing a cell don't fully overlap each other. Monsters share
+  // THIS SAME clustering with players (tagged `kind` to tell them apart at
+  // render time) rather than getting their own separate one — Gus asked for
+  // a monster to be "vraiment considéré comme un joueur sur le plateau" :
+  // alone on a cell it sits centered exactly like a lone player, and
+  // sharing a cell with a player (the normal case — a monster spawns on the
+  // cell of the player who encountered it) they split the same jitter
+  // positions players already use amongst themselves, instead of a monster
+  // corner-token stacking underneath the player's own token.
   const cellGroups = {};
   players.forEach(p => {
     const key = `${p.row}-${p.col}`;
-    (cellGroups[key] = cellGroups[key] || []).push(p);
+    (cellGroups[key] = cellGroups[key] || []).push({...p, kind:'player'});
+  });
+  monsters.forEach(m => {
+    const key = `${m.row}-${m.col}`;
+    (cellGroups[key] = cellGroups[key] || []).push({...m, kind:'monstre'});
   });
 
   // Same clustering idea for items sharing a cell — a smaller offset than
@@ -1884,23 +1968,10 @@ export function PlateauPage({onBack}) {
     (itemCellGroups[key] = itemCellGroups[key] || []).push(it);
   });
 
-  // Monster tokens get their OWN clustering rather than being merged into
-  // `cellGroups` above — a monster most often appears on the SAME cell as
-  // the player who triggered the encounter (CLAUDE.md's described flow), so
-  // reusing the exact same near-center jitter formula as players would sit
-  // them on top of each other. Reusing the item corner-quadrant positioning
-  // instead (same math as itemCellGroups) keeps a monster visually distinct
-  // from a player sharing its cell without touching the already-validated
-  // player clustering code at all.
-  const monsterCellGroups = {};
-  monsters.forEach(m => {
-    const key = `${m.row}-${m.col}`;
-    (monsterCellGroups[key] = monsterCellGroups[key] || []).push(m);
-  });
-
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
   const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
   const selectedItemObj = selectedItemId ? boardItems.find(it => it.id === selectedItemId) : null;
+  const selectedMonsterObj = selectedMonsterId ? monsters.find(m => m.id === selectedMonsterId) : null;
   // A tile fresh out of a pile/défausse ('placed' mode, rotate-only) isn't
   // "selected" as far as piles/défausse are concerned — Gus asked for those
   // to be completely inert (not even the Dessus/Dessous insert menu) while
@@ -2034,6 +2105,7 @@ export function PlateauPage({onBack}) {
           holding:{pileId: heldTile ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('case'), hasSelectedTile:hasSelectedForDiscardOfType('case'), disabled:pilesDisabled,
+          visionMode, onOpenDiscardPeek:openDiscardPeek,
           // A tile fresh out of a pile ('placed' mode) blocks the DÉFAUSSE
           // and long-press-arming a pile, but clicking a case PILE itself
           // is deliberately let through: Gus asked for it to deselect the
@@ -2054,6 +2126,7 @@ export function PlateauPage({onBack}) {
           holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('sort'), hasSelectedTile:hasSelectedForDiscardOfType('sort'), disabled:pilesDisabled,
+          visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
@@ -2065,6 +2138,7 @@ export function PlateauPage({onBack}) {
           holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('energie'), hasSelectedTile:hasSelectedForDiscardOfType('energie'), disabled:pilesDisabled,
+          visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
@@ -2082,6 +2156,7 @@ export function PlateauPage({onBack}) {
           holding:{pileId: heldItem && heldItem.itemType === 'monstre' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('monstre'), hasSelectedTile:hasSelectedForDiscardOfType('monstre'), disabled:pilesDisabled,
+          visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPile, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
@@ -2195,39 +2270,36 @@ export function PlateauPage({onBack}) {
             }
           }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
         })),
-        // Monster tokens — rendered above items, below players (DOM order
-        // gives that for free, no z-index needed), using the item-style
-        // corner offset (see monsterCellGroups' own comment) so a monster
-        // sharing a cell with the player who triggered it doesn't sit
-        // exactly on top of that player's own token.
-        Object.entries(monsterCellGroups).map(([key, group]) => group.map((m, i) => {
-          const q = i % 4;
-          const cx = m.col*CELL + (q % 2 === 0 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
-          const cy = m.row*CELL + (q < 2 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
+        // Players AND monsters, from the same cellGroups clustering (see its
+        // own comment) — a monster is visually distinguishable (dark
+        // accent background, 👹 glyph, red selection glow) but shares the
+        // exact same positioning math as a player, including sitting dead
+        // center when alone on a cell.
+        Object.entries(cellGroups).map(([key, group]) => group.map((e, i) => {
+          const cx = e.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
+          const cy = e.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);
+          if (e.kind === 'monstre') {
+            return h('div', {
+              key:e.id,
+              style:{
+                position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
+                width:26, height:26, borderRadius:'50%', background:BACK_ACCENT.monstre,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:13, pointerEvents:'none',
+                boxShadow: selectedMonsterId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.5)'
+              }
+            }, '👹');
+          }
           return h('div', {
-            key:m.id,
+            key:e.id,
             style:{
               position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
-              width:22, height:22, borderRadius:'50%', background:BACK_ACCENT.monstre,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:12, pointerEvents:'none',
-              boxShadow: selectedMonsterId===m.id ? '0 0 0 2px #fff, 0 0 10px 3px #f66' : '0 1px 4px rgba(0,0,0,.6)'
-            }
-          }, '👹');
-        })),
-        Object.entries(cellGroups).map(([key, group]) => group.map((p, i) => {
-          const cx = p.col*CELL + CELL/2 + (group.length>1 ? (i%2===0?-1:1)*(CELL/5) : 0);
-          const cy = p.row*CELL + CELL/2 + (group.length>1 ? (i>=2?1:-1)*(CELL/5) : 0);
-          return h('div', {
-            key:p.id,
-            style:{
-              position:'absolute', left:cx, top:cy, transform:'translate(-50%,-50%)',
-              width:26, height:26, borderRadius:'50%', background:p.couleur,
+              width:26, height:26, borderRadius:'50%', background:e.couleur,
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none',
-              boxShadow: selectedId===p.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
+              boxShadow: selectedId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
             }
-          }, p.nom.slice(0,1).toUpperCase());
+          }, e.nom.slice(0,1).toUpperCase());
         })),
 
         // SELECTED TILE CONTROLS — just the option buttons around the
@@ -2262,6 +2334,44 @@ export function PlateauPage({onBack}) {
           selectedTileMode !== 'placed' && h('div', {
             key:'discard', onClick: e => { e.stopPropagation(); discardTile(selectedTileObj.id); },
             style:{...inGridBtnStyle, left:selectedTileObj.col*CELL+CELL, top:selectedTileObj.row*CELL+CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
+          }, '✕')
+        ],
+
+        // SELECTED MONSTER / ITEM CONTROLS — same corner-anchored button
+        // pattern as the tile controls above ("au croisement de la grille,
+        // comme les cartes map"), just 2 buttons instead of 3: eye top-right
+        // opens the card enlarged (with ‹/› through whatever else shares
+        // that same cell, reusing enlargedMonster/visionPeekItem — no new
+        // window needed, both already support being opened from here as
+        // well as from Vision mode), red ✕ top-left discards it — the same
+        // `discardSelectedMonster`/`discardSelectedItem` the matching
+        // défausse click already used, just a second, faster entry point.
+        selectedMonsterObj && [
+          h('div', {
+            key:'monster-eye', onClick: e => {
+              e.stopPropagation();
+              const here = monsters.filter(m => m.row === selectedMonsterObj.row && m.col === selectedMonsterObj.col);
+              setEnlargedMonster({monsterIds: here.map(m => m.id), index: here.findIndex(m => m.id === selectedMonsterObj.id)});
+            },
+            style:{...inGridBtnStyle, left:selectedMonsterObj.col*CELL+CELL, top:selectedMonsterObj.row*CELL}
+          }, h(EyeIcon)),
+          h('div', {
+            key:'monster-discard', onClick: e => { e.stopPropagation(); discardSelectedMonster(); },
+            style:{...inGridBtnStyle, left:selectedMonsterObj.col*CELL, top:selectedMonsterObj.row*CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
+          }, '✕')
+        ],
+        selectedItemObj && [
+          h('div', {
+            key:'item-eye', onClick: e => {
+              e.stopPropagation();
+              const here = boardItems.filter(it => it.row === selectedItemObj.row && it.col === selectedItemObj.col);
+              setVisionPeekItem({items: here, index: here.findIndex(it => it.id === selectedItemObj.id)});
+            },
+            style:{...inGridBtnStyle, left:selectedItemObj.col*CELL+CELL, top:selectedItemObj.row*CELL}
+          }, h(EyeIcon)),
+          h('div', {
+            key:'item-discard', onClick: e => { e.stopPropagation(); discardSelectedItem(); },
+            style:{...inGridBtnStyle, left:selectedItemObj.col*CELL, top:selectedItemObj.row*CELL, color:'#f66', borderColor:'rgba(220,60,40,.5)'}
           }, '✕')
         ]
       )
@@ -2319,7 +2429,11 @@ export function PlateauPage({onBack}) {
               h('div', {style:{display:'flex', flexDirection:'column', gap:6}},
                 cellPicker.monsterIds.map(id => h('div', {
                   key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
-                  onClick:() => { setSelectedMonsterId(id); setCellPicker(null); }
+                  onClick:() => {
+                    if (cellPicker.forVision) setEnlargedMonster({monsterIds:cellPicker.monsterIds, index:cellPicker.monsterIds.indexOf(id)});
+                    else setSelectedMonsterId(id);
+                    setCellPicker(null);
+                  }
                 }, '👹 Monstre'))
               )
             )
@@ -2393,6 +2507,63 @@ export function PlateauPage({onBack}) {
           }, '‹'),
           visionPeekItem.items.length > 1 && h('div', {
             onClick:()=>shiftVisionPeek(1),
+            style:{position:'absolute', right:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '›')
+        )
+      );
+    })(),
+
+    // MONSTER CARD ENLARGED — same backdrop/arrows pattern as visionPeekItem
+    // just above, reachable from a Vision-mode click on a monster-only cell
+    // OR the eye button on a selected monster in normal mode (see the
+    // in-grid monster controls). ‹/› cycle through every OTHER monster
+    // sharing that monster's own cell.
+    enlargedMonster && (() => {
+      if (!enlargedMonster.monsterIds[enlargedMonster.index]) return null;
+      return h('div', {
+        onClick:()=>setEnlargedMonster(null),
+        style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
+      },
+        h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
+          h(CardFace, {showBack:false, size:140, kind:'monstre'}),
+          enlargedMonster.monsterIds.length > 1 && h('div', {
+            onClick:()=>shiftEnlargedMonster(-1),
+            style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '‹'),
+          enlargedMonster.monsterIds.length > 1 && h('div', {
+            onClick:()=>shiftEnlargedMonster(1),
+            style:{position:'absolute', right:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '›')
+        )
+      );
+    })(),
+
+    // DÉFAUSSE BROWSING (Vision mode) — clicking any défausse in Vision
+    // mode opens this instead of the normal select/merge behavior (see
+    // DiscardSlot's own `visionMode` branch). Deliberately non-looping,
+    // unlike every other ‹/› carousel in the app (Gus: "il faut pas de
+    // loop") — the top (most recent, shown first) card only ever gets ›
+    // since there's nothing "newer" to look at, and the oldest only gets ‹.
+    visionDiscardPeek && (() => {
+      const list = discardBrowseList(visionDiscardPeek.type);
+      const card = list[visionDiscardPeek.index];
+      if (!card) return null;
+      return h('div', {
+        onClick:()=>setVisionDiscardPeek(null),
+        style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
+      },
+        h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
+          h(CardFace, {showBack:false, size:140, kind:visionDiscardPeek.type}),
+          visionDiscardPeek.index > 0 && h('div', {
+            onClick:()=>shiftDiscardPeek(-1),
+            style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
+              border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
+          }, '‹'),
+          visionDiscardPeek.index < list.length-1 && h('div', {
+            onClick:()=>shiftDiscardPeek(1),
             style:{position:'absolute', right:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
               border:'1px solid #777', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:18, color:'#eee'}
           }, '›')
