@@ -347,34 +347,100 @@ rencontré). Même chose pour reposer un monstre depuis sa défausse
 (`insertSelectedCardIntoPile`, branche `selectedMonsterId` ajoutée au même endroit que
 `selectedItemId`).
 
-**Jeton sur le plateau — pas fusionné avec le rendu des joueurs** : `monsterCellGroups`
-est un regroupement par case séparé de `cellGroups` (jamais touché), positionné avec le
-MÊME calcul de coin/quadrant que les items du plateau (`ITEM_CORNER_INSET`) plutôt que le
-jitter quasi-centré des joueurs — un monstre partage très souvent sa case avec LE joueur
-qui vient de le rencontrer (le flux normal ci-dessus), donc réutiliser le placement
-joueur l'aurait fait atterrir exactement sur son jeton. Rendu dans le DOM entre les items
-et les joueurs (au-dessus des items, sous les joueurs, sans besoin de z-index). Glow de
-sélection en rouge (`0 0 10px 3px #f66`) plutôt que le bleu habituel, pour distinguer au
-premier coup d'œil "un monstre est sélectionné" de "un joueur/une carte est
-sélectionné(e)".
+**Jeton sur le plateau — FUSIONNÉ avec le rendu des joueurs** ("le monstre doit être
+vraiment considéré comme un joueur sur le plateau", Gus — remplace un premier essai qui
+donnait aux monstres leur propre clustering en coin de case, façon items, pour éviter
+qu'ils se superposent au joueur qui vient de les rencontrer) : `cellGroups` regroupe
+maintenant `players` ET `monsters` ensemble (chaque entrée taguée `kind:'player'` ou
+`kind:'monstre'`), donc un monstre seul sur une case est centré exactement comme un
+joueur seul, et un monstre qui partage sa case avec un joueur (le cas normal — il apparaît
+sur la case du joueur qui l'a rencontré) se répartit le MÊME jitter que plusieurs joueurs
+entre eux, au lieu de se caler sur un coin séparé. Rendu (couleur/glyphe différents selon
+`kind`) toujours dans le même bloc JSX, donc toujours entre les items et rien d'autre —
+plus besoin de bloc de rendu séparé. Glow de sélection en rouge (`0 0 10px 3px #f66`)
+plutôt que le bleu habituel, pour distinguer au premier coup d'œil "un monstre est
+sélectionné" de "un joueur/une carte est sélectionné(e)".
 
 **`cellPicker` généralisé en deux colonnes quand des monstres partagent la case** (CLAUDE.md
 prévoyait déjà cette évolution avant même l'existence des monstres — "la fenêtre de choix
 joueurs/monstres (deux colonnes)") : `cellPicker` porte maintenant `playerIds`/
-`monsterIds` séparément (au lieu d'un seul `ids`). Tant qu'une case n'a que des joueurs
-(le mode Vision n'y ajoute jamais de monstres, voir plus bas), le picker reste EXACTEMENT
-le rendu à une colonne déjà validé (`Popup` en mode `items`, grandes cibles de tap) — dès
-qu'un monstre rejoint la case, il bascule en mode `children` à deux colonnes (même
-schéma que `itemCellPicker` pour sorts/énergies) : joueurs à gauche (nom + pastille de
-couleur), monstres à droite ("👹 Monstre" répété par entrée, cartes placeholder
-identiques pour l'instant). Vérifié qu'aucune régression n'affecte le cas "plusieurs
-joueurs, aucun monstre" (toujours 220px, une seule colonne).
+`monsterIds` séparément (au lieu d'un seul `ids`). Tant qu'une case n'a que des joueurs,
+le picker reste EXACTEMENT le rendu à une colonne déjà validé (`Popup` en mode `items`,
+grandes cibles de tap) — dès qu'un monstre rejoint la case, il bascule en mode `children`
+à deux colonnes (même schéma que `itemCellPicker` pour sorts/énergies) : joueurs à gauche
+(nom + pastille de couleur), monstres à droite ("👹 Monstre" répété par entrée, cartes
+placeholder identiques pour l'instant). Vérifié qu'aucune régression n'affecte le cas
+"plusieurs joueurs, aucun monstre" (toujours 220px, une seule colonne).
 
-**Mode Vision : les monstres restent hors de portée pour l'instant**, par choix — le
-volet "inspection détaillée d'une case/tuile/monstre" (affichage de stats/récompenses)
-n'est pas encore implémenté (pas de contenu réel de carte monstre à afficher). Le clic en
-mode Vision ne regarde donc toujours que `players`, `cellPicker.monsterIds` y est
-volontairement toujours vide.
+**Voir la carte d'un monstre en grand, avec `‹`/`›` pour parcourir les autres monstres de
+la même case — implémenté, deux points d'entrée** (Gus : "en mode vision, quand on clique
+sur le monstre, ça affiche sa carte en grand... et si il y a plusieurs monstres... les
+< et > en bas") :
+- **Mode Vision, clic direct sur une case monstre-seule (sans joueur dessus)** : ouvre
+  `enlargedMonster` (`{monsterIds, index}` — tous les monstres de CETTE case, pour que
+  `‹`/`›` les parcoure) directement, sans passer par le `cellPicker` — il n'y a aucune
+  ambiguïté de TYPE à lever (pas de joueur à départager), contrairement à une case mixte
+  joueur+monstre(s) ou plusieurs joueurs, qui elle ouvre toujours le picker comme avant
+  (choisir un monstre dans le picker en mode Vision ouvre aussi `enlargedMonster`).
+- **Mode normal, bouton "œil" sur un monstre sélectionné** (voir juste en dessous) — même
+  fenêtre `enlargedMonster`, réutilisée telle quelle : pas de fenêtre séparée à maintenir
+  pour les deux entrées.
+- `enlargedMonster` n'est donc PAS exclusif au mode Vision malgré son nom (même schéma
+  multi-point-d'entrée que `enlargedItem`, déjà utilisable depuis le pied de page ET la
+  fenêtre Vision joueur) — rendu identique à `visionPeekItem` (fond plein écran, carte
+  `CardFace` de 140px, flèches qui bouclent puisque rien dans la demande n'exigeait un
+  arrêt en bout de liste ici, contrairement à la défausse ci-dessous).
+
+**Sélectionner un monstre en mode normal affiche deux boutons au croisement de la
+grille, comme les tuiles** (Gus : "deux options placées au croisement de la grille
+(comme les cartes map)... en haut à droite un œil... en haut à gauche une croix rouge") :
+même style de bouton flottant que les contrôles de tuile (`inGridBtnStyle`, positionnés
+sur les COINS de la case plutôt que sur ses arêtes, pour la même raison qu'eux — voir
+"Pioche et pose de tuiles" plus bas), juste 2 boutons au lieu de 3 puisqu'il n'y a rien à
+tourner/retourner ici : `EyeIcon` (nouveau, même traitement SVG trait fin que
+Rotate/Flip/Target — un glyph emoji 👁️ n'est pas centré pareil selon la police) en haut
+à droite ouvre `enlargedMonster` sur tous les monstres de cette case ; ✕ rouge en haut à
+gauche appelle `discardSelectedMonster` — un second point d'entrée pour le même geste que
+cliquer la défausse monstre pendant que le monstre est sélectionné (les deux cohabitent
+sans conflit).
+
+**Même paire œil/croix ajoutée pour un item sélectionné** (sort/énergie sur le plateau,
+Gus : "avoir l'oeil et la croix quand on sélectionne c'est une bonne idée, tu peux aussi
+ajouter ça pour les items ?") : l'œil réutilise directement `visionPeekItem` (déjà conçu
+pour afficher une carte en grand avec `‹`/`›` scopés à la case — voir Couche 3 plus bas),
+donc AUCUNE nouvelle fenêtre à créer, juste une nouvelle façon de l'ouvrir ; la croix
+appelle `discardSelectedItem` (déjà existante). `visionPeekItem` n'est donc plus, lui non
+plus, exclusif au mode Vision malgré son nom — même remarque que `enlargedMonster`
+ci-dessus.
+
+**Mode Vision et pioches/défausses — implémenté** (Gus : "pas pouvoir cliquer sur les
+pioches (que ça fasse rien)... par contre si on clique sur la défausse... afficher la
+carte en grand avec des < et > en bas pour faire défiler toutes les cartes") :
+- **Pioches (les 4 types) : totalement inertes en mode Vision.** Le contenu d'une pioche
+  est face cachée/inconnu tant qu'on n'a pas pioché — rien de sensé à prévisualiser, donc
+  Gus a demandé qu'un clic ne fasse RIEN. `PileGroup` calcule maintenant
+  `pileClickDisabled = visionMode ? true : (disabled && !allowPileDraw)` — le `visionMode
+  ? true` prime toujours sur `allowPileDraw` (qui, lui, ne sert qu'à laisser passer le
+  clic pendant le mode tuile `'placed'`, un état qui ne peut de toute façon jamais
+  coexister avec le mode Vision — l'entrée en Vision vide déjà toute sélection de tuile).
+  L'armement par appui long (Diviser/Mélanger) est bloqué de la même façon
+  (`pileArmBlocked = visionMode || disabled`, passé en `blockArm`).
+- **Défausses : le clic est totalement REPENSÉ plutôt que bloqué** — sa carte du dessus
+  est déjà connue/face visible, donc au lieu d'être inerte comme les pioches, cliquer une
+  défausse en mode Vision ouvre `visionDiscardPeek` (`{type, index}`) à la place du
+  comportement normal (sélection/fusion/dépôt) : `DiscardSlot` reçoit une prop
+  `visionMode` et vérifie ce cas tout en haut de son `handleClick`, avant même de
+  regarder `disabled` — l'armement par appui long reste lui bloqué comme pour les pioches
+  (`onPointerDown` retourne si `disabled || visionMode`).
+- **`discardBrowseList(type)`** = `discardCards` filtré par type puis INVERSÉ, pour lire
+  du plus RÉCENT (la carte du dessus, déjà affichée normalement) vers le plus ANCIEN —
+  index 0 = la carte du dessus. **Délibérément SANS boucle** (Gus : "il faut pas de
+  loop... la première carte... il y a que un >... la dernière carte... il y a que un <"),
+  contrairement à TOUS les autres carrousels `‹`/`›` de l'app (`shiftEnlarged`,
+  `shiftVisionPeek`, `shiftEnlargedMonster`, tous à modulo/bouclage) — `shiftDiscardPeek`
+  clampe au lieu de boucler (`if (next < 0 || next >= list.length) return prev;`), et le
+  rendu ne montre `‹`/`›` que si `index > 0` / `index < list.length-1` respectivement, au
+  lieu du `list.length > 1` inconditionnel des autres fenêtres.
 
 ### Pioche et pose de tuiles (labyrinthe) — Couche 2, implémentée
 **Visuel des cartes** (`CardFace` dans `PlateauPage.js`) : une vraie carte carrée à deux
