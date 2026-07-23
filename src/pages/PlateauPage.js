@@ -356,7 +356,11 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
     const armed = pendingArmedRef.current;
     if (armed) { onMergeInto(armed, armedSelfId); return; }
     if (hasSelectedTile) { onDiscardSelectedTile(); return; }
-    if (topCard) onToggleSelect(topCard.id);
+    // Always call through, even when empty (topCard null) — a MISMATCHED
+    // selection elsewhere still needs this click to cancel it (see
+    // toggleSelectDiscardCardOrCancelSelection), which an empty défausse
+    // shouldn't block just because it has nothing of its own to select.
+    onToggleSelect(topCard ? topCard.id : null);
   }
   function closeMenu(){
     setShowMenu(false);
@@ -556,7 +560,16 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
 }
 
 // One row (or the single-slot nature square) of equipped footer cards.
-function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMove, onOpenEnlarge}) {
+// `onDiscard` is optional (the Vision player modal reuses this component
+// read-only for ANY player, not just the current one — see its own
+// onReorder/onSelectForMove no-ops — so it never has anything selected
+// here to discard). When present, a long-press-selected card (selectedId
+// matches) shows a small red ✕ badge floating over its own top-right
+// corner (Gus: "avoir la croix qui s'affiche en haut à droite" — unlike
+// the grid's tile/monster/item controls, a footer card has no grid
+// coordinates to anchor a corner-of-the-cell button to, so the badge sits
+// directly on the card itself instead).
+function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMove, onOpenEnlarge, onDiscard}) {
   const g = useFooterItemGestures(items, onReorder, onSelectForMove);
   return h('div', {ref:g.listElRef, style:{display:'flex', gap:4}},
     g.display.map((it, i) => h('div', {
@@ -565,10 +578,19 @@ function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMov
       onContextMenu: e => g.onItemContextMenu(i, e),
       onClick: () => g.onItemClick(i, it, onOpenEnlarge),
       style:{
-        cursor:'pointer', borderRadius:5, opacity: g.dragIndex === i ? 0.5 : 1,
+        position:'relative', cursor:'pointer', borderRadius:5, opacity: g.dragIndex === i ? 0.5 : 1,
         boxShadow: selectedId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
       }
-    }, h(CardFace, {showBack:false, size, kind})))
+    },
+      h(CardFace, {showBack:false, size, kind}),
+      selectedId === it.id && onDiscard && h('div', {
+        className:'footer-item-discard-btn',
+        onClick: e => { e.stopPropagation(); onDiscard(); },
+        style:{position:'absolute', top:-8, right:-8, width:20, height:20, borderRadius:'50%',
+          background:'rgba(220,60,40,.9)', border:'1px solid rgba(220,60,40,.6)', color:'#fff',
+          display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:11, zIndex:5}
+      }, '✕')
+    ))
   );
 }
 
@@ -738,6 +760,8 @@ export function PlateauPage({onBack}) {
   // visionPeekItem or selects it for the normal move flow.
   const [itemCellPicker, setItemCellPicker] = useState(null); // {clientX, clientY, items, forVision}
   const armedPileIdRef = useRef(null);
+  // See selectFooterItem's own comment.
+  const suppressNextEquipClickRef = useRef(false);
   // handleSingleClick can run from a setTimeout scheduled well before its
   // own execution (the click/double-click debounce below) — by the time it
   // fires, a DIFFERENT click that arrived in between may already have
@@ -1227,23 +1251,54 @@ export function PlateauPage({onBack}) {
     setSelectedMonsterId(null);
   }
 
+  // Whether ANYTHING is currently selected — a tile (not in rotate-only
+  // 'placed' mode, which has its own separate deselect-on-any-tap rule
+  // already), a board/footer item, a défausse card, a player, or a
+  // monster. The single source of truth for "does the next click need to
+  // just cancel instead of doing its own thing" (see guardedBySelection
+  // below and clearCardSelection's own comment for why several controls
+  // need this check explicitly rather than relying on bubbling alone).
+  function hasAnySelection(){
+    return !!(selectedId || selectedMonsterId || (selectedTileId && selectedTileMode !== 'placed')
+      || selectedItemId || selectedDiscardCardId || selectedFooterItem);
+  }
+  // Wraps a click handler so that, if ANYTHING is selected when it fires,
+  // the click ONLY cancels that selection instead of also performing its
+  // own normal action — Gus: "dès que je sélectionne quelque chose et que
+  // je clique à un endroit où il ne peut rien y faire, ça annule juste la
+  // sélection". Used for every control in the header/footer whose own
+  // action has no relationship to card/entity selection at all (PV, dice,
+  // switch player, Vision toggle, Undo/Redo, Reset, a player square, the
+  // add-player button) — piles/défausses are handled separately just below
+  // since THEY do have a legitimate action when the matching type/card is
+  // selected (the Dessus/Dessous menu, the défausse fast-discard), so a
+  // blanket wrap would incorrectly swallow those too.
+  function guardedBySelection(fn){
+    return (...args) => {
+      if (hasAnySelection()) { clearCardSelection(); return; }
+      fn(...args);
+    };
+  }
   // See clearCardSelection's own comment. Piles/défausses/the footer equip
   // zone each stop click propagation as part of their own normal handling
   // (so their action isn't ALSO seen as "click elsewhere" by the header/
   // footer background), which means they never reach clearCardSelection on
   // their own — wrapping the callback PlateauPage hands them is simpler
   // than reaching into PileStack/DiscardSlot/FooterItemRow themselves to
-  // add the same check three times.
-  function cancelEntitySelection(){
-    setSelectedId(null);
-    setSelectedMonsterId(null);
-  }
+  // add the same check three times. Unlike guardedBySelection above, these
+  // two are only ever reached once PileStack/DiscardSlot have ALREADY
+  // determined the current selection does NOT match this specific pile's/
+  // défausse's own type (that check lives in hasSelectedCardOfType/
+  // hasSelectedForDiscardOfType, passed down as hasSelectedCard/
+  // hasSelectedTile) — so ANY selection reaching this point is a mismatch,
+  // hasAnySelection() alone is the right (and sufficient) condition.
   function drawFromPileOrCancelSelection(pileId){
-    if (selectedId || selectedMonsterId) { cancelEntitySelection(); return; }
+    if (hasAnySelection()) { clearCardSelection(); return; }
     drawFromPile(pileId);
   }
   function toggleSelectDiscardCardOrCancelSelection(cardId){
-    if (selectedId || selectedMonsterId) { cancelEntitySelection(); return; }
+    if (hasAnySelection()) { clearCardSelection(); return; }
+    if (!cardId) return; // empty défausse, nothing else selected either — genuinely nothing to do
     toggleSelectDiscardCard(cardId);
   }
 
@@ -1296,6 +1351,14 @@ export function PlateauPage({onBack}) {
     setSelectedDiscardCardId(null);
     setSelectedItemId(null);
     setSelectedMonsterId(null);
+    // A long-press-driven selection here (see useFooterItemGestures) is
+    // still followed by a native trailing 'click' on release, same as the
+    // grid's item long-press (see suppressNextClickRef's own comment) —
+    // without this, the equip zone's own onClickCapture would see the
+    // selection this JUST made (hasAnySelection() now true) and instantly
+    // cancel it again on that same trailing click, before the user ever
+    // gets to see the cross/glow.
+    suppressNextEquipClickRef.current = true;
   }
 
   function openEnlargeFor(playerId, slot, cardId){
@@ -2116,7 +2179,7 @@ export function PlateauPage({onBack}) {
         h('button', {onClick:onBack, style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
         h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
         h('div', {ref:resetAnchorRef, style:{position:'relative'}},
-          h('button', {onClick:()=>setShowReset(!showReset), style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
+          h('button', {onClick:guardedBySelection(()=>setShowReset(!showReset)), style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
           showReset && h(Popup, {
             onClose:()=>setShowReset(false),
             anchorRef:resetAnchorRef,
@@ -2130,7 +2193,7 @@ export function PlateauPage({onBack}) {
             )
           })
         ),
-        h(UndoRedo, {canUndo, canRedo, onUndo:undo, onRedo:redo})
+        h(UndoRedo, {canUndo, canRedo, onUndo:guardedBySelection(undo), onRedo:guardedBySelection(redo)})
       ),
       // Three deck groups side by side — cases, then sorts, then énergies
       // (Gus: "les sorts à droite des cases et les énergies à droite des
@@ -2230,10 +2293,10 @@ export function PlateauPage({onBack}) {
     }},
       players.map((p,i) => h(PlayerSquare, {
         key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
-        onRemove:()=>removePlayer(p.id), onRename:v=>renamePlayer(p.id,v),
-        onOpenInfo:()=>{ setVisionPlayerId(p.id); setVisionPlayerFromSidebar(true); }
+        onRemove:guardedBySelection(()=>removePlayer(p.id)), onRename:v=>renamePlayer(p.id,v),
+        onOpenInfo:guardedBySelection(()=>{ setVisionPlayerId(p.id); setVisionPlayerFromSidebar(true); })
       })),
-      h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:addPlayer}))
+      h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:guardedBySelection(addPlayer)}))
     ),
 
     // RECENTER BUTTON — discreet target icon, top-left of the footer (so
@@ -2729,12 +2792,31 @@ export function PlateauPage({onBack}) {
         onClickCapture: e => {
           const live = liveRef.current;
           if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
-          // A selected player/monster has no valid action in the equip
-          // zone (see cancelEntitySelection's own comment) — capture-phase
-          // intercept, same as the branch above, so this fires BEFORE an
-          // equipped card's own click (which would otherwise open it
-          // enlarged instead of just cancelling the selection).
-          if (live.selectedId || live.selectedMonsterId) { e.stopPropagation(); cancelEntitySelection(); }
+          // The trailing native click right after a footer long-press
+          // selection (see selectFooterItem's own comment) — stopped here
+          // entirely (capture-phase stopPropagation halts the event before
+          // it ever reaches the target, so the item's own onClick never
+          // fires either — its internal suppressClickRef would have made
+          // it a no-op anyway) rather than just skipped: letting it merely
+          // fall through without stopping it would still bubble past this
+          // div to the OUTER footer's own onClick={clearCardSelection},
+          // undoing the selection this click was never supposed to touch.
+          if (suppressNextEquipClickRef.current) { suppressNextEquipClickRef.current = false; e.stopPropagation(); return; }
+          // The discard ✕ badge on a long-press-selected footer card IS a
+          // valid action for that exact selection (unlike everything else
+          // in this zone) — without this, hasAnySelection() below would be
+          // true (because of the very selection whose ✕ is being clicked)
+          // and cancel it before the badge's own onClick ever got to fire.
+          if (e.target.closest('.footer-item-discard-btn')) return;
+          // Any OTHER selection (a tile, a défausse card, a footer item
+          // already selected elsewhere, a player, a monster) has no valid
+          // action in the equip zone either — capture-phase intercept, same
+          // as the branch above, so this fires BEFORE an equipped card's
+          // own click (which would otherwise open it enlarged instead of
+          // just cancelling the selection). Reached the "equip" branch
+          // above only for held/selected ITEMS, so hasAnySelection() here
+          // is checking every OTHER kind.
+          if (hasAnySelection()) { e.stopPropagation(); clearCardSelection(); }
         },
         style:{display:'flex', alignItems:'center', gap:8, padding:'8px 14px 0', justifyContent:'center'}
       },
@@ -2746,7 +2828,8 @@ export function PlateauPage({onBack}) {
             selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='nature' ? selectedFooterItem.cardId : null,
             onReorder:()=>{}, // a single slot never has anything to reorder against
             onSelectForMove:it=>selectFooterItem(current.id, 'nature', it.id),
-            onOpenEnlarge:it=>openEnlargeFor(current.id, 'nature', it.id)
+            onOpenEnlarge:it=>openEnlargeFor(current.id, 'nature', it.id),
+            onDiscard:discardSelectedItem
           })
         ),
         h('div', {style:{display:'flex', flexDirection:'column', gap:FOOTER_SLOT_GAP}},
@@ -2758,7 +2841,8 @@ export function PlateauPage({onBack}) {
               selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='sort' ? selectedFooterItem.cardId : null,
               onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, sorts:next} : p)}),
               onSelectForMove:it=>selectFooterItem(current.id, 'sort', it.id),
-              onOpenEnlarge:it=>openEnlargeFor(current.id, 'sort', it.id)
+              onOpenEnlarge:it=>openEnlargeFor(current.id, 'sort', it.id),
+              onDiscard:discardSelectedItem
             })
           ),
           h('div', {style:{height:FOOTER_ROW_HEIGHT, minWidth:FOOTER_ROW_WIDTH, boxSizing:'border-box',
@@ -2769,32 +2853,38 @@ export function PlateauPage({onBack}) {
               selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='energie' ? selectedFooterItem.cardId : null,
               onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, energies:next} : p)}),
               onSelectForMove:it=>selectFooterItem(current.id, 'energie', it.id),
-              onOpenEnlarge:it=>openEnlargeFor(current.id, 'energie', it.id)
+              onOpenEnlarge:it=>openEnlargeFor(current.id, 'energie', it.id),
+              onDiscard:discardSelectedItem
             })
           )
         )
       ),
 
+      // Every button in this row is game-flow control with no relationship
+      // to card/entity selection (dice, PV, switch player, Vision toggle) —
+      // guardedBySelection makes each one cancel a pending selection
+      // instead of ALSO performing its own action when one exists (Gus's
+      // general rule — see its own comment for the full reasoning).
       h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px'}},
-        h('button', {onClick:()=>switchPlayer(-1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
+        h('button', {onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
 
         h('div', {style:{display:'flex', alignItems:'center', gap:10}},
-          current ? h('button', {onClick:()=>rollDice(current.id), style:{background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`, borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
+          current ? h('button', {onClick:guardedBySelection(()=>rollDice(current.id)), style:{background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`, borderRadius:6, color:'#eee', padding:'6px 12px', fontSize:13}},
             current.dice ? `🎲 ${current.dice}` : '🎲'
           ) : h('button', {disabled:true, style:{background:'rgba(255,255,255,.03)', border:'1px solid #333', borderRadius:6, color:'#444', padding:'6px 12px', fontSize:13}}, '🎲'),
           current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-            h('button', {onClick:()=>updatePv(current.id,-1), style:pvBtnStyle(visionMode)}, '−'),
+            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
             h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
               h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
               h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
             ),
-            h('button', {onClick:()=>updatePv(current.id,1), style:pvBtnStyle(visionMode)}, '+')
-          ) : h('div', {onClick:e=>{ e.stopPropagation(); addPlayer(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+          ) : h('div', {onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
         ),
 
         h('div', {style:{display:'flex', alignItems:'center', gap:8}},
           h('button', {
-            onClick:toggleVisionMode,
+            onClick:guardedBySelection(toggleVisionMode),
             title:'Mode Vision',
             style:{
               background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
@@ -2803,7 +2893,7 @@ export function PlateauPage({onBack}) {
               boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
             }
           }, '👁️'),
-          h('button', {onClick:()=>switchPlayer(1), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
+          h('button', {onClick:guardedBySelection(()=>switchPlayer(1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
         )
       )
     ),
