@@ -277,53 +277,94 @@ sélectionnés en même temps (pas un bug à proprement parler, juste un état j
 comme normal) — source probable de confusion ("je sais plus ce qui est sélectionné").
 
 **Règle globale : cliquer un endroit où la sélection en cours n'a aucune action valide
-l'annule simplement — implémentée pour joueurs/monstres** (Gus : "dès que je sélectionne
-quelque chose et que je clique à un endroit où il ne peut rien y faire, ça annule juste
-la sélection" — signalé après avoir remarqué que sélectionner un joueur/monstre puis
-cliquer une pioche la piochait quand même, ou cliquer une carte du footer l'agrandissait,
-au lieu de simplement désélectionner). Un joueur/monstre sélectionné n'a QUE deux actions
-valides : le déplacer (tap sur la grille) ou le désélectionner (retap la même case) — tout
-le reste (pioches, défausses, zone d'équipement du pied de page) est un "cul-de-sac" pour
-cette sélection. Pour les tuiles/items ("pour item et cartes map c'est bon"), ce
-comportement existait déjà via `clearCardSelection` (câblée sur le clic de fond du
-header/pied de page) — mais les pioches/défausses/items du footer font toutes
-`e.stopPropagation()` dans le cadre de leur propre gestion de clic, donc un clic dessus
-ne remonte jamais jusqu'à ce handler de "fond" : il fallait un check explicite à CHACUN
-de ces points d'entrée plutôt qu'un seul point central.
-- **`clearCardSelection`** — désélectionne maintenant aussi `selectedId`/
-  `selectedMonsterId` en plus des sélections de carte déjà gérées, donc cliquer le fond
-  du header/pied de page (l'unique cas qui remonte bien jusque-là) désélectionne
-  correctement un joueur/monstre ("je peux pas déselectionner en cliquant dans le vide",
-  maintenant corrigé).
-- **Pioches** : `drawFromPileOrCancelSelection`/`toggleSelectDiscardCardOrCancelSelection`
-  enveloppent `drawFromPile`/`toggleSelectDiscardCard` — si un joueur/monstre est
-  sélectionné, elles annulent la sélection (`cancelEntitySelection`) au lieu de
-  piocher/sélectionner la carte du dessus de la défausse. Passées comme `onDraw`/
-  `onToggleSelect` aux 4 `PileGroup` à la place des fonctions nues — aucun changement
-  dans `PileStack`/`DiscardSlot` eux-mêmes, ils ignorent toujours l'existence des
-  joueurs/monstres.
-  - **Piège rencontré** : la pioche MONSTRE spécifiquement continuait de piocher malgré
-    l'enveloppe ci-dessus. Cause : `hasSelectedCardOfType('monstre')` (qui pilote le menu
-    Dessus/Dessous d'une pioche) renvoyait `true` dès que `selectedMonsterId` était posé —
-    hérité d'une session précédente qui avait généralisé "insérer une carte sélectionnée
-    dans une pioche" à `selectedMonsterId` par souci de symétrie avec tuiles/items.
-    `PileStack.handleClick` vérifie `hasSelectedCard` AVANT d'appeler `onDraw`, donc le
-    menu s'ouvrait et absorbait le clic avant que l'enveloppe ne s'exécute jamais. Fix :
-    `hasSelectedCardOfType('monstre')` ne regarde plus que `discardSelType === 'monstre'`
-    (une carte monstre sélectionnée DANS la défausse, un état différent qui reste
-    légitime pour ce menu) — un monstre sélectionné SUR LE PLATEAU (`selectedMonsterId`)
-    n'y donne plus accès du tout, cohérent avec le fait qu'un joueur sélectionné n'a
-    jamais eu cette possibilité non plus. La branche `insertSelectedCardIntoPile`
-    correspondante (devenue inatteignable) a été supprimée plutôt que laissée en code
-    mort. `hasSelectedForDiscardOfType('monstre')` (un besoin différent : la défausse
-    monstre elle-même, quand on clique dessus AVEC un monstre sélectionné, doit le
-    défausser directement — flux de combat documenté plus haut) garde volontairement son
-    check `!!selectedMonsterId` intact : ce chemin s'exécute avant même d'atteindre
-    l'enveloppe `onToggleSelect`, donc aucun conflit avec la nouvelle règle.
-- **Zone d'équipement du pied de page** : `onClickCapture` (déjà utilisée pour équiper
-  une carte tenue/sélectionnée avant que le clic n'atteigne une carte déjà équipée)
-  intercepte maintenant aussi ce cas — un joueur/monstre sélectionné + un clic n'importe
-  où dans cette zone annule la sélection au lieu de laisser la carte cliquée s'agrandir.
+l'annule simplement — généralisée à TOUTE sélection (tuile/item/défausse/footer/joueur/
+monstre) et TOUT contrôle du header/pied de page** (Gus : "dès que je sélectionne quelque
+chose et que je clique à un endroit où il ne peut rien y faire, ça annule juste la
+sélection" — un premier passage n'avait couvert que joueurs/monstres + pioches/défausses ;
+Gus a ensuite signalé que ça manquait encore pour tuiles/items sur les pioches/défausses,
+pour n'importe quelle sélection sur un carré joueur, et pour n'importe quelle sélection sur
++cœur/dé/œil/undo/redo/reset). Une sélection (quelle qu'elle soit) n'a que deux actions
+valides : agir sur la grille (déplacer/poser) ou se re-taper pour se désélectionner — tout
+le reste (pioches, défausses, zone d'équipement du pied de page, carrés joueurs, dé, PV,
+mode Vision, Undo/Redo, Reset, bouton `+`) est un "cul-de-sac" pour elle.
+- **`hasAnySelection()`** — unique source de vérité : vrai si `selectedId`,
+  `selectedMonsterId`, `selectedTileId` (hors mode `'placed'`, qui garde sa propre règle
+  de désélection-au-moindre-tap déjà en place), `selectedItemId`, `selectedDiscardCardId`
+  ou `selectedFooterItem` est posé.
+- **`guardedBySelection(fn)`** — enveloppe un handler de clic : si `hasAnySelection()`,
+  annule via `clearCardSelection()` au lieu d'appeler `fn`. Câblée sur tout ce qui n'a
+  structurellement AUCUN rapport avec une sélection de carte/entité : `+`/`−` de PV, dé,
+  `‹`/`›` de joueur courant, bouton Mode Vision, Undo, Redo, bouton Reset (juste l'ouverture
+  de sa popup de confirmation — cliquer Oui/Non n'est de toute façon plus atteignable une
+  fois cette popup bloquée par une sélection active), `onOpenInfo`/`onRemove` d'un carré
+  joueur, bouton `+`/lien "Ajoute un joueur". Pas utilisée pour les pioches/défausses
+  (elles, ont une action légitime quand la sélection correspond à leur propre type — un
+  wrap générique les aurait cassées, voir plus bas).
+- **`clearCardSelection`** — désélectionne aussi `selectedId`/`selectedMonsterId` en plus
+  des sélections de carte, donc cliquer le fond du header/pied de page (l'unique cas qui
+  remonte naturellement jusque-là par bulle) désélectionne correctement un joueur/monstre
+  ("je peux pas déselectionner en cliquant dans le vide", corrigé).
+- **Pioches/défausses** : `drawFromPileOrCancelSelection`/`toggleSelectDiscardCardOrCancelSelection`
+  enveloppent `drawFromPile`/`toggleSelectDiscardCard` — si `hasAnySelection()` (n'importe
+  quel type, pas seulement joueur/monstre), elles annulent au lieu de piocher/sélectionner.
+  Passées comme `onDraw`/`onToggleSelect` aux 4 `PileGroup` à la place des fonctions nues —
+  aucun changement dans `PileStack`/`DiscardSlot` eux-mêmes. Ces deux fonctions ne sont
+  atteintes QUE quand `PileStack`/`DiscardSlot` ont déjà vérifié que la sélection en cours
+  NE correspond PAS au type de cette pioche/défausse précise (`hasSelectedCard`/
+  `hasSelectedTile`, calculés par type) — donc toute sélection qui arrive jusque-là est
+  par définition un type différent, `hasAnySelection()` seul suffit comme condition.
+  - **Piège rencontré (défausse vide)** : une défausse VIDE ne relayait jamais le clic à
+    `onToggleSelect` du tout (`if (topCard) onToggleSelect(topCard.id)` — rien à faire s'il
+    n'y a pas de carte du dessus), donc une sélection non-correspondante ne se faisait
+    jamais annuler en cliquant une défausse vide. Fix : appel systématique,
+    `onToggleSelect(topCard ? topCard.id : null)` — `toggleSelectDiscardCardOrCancelSelection`
+    traite `cardId` nul comme "rien à faire" SEULEMENT si `hasAnySelection()` est déjà faux.
+  - **Piège rencontré (pioche monstre)** : continuait de piocher malgré l'enveloppe.
+    Cause : `hasSelectedCardOfType('monstre')` (pilote le menu Dessus/Dessous) renvoyait
+    `true` dès que `selectedMonsterId` était posé — hérité d'une session précédente qui
+    avait généralisé "insérer une carte sélectionnée dans une pioche" à `selectedMonsterId`
+    par souci de symétrie avec tuiles/items. `PileStack.handleClick` vérifie `hasSelectedCard`
+    AVANT d'appeler `onDraw`, donc le menu absorbait le clic avant que l'enveloppe ne
+    s'exécute jamais. Fix : `hasSelectedCardOfType('monstre')` ne regarde plus que
+    `discardSelType === 'monstre'` (une carte monstre sélectionnée DANS la défausse, un état
+    différent qui reste légitime pour ce menu) — un monstre sélectionné SUR LE PLATEAU
+    (`selectedMonsterId`) n'y donne plus accès du tout, cohérent avec le fait qu'un joueur
+    sélectionné n'a jamais eu cette possibilité non plus. La branche `insertSelectedCardIntoPile`
+    correspondante (devenue inatteignable) a été supprimée plutôt que laissée en code mort.
+    `hasSelectedForDiscardOfType('monstre')` (besoin différent : la défausse monstre
+    elle-même, cliquée AVEC un monstre sélectionné, doit le défausser directement — flux de
+    combat documenté plus haut) garde volontairement son check `!!selectedMonsterId` intact :
+    ce chemin s'exécute avant même d'atteindre `onToggleSelect`, aucun conflit.
+- **Zone d'équipement du pied de page** : `onClickCapture` (déjà utilisée pour équiper une
+  carte tenue/sélectionnée avant que le clic n'atteigne une carte déjà équipée) intercepte
+  maintenant `hasAnySelection()` en général (pas seulement joueur/monstre) — n'importe
+  quelle sélection + un clic dans cette zone annule au lieu de laisser la carte cliquée
+  s'agrandir.
+  - **Piège rencontré (la sélection d'un item du footer s'annulait elle-même
+    instantanément)** : sélectionner un item du footer par appui long (voir plus bas) puis
+    cliquer ailleurs DEVAIT annuler cette sélection comme tout le reste — mais la sélectionner
+    elle-même ne fonctionnait plus du tout une fois ce check ajouté : `selectFooterItem`
+    posait bien `selectedFooterItem`, mais le clic natif qui suit TOUJOURS le relâchement
+    d'un appui long (même mécanisme que `suppressNextClickRef` sur la grille, voir sa propre
+    note) remontait jusqu'à CE MÊME `onClickCapture`, qui voyait `hasAnySelection()`
+    maintenant vrai (à cause de la sélection tout juste posée par ce geste) et l'annulait
+    aussitôt. Fix : `suppressNextEquipClickRef`, posé par `selectFooterItem` au moment même
+    de la sélection, consommé par CE clic suivant précis dans la zone d'équipement (`if
+    (suppressNextEquipClickRef.current) { ...; e.stopPropagation(); return; }`, AVANT le
+    check `hasAnySelection()`) — le `stopPropagation()` est nécessaire ici (pas juste un
+    `return`) : sans lui, le clic continue de remonter en bulle jusqu'au `onClick`
+    du pied de page LUI-MÊME (`clearCardSelection`), qui annule quand même la sélection une
+    bulle plus loin.
+  - **Piège rencontré (le bouton croix de désélection s'annulait lui-même)** : une fois le
+    piège ci-dessus réglé, cliquer la croix ✕ (voir plus bas) échouait encore — cette fois
+    parce que `hasAnySelection()` est VRAI au moment même où on clique CETTE croix
+    (puisqu'elle n'existe que pour une sélection active), donc le check générique
+    l'annulait avant que son propre `onClick` (`onDiscard`) n'ait la moindre chance de
+    s'exécuter — la phase de capture s'exécute AVANT que l'événement n'atteigne sa cible
+    réelle. Fix : la croix porte une `className:'footer-item-discard-btn'`, vérifiée en
+    premier dans `onClickCapture` (`if (e.target.closest('.footer-item-discard-btn'))
+    return;`) — seule exception explicite à la règle générale dans cette zone, puisque
+    c'est la SEULE action valide pour une sélection de footer item.
 
 **Bug corrigé (un tap sur une case au hasard puis un tap rapide sur une case DIFFÉRENTE
 avec une tuile sélectionnait quand même la tuile)** : Gus a remarqué qu'un simple clic
@@ -926,6 +967,18 @@ n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
   joueur jusqu'à un tap ailleurs (case du plateau, pioche/défausse assortie) qui le
   déplace réellement. `removeFooterItem()` centralise le retrait (nature/sorts/
   énergies) pour `insertSelectedCardIntoPile`/`discardSelectedItem`/le tap sur la grille.
+  **Croix de défausse directe sur la carte sélectionnée** (Gus, en écho aux boutons
+  œil/croix du plateau pour monstres/items : "avoir la croix qui s'affiche en haut à
+  droite, et la croix permet de défausser l'item") : `FooterItemRow` accepte un `onDiscard`
+  optionnel — quand la carte de CETTE ligne est celle sélectionnée (`selectedId===it.id`),
+  un petit badge ✕ rouge flotte sur son coin haut-droit (`position:absolute`, pas de
+  coordonnées de grille disponibles ici contrairement au plateau, donc calé directement sur
+  la carte elle-même plutôt que sur un coin de case). Câblé sur les 3 lignes du pied de page
+  du joueur COURANT (nature/sorts/énergies) vers `discardSelectedItem` (déjà existante,
+  gère `selectedFooterItem` nativement) — pas sur les lignes de la fenêtre Vision joueur
+  (`onSelectForMove` y est un no-op, cette fenêtre est purement consultable, jamais rien
+  n'y est sélectionnable pour commencer). Pièges de mise en place documentés juste au-dessus
+  (règle globale de désélection).
 - **Supprimer un joueur envoie ses cartes équipées dans les défausses assorties**
   (nature + sorts → défausse sort, énergies → défausse énergie) plutôt que de les faire
   disparaître avec lui — Gus : "ce serait bien que les items aillent dans les défausses
