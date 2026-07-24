@@ -800,13 +800,13 @@
       "nom": "Case Fontaine",
       "statut": "Validé",
       "effet": "Restaure tous les PV quand on finit son tour dessus.",
-      "quantite": 2,
+      "quantite": 11,
       "notes": "",
       "details": [
         {
           "id": "tkohgby9bri",
           "fichier": "Case_Fontaine_T.png",
-          "quantite": 1
+          "quantite": 10
         },
         {
           "id": "i8rbsv9szsj",
