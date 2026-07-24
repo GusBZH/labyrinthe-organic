@@ -778,10 +778,14 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
     }
     if (next !== overRef.current) { overRef.current = next; setOverIndex(next); }
   }
-  function onUp(){
+  function cleanupListeners(){
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
     clearTimeout(pressTimerRef.current);
+  }
+  function onUp(){
+    cleanupListeners();
     if (firedRef.current) {
       suppressClickRef.current = true; // the click that follows this release shouldn't also open the enlarge window
       const from = dragRef.current, to = overRef.current;
@@ -799,6 +803,21 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
     firedRef.current = false;
     startRef.current = null;
   }
+  // A `pointercancel` (the browser deciding mid-gesture that this is
+  // actually a scroll, not a drag — e.g. the row's own `overflowX:'auto'`
+  // taking over) used to be left completely unhandled: only 'pointerup' was
+  // listened for, so the drag stayed armed forever with no release event
+  // ever arriving — Gus: "ça rend grisé l'item mais c'est tout", exactly
+  // this stuck state. Unlike onUp, this does NOT commit a reorder (the
+  // tracked position may be stale by the time the browser interrupts it) —
+  // just cleanly resets back to nothing armed/held.
+  function onCancel(){
+    cleanupListeners();
+    dragRef.current = null; overRef.current = null;
+    setDragIndex(null); setOverIndex(null);
+    firedRef.current = false;
+    startRef.current = null;
+  }
   function onItemPointerDown(index, e){
     if (e.pointerType === 'mouse' && e.button === 2) return; // right-click: onItemContextMenu handles it instead
     startRef.current = {x:e.clientX, y:e.clientY, index};
@@ -807,6 +826,7 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
     pressTimerRef.current = setTimeout(() => armHold(index), 500);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
   }
   function onItemContextMenu(index, e){
     e.preventDefault();
@@ -847,7 +867,15 @@ function FooterItemRow({items, kind, size, catalog, selectedId, onReorder, onSel
       onClick: () => g.onItemClick(i, it, onOpenEnlarge),
       style:{
         position:'relative', cursor:'pointer', borderRadius:5, opacity: g.dragIndex === i ? 0.5 : 1,
-        boxShadow: selectedId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
+        boxShadow: selectedId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none',
+        // Without this, the row's own overflowX:'auto' (a safety net for
+        // when more than ~3 cards are equipped) can grab a touch gesture
+        // that started on a card as a native horizontal scroll instead of
+        // handing it to our own pointer-based drag — the browser then fires
+        // `pointercancel` mid-gesture (see useFooterItemGestures' onCancel)
+        // and the drag dies silently. Cards are meant to be dragged, not
+        // scrolled, so this is the right tradeoff.
+        touchAction:'none'
       }
     },
       h(CardFace, {showBack:false, size, kind, data: catalog && catalog[it.id]}),
@@ -1031,11 +1059,16 @@ export function PlateauPage({onBack, data}) {
   const [visionMode, setVisionMode] = useState(false);
   const [cellPicker, setCellPicker] = useState(null); // {clientX, clientY, ids:[...], forVision}
   const [visionPlayerId, setVisionPlayerId] = useState(null);
-  // Whether the currently-open player detail window was opened from the
-  // sidebar's row of squares (‹/› cycles through `players` in that same
-  // order) or from tapping a token on the grid in Vision mode (no ‹/› —
-  // "en mode vision et qu'on clique sur un joueur pas besoin de <>").
-  const [visionPlayerFromSidebar, setVisionPlayerFromSidebar] = useState(false);
+  // Which ids the player detail window's ‹/› cycle through — null means no
+  // arrows at all. Opened from the sidebar: every player, in that same
+  // order. Opened by tapping a lone token directly on the grid in Vision
+  // mode: null (a one-off inspection, "en mode vision et qu'on clique sur
+  // un joueur pas besoin de <>" — no ambiguity to browse away from). Opened
+  // from the multi-entity cellPicker (several players sharing a cell, with
+  // or without a monster/marker also there): just THOSE players' ids (Gus:
+  // "ça peut être cool les <> si plusieurs joueurs même case") — a scoped
+  // browse, not the whole player list.
+  const [visionPlayerCycleIds, setVisionPlayerCycleIds] = useState(null);
   const [piles, setPiles] = useState(() => {
     if (saved?.piles) return saved.piles;
     const fresh = makeInitialPiles(data);
@@ -1364,6 +1397,38 @@ export function PlateauPage({onBack, data}) {
     return () => vp.removeEventListener('wheel', onWheel);
   });
 
+  // iPhone/Safari pinch-zoom still glitching after `user-scalable=no` on
+  // the viewport meta (index.html) — that fix turned out to likely be a
+  // dead end: iOS Safari has ignored `user-scalable=no`/`maximum-scale`
+  // for the page's own native pinch-zoom since iOS 10 (an explicit
+  // accessibility decision by Apple — users must always be able to zoom),
+  // so it probably never suppressed anything here. Safari's native pinch
+  // gesture isn't driven by touch events at all, though — it fires its own
+  // proprietary `gesturestart`/`gesturechange`/`gestureend` events (no
+  // standard equivalent, `touch-action` has no effect on them either),
+  // completely independently of the Pointer Events this component already
+  // uses for its own JS-driven pinch (pointersRef/pinchRef above). Calling
+  // `preventDefault()` on all three is the documented way to stop Safari's
+  // native pinch from ever engaging, leaving the page's own zoom the only
+  // one reacting to a 2-finger gesture. Scoped to the grid viewport only
+  // (not the whole document) so pinching over the header/footer/popups is
+  // unaffected. Still unverified on a real device (no WebKit build
+  // available to test with here) — Safari-only events are simply absent
+  // (never fire) on every other browser, so this is a no-op elsewhere.
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const prevent = e => e.preventDefault();
+    vp.addEventListener('gesturestart', prevent);
+    vp.addEventListener('gesturechange', prevent);
+    vp.addEventListener('gestureend', prevent);
+    return () => {
+      vp.removeEventListener('gesturestart', prevent);
+      vp.removeEventListener('gesturechange', prevent);
+      vp.removeEventListener('gestureend', prevent);
+    };
+  }, []);
+
   // Snapshots the board's full persisted state (players + piles + défausse
   // + placed tiles + whatever's currently held from a pile) as ONE combined
   // history entry, then applies `updates` (any subset of those five keys).
@@ -1556,11 +1621,19 @@ export function PlateauPage({onBack, data}) {
   }
 
   // Item equivalent of discardSelectedTile: sends whichever item is
-  // currently selected — picked up from the board (selectedItemId) or from
-  // a player's own footer slots (selectedFooterItem) — to its matching
-  // défausse. Whichever DiscardSlot this got wired to already only calls it
-  // when its own type matches the selection (see hasSelectedForType below),
-  // so no type check is needed here.
+  // currently selected — picked up from the board (selectedItemId) goes to
+  // its matching défausse; unequipped from a player's own footer slots
+  // (selectedFooterItem) drops onto that PLAYER'S OWN CURRENT CELL instead
+  // (Gus: "au lieu d'aller à la défausse, ça aille plutôt sur la case qui
+  // correspond au footer sur lequel on est" — the player themself drops the
+  // item where they stand, rather than it vanishing into a shared deck).
+  // Deliberately NOT the same for removePlayer (a whole player being
+  // deleted still sends their equipment to the défausses, unchanged, per
+  // Gus's own clarification — "si on delete un joueur... ça va quand même
+  // à la défausse") — only this single-item unequip path changes. Whichever
+  // DiscardSlot this got wired to already only calls it when its own type
+  // matches the selection (see hasSelectedForType below), so no type check
+  // is needed here.
   function discardSelectedItem(){
     const live = liveRef.current;
     if (live.selectedItemId) {
@@ -1575,9 +1648,10 @@ export function PlateauPage({onBack, data}) {
     }
     if (live.selectedFooterItem) {
       const sel = live.selectedFooterItem;
+      const player = live.players.find(p => p.id === sel.playerId);
       commitBoard({
         players: removeFooterItem(live.players, sel),
-        discardCards: [...live.discardCards, {id:sel.cardId, type: sel.slot === 'energie' ? 'energie' : 'sort'}]
+        boardItems: [...live.boardItems, {id:sel.cardId, type: sel.slot === 'energie' ? 'energie' : 'sort', row:player.row, col:player.col}]
       });
       setSelectedFooterItem(null);
     }
@@ -1863,16 +1937,15 @@ export function PlateauPage({onBack, data}) {
     });
   }
 
-  // ‹/› in the player detail window — ONLY shown when it was opened from
-  // the sidebar (visionPlayerFromSidebar), cycles through `players` in the
-  // same order they appear there. A token clicked in Vision mode is a
-  // one-off inspection, not a browse, so it deliberately gets none of this.
+  // ‹/› in the player detail window — see visionPlayerCycleIds' own comment
+  // for which ids it cycles through depending on how the window was opened.
   function shiftVisionPlayer(delta){
     setVisionPlayerId(prev => {
-      if (!prev || players.length === 0) return prev;
-      const idx = players.findIndex(p => p.id === prev);
+      const ids = visionPlayerCycleIds;
+      if (!prev || !ids || ids.length === 0) return prev;
+      const idx = ids.indexOf(prev);
       if (idx === -1) return prev;
-      return players[(idx + delta + players.length) % players.length].id;
+      return ids[(idx + delta + ids.length) % ids.length];
     });
   }
 
@@ -1913,7 +1986,7 @@ export function PlateauPage({onBack, data}) {
       // opens directly (with ‹/› if several monsters share it) rather than
       // going through the picker first.
       if (herePlayers.length === 0) { setEnlargedMonster({monsterIds:hereMonsters.map(m=>m.id), index:0}); return; }
-      if (herePlayers.length === 1 && hereMonsters.length === 0) { setVisionPlayerId(herePlayers[0].id); setVisionPlayerFromSidebar(false); return; }
+      if (herePlayers.length === 1 && hereMonsters.length === 0) { setVisionPlayerId(herePlayers[0].id); setVisionPlayerCycleIds(null); return; }
       // Several players, or players mixed with monsters: disambiguate via
       // the same two-column picker the normal (non-Vision) flow uses.
       // Markers are deliberately never gathered here — Vision mode stays
@@ -2908,7 +2981,7 @@ export function PlateauPage({onBack, data}) {
       players.map((p,i) => h(PlayerSquare, {
         key:p.id, player:p, isCurrent:i===currentIndex, size:squareSize,
         onRemove:guardedBySelection(()=>removePlayer(p.id)), onRename:v=>renamePlayer(p.id,v),
-        onOpenInfo:guardedBySelection(()=>{ setVisionPlayerId(p.id); setVisionPlayerFromSidebar(true); })
+        onOpenInfo:guardedBySelection(()=>{ setVisionPlayerId(p.id); setVisionPlayerCycleIds(players.map(pl=>pl.id)); })
       })),
       h('div', {style:{width:squareSize, pointerEvents:'auto'}}, h(AddBtn, {onClick:guardedBySelection(addPlayer)}))
     ),
@@ -3157,7 +3230,10 @@ export function PlateauPage({onBack, data}) {
               const p = players.find(pl => pl.id === id);
               return {
                 label:p.nom, dot:p.couleur,
-                onClick:() => { if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerFromSidebar(false); } else setSelectedId(id); }
+                onClick:() => {
+                  if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerCycleIds(cellPicker.playerIds.length > 1 ? cellPicker.playerIds : null); }
+                  else setSelectedId(id);
+                }
               };
             })
           })
@@ -3171,7 +3247,18 @@ export function PlateauPage({onBack, data}) {
                   const p = players.find(pl => pl.id === id);
                   return h('div', {
                     key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
-                    onClick:() => { setSelectedId(id); setCellPicker(null); }
+                    // Bug: this branch (2/3-column, taken as soon as a
+                    // monster or marker shares the cell) never checked
+                    // `forVision` at all, unlike the single-column branch
+                    // above it — always ran the normal-mode `setSelectedId`
+                    // regardless, so picking a player here in Vision mode
+                    // never opened their info window (Gus: "uniquement
+                    // quand y a un monstre aussi", exactly this branch).
+                    onClick:() => {
+                      if (cellPicker.forVision) { setVisionPlayerId(id); setVisionPlayerCycleIds(cellPicker.playerIds.length > 1 ? cellPicker.playerIds : null); }
+                      else setSelectedId(id);
+                      setCellPicker(null);
+                    }
                   }, h('div', {style:{width:8,height:8,borderRadius:'50%',background:p.couleur}}), p.nom);
                 })
               ),
@@ -3340,10 +3427,9 @@ export function PlateauPage({onBack, data}) {
     // big window. Layout: name + PV heart on the LEFT, the player's
     // equipped cards on the RIGHT laid out the same way as the footer
     // (nature slot + long sorts/énergies rows) — each card opens the same
-    // enlarge/carousel window as tapping it in the footer. `visionPlayerFromSidebar`
-    // gates the ‹/› row at the bottom: only the sidebar entry point cycles
-    // between players (in sidebar order), a Vision-mode tap is a one-off
-    // inspection with nothing to browse.
+    // enlarge/carousel window as tapping it in the footer. `visionPlayerCycleIds`
+    // gates the ‹/› row at the bottom — see its own declaration for exactly
+    // which ids it holds depending on how this window was opened.
     visionPlayerId && (() => {
       const p = players.find(pl => pl.id === visionPlayerId);
       if (!p) return null;
@@ -3417,7 +3503,7 @@ export function PlateauPage({onBack, data}) {
                     )
                   )
                 ),
-              visionPlayerFromSidebar && players.length > 1 && h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:18}},
+              visionPlayerCycleIds && visionPlayerCycleIds.length > 1 && h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:18}},
                 h('button', {onClick:()=>shiftVisionPlayer(-1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '‹'),
                 h('button', {onClick:()=>shiftVisionPlayer(1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '›')
               )

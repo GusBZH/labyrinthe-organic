@@ -153,14 +153,15 @@ confirmés comme résolus sur un vrai iPhone**. À valider par Gus, à revenir d
 signale que ça persiste.
 - **Zoom glitché/saccadé, "comme au tout début"** (référence au bug de rebond de scroll
   déjà corrigé une fois via `useLayoutEffect`, voir plus bas dans "Pan et zoom" — celui-là
-  reste inchangé, aucune preuve qu'il soit revenu). Hypothèse retenue : le pincement est
-  géré entièrement en JS (Pointer Events, voir "Pan et zoom"), et `touchAction:'pan-x
-  pan-y'` sur le viewport de la grille est censé empêcher le navigateur de zoomer
-  nativement par-dessus — mais Safari iOS est connu pour laisser son propre geste de zoom
-  natif s'activer quand même tant que `user-scalable=no` n'est pas aussi posé sur la
-  meta viewport, les deux zooms (natif + JS) se battant alors pour la même valeur, ce qui
-  donnerait exactement ce genre de mouvement saccadé. Fix : `user-scalable=no` ajouté à
-  la meta viewport (`index.html`).
+  reste inchangé, aucune preuve qu'il soit revenu). **Premier correctif (`user-scalable=
+  no` sur la meta viewport) confirmé insuffisant par Gus après test réel** — persiste
+  malgré ça. Hypothèse corrigée : `user-scalable=no`/`maximum-scale` sont ignorés par
+  Safari iOS pour SON PROPRE zoom natif depuis iOS 10 (choix d'accessibilité délibéré
+  d'Apple), donc ce premier correctif n'a probablement jamais eu d'effet. Le zoom natif
+  de Safari est piloté par ses évènements propriétaires `gesturestart`/`gesturechange`/
+  `gestureend` (indépendants des Pointer Events, `touch-action` n'a aucun effet dessus)
+  — nouveau fix : `preventDefault()` sur ces 3 évènements, posé sur le viewport de la
+  grille (voir "Pan et zoom" pour le détail). Toujours non vérifié sur un vrai appareil.
 - **Impossible de sélectionner un joueur/monstre au sein du picker multi-entités en mode
   Vision** — **régression confirmée par Gus, causée par un correctif précédent de cette
   même section** ("depuis ta modif par rapport à l'iPhone, je peux plus afficher la
@@ -902,6 +903,67 @@ sous le nom `heldCardId`.
   bouger (→ sélectionner pour déplacer) restent inchangés, seul le cas "bouge presque
   tout de suite" change de comportement (annulé silencieusement avant → arme le glisser
   maintenant).
+
+#### Deuxième passage de retouches (même session)
+- **Bug corrigé (fenêtre d'infos joueur en mode Vision inatteignable, uniquement quand
+  un monstre partage la case)** : Gus a précisé le symptôme signalé la fois précédente —
+  ça marchait pour plusieurs joueurs SEULS sur une case, mais cassait dès qu'un monstre
+  (donc le picker à 2 colonnes) s'ajoutait. Cause trouvée : le `onClick` de la colonne
+  joueurs, dans la branche 2/3-colonnes de `cellPicker` (déclenchée dès qu'un monstre ou
+  marqueur partage la case), ne vérifiait JAMAIS `cellPicker.forVision` — contrairement
+  à la branche à une seule colonne (joueurs seuls) juste au-dessus, qui le faisait déjà
+  correctement. Il appelait donc toujours `setSelectedId` (mode normal), jamais
+  `setVisionPlayerId` (mode Vision). Fix : même garde `if (cellPicker.forVision) {...}
+  else setSelectedId(id)` ajoutée à cette branche aussi.
+- **`‹`/`›` ajoutés dans la fenêtre d'infos joueur pour parcourir les joueurs de LA MÊME
+  CASE** (Gus : "ça peut être cool les <> si plusieurs joueurs même case") — remplace
+  l'ancien booléen `visionPlayerFromSidebar` par `visionPlayerCycleIds` (tableau d'ids à
+  parcourir, ou `null` = pas de flèches) : `null` pour un tap direct sur un jeton seul en
+  mode Vision (aucune ambiguïté, "pas besoin de <>") ; tous les joueurs (ordre sidebar)
+  pour une ouverture depuis la colonne latérale ; désormais aussi `cellPicker.playerIds`
+  (juste les colocataires de la case, pas tous les joueurs de la partie) pour une
+  ouverture depuis le picker multi-entités, qu'il soit à une ou plusieurs colonnes.
+  `shiftVisionPlayer` parcourt maintenant cette liste au lieu de toujours `players`.
+- **Réordonnancement des items du pied de page : la correction précédente ("armer au
+  moindre mouvement") ne suffisait pas** — Gus : "ça rend grisé l'item mais c'est tout".
+  Cause différente cette fois : la ligne d'items équipés garde `overflowX:'auto'` en
+  filet de sécurité (au cas où plus de ~3 cartes) — un glisser démarré SUR une carte peut
+  se faire happer par ce scroll natif à mi-geste, et le navigateur envoie alors un
+  `pointercancel` plutôt qu'un `pointerup` normal. Seul `pointerup` était écouté : un
+  `pointercancel` laissait `dragIndex` bloqué indéfiniment (carte grisée à vie, plus
+  aucun `pointerup` à venir pour le libérer). Fix à deux niveaux : `touchAction:'none'`
+  posé sur chaque carte équipée (empêche le navigateur de RECONNAÎTRE ce geste comme un
+  scroll dès le départ, plutôt que corriger après coup) + un vrai gestionnaire
+  `pointercancel` (`onCancel`, séparé de `onUp` — ne valide PAS de réordonnancement,
+  la position suivie pourrait être périmée au moment où le navigateur interrompt,
+  contrairement à un relâchement normal) qui réinitialise proprement l'état au lieu de
+  rester bloqué.
+- **Zoom iPhone toujours saccadé malgré `user-scalable=no`** — hypothèse probablement
+  fausse depuis le début : Safari iOS **ignore `user-scalable=no`/`maximum-scale` pour
+  son propre zoom natif depuis iOS 10**, choix d'accessibilité délibéré d'Apple (l'utilisateur
+  doit toujours pouvoir zoomer) — donc ce correctif n'a probablement jamais rien empêché.
+  Le zoom natif de Safari n'est de toute façon pas piloté par les évènements tactiles
+  standards mais par ses propres évènements propriétaires `gesturestart`/`gesturechange`/
+  `gestureend` (aucun équivalent standard, `touch-action` n'a aucun effet dessus) —
+  totalement indépendants des Pointer Events déjà utilisés ici pour le pincement JS
+  maison (`pointersRef`/`pinchRef`). Nouveau fix : `preventDefault()` sur ces 3
+  évènements, posé sur le viewport de la grille uniquement (pas tout le document, pour
+  ne pas gêner un pincement au-dessus du header/pied de page/popups) — méthode
+  documentée pour désactiver le pincement natif de Safari et laisser le zoom JS de
+  l'appli seul aux commandes. Ces évènements n'existant que sous Safari, ce fix est un
+  no-op silencieux sur tous les autres navigateurs. Toujours **non vérifié sur un vrai
+  appareil** (aucun WebKit disponible dans cet environnement) — à confirmer par Gus.
+- **Retirer un item du pied de page va maintenant sur la case du joueur, pas la
+  défausse** (Gus : "au lieu d'aller à la défausse, ça aille plutôt sur la case qui
+  correspond au footer sur lequel on est") — `discardSelectedItem`, branche
+  `selectedFooterItem` : au lieu d'ajouter la carte à `discardCards`, elle rejoint
+  `boardItems` aux coordonnées `row`/`col` actuelles du joueur concerné (`sel.playerId`).
+  Ne concerne QUE ce chemin précis (déséquiper un item déjà porté par un joueur) —
+  délibérément inchangé pour `removePlayer` (supprimer un joueur entier envoie toujours
+  son équipement dans les défausses, Gus l'a explicitement confirmé : "si on delete un
+  joueur depuis les carrés de la barre verticale, là ça va quand même à la défausse") ni
+  pour `selectedItemId` (un item déjà posé sur le plateau, défaussé depuis la grille,
+  continue d'aller en défausse comme avant).
 
 ### Cases de départ + marqueurs + extension du header — implémenté (dernier ajout, "on a fini la version locale !")
 Dernière couche avant la fin de la version locale hotseat : un petit bouton `+`/`−` en
