@@ -162,17 +162,32 @@ signale que ça persiste.
   donnerait exactement ce genre de mouvement saccadé. Fix : `user-scalable=no` ajouté à
   la meta viewport (`index.html`).
 - **Impossible de sélectionner un joueur/monstre au sein du picker multi-entités en mode
-  Vision** — aucune preuve d'un bug de LOGIQUE (`cellPicker`/`handleSingleClick` déjà
-  vérifiés fonctionnels sur Chromium, y compris pour ce picker précis) : rattaché à la
-  cause suivante plutôt qu'à un bug séparé.
+  Vision** — **régression confirmée par Gus, causée par un correctif précédent de cette
+  même section** ("depuis ta modif par rapport à l'iPhone, je peux plus afficher la
+  fenêtre d'info des personnages... si il y a plusieurs personnages sur la même case").
+  Le premier passage posait `WebkitTouchCallout:'none', WebkitUserSelect:'none',
+  userSelect:'none'` sur le conteneur RACINE de `PlateauPage`, hérité par tout le
+  sous-arbre — y compris `cellPicker` et toutes les autres popups/modales, qui ne sont
+  pourtant que des SIBLINGS du header/de la grille/du pied de page dans le rendu (pas
+  des descendants) : rien n'obligeait à leur appliquer ce style, seuls les endroits avec
+  de vraies cibles d'appui long (pioches/défausses du header, items/tuiles de la grille,
+  cartes équipées du pied de page) en ont besoin. Fix : le style est descendu du
+  conteneur racine vers CES TROIS zones précises (header, viewport de la grille, pied de
+  page) séparément — les popups (qui ne sont nichées dans AUCUNE des trois) n'héritent
+  plus jamais de la suppression, donc leurs taps redeviennent normaux, y compris sur
+  iPhone (hypothèse : WebKit iOS a un comportement connu de mauvaise interaction entre
+  `-webkit-touch-callout`/`user-select:none` et la remontée des évènements tactiles sur
+  des éléments imbriqués/`position:fixed`, expliquant pourquoi Chromium ne montrait
+  jamais ce symptôme en non-régression).
 - **Rester appuyé déclenche la sélection de texte / le menu contextuel natif d'iOS**
   (Gus : "chiant quand on veut sélectionner un truc comme les items ou les options de la
-  pioche") — cause quasi certaine des deux points ci-dessus (le menu de sélection natif
-  interfère avec/annule le geste tactile que l'app essaie de gérer elle-même). Fix :
-  `WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'` posé sur le
-  conteneur racine de `PlateauPage` — hérite à tout le sous-arbre (grille, header,
-  footer, popups) sans toucher au reste de l'app (HomePage garde son texte sélectionnable
-  normalement, ex: copier une règle).
+  pioche") — cause quasi certaine du point précédent, dans sa version corrigée : le menu
+  de sélection natif interfère avec/annule le geste tactile que l'app essaie de gérer
+  elle-même. `WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'`
+  reste posé, mais scopé (voir ci-dessus) sur le header, le viewport de la grille et le
+  pied de page uniquement — jamais sur la racine ni sur une popup — pour garder l'effet
+  recherché sans casser les popups. Le reste de l'app (HomePage) n'est de toute façon pas
+  concerné, son texte reste normalement sélectionnable (ex: copier une règle).
 - **Un glisser démarré depuis le header ou le pied de page fait bouger toute la page** —
   ces deux zones vivent hors du viewport scrollable de la grille (qui, lui, a son propre
   `overflow:'auto'` indépendant), donc rien de l'app elle-même ne devrait bouger — mais
@@ -840,6 +855,53 @@ sous le nom `heldCardId`.
     taille de la carte"). Repli générique (glyphe `+`/🪄/🔥/👹 d'origine) si `data` est
     vide (carte inconnue de `cardCatalogRef`, ex: session sauvegardée avant cette
     fonctionnalité).
+
+#### Retouches après premier retour de Gus sur les vrais visuels (même session)
+- **Fond au lieu d'`<img>` — évite le "télécharger l'image ?" mobile** (Gus : "problème
+  sur les pioches quand je reste appuyé ça me propose de télécharger l'image") : les deux
+  faces de `CardFace` sont passées de `<img src=...>` à `backgroundImage` CSS sur le
+  `div` lui-même (`background-size:cover`) — un `<img>` reste un élément natif que le
+  navigateur mobile propose toujours de sauvegarder/partager sur un appui long, quel que
+  soit `draggable:false` (qui n'empêche que le DRAG desktop, pas ce menu-là) ; un simple
+  fond CSS n'est pas une "image" pour le navigateur au sens de ce menu contextuel, donc
+  le problème disparaît structurellement plutôt que par un correctif CSS supplémentaire
+  à ajouter en plus.
+- **Items (sorts/énergies) affichés dos visible sur le plateau** (Gus : "les items
+  doivent être côté dos sur le plateau") — `showBack:true` (au lieu de `false`) au site
+  de rendu de `boardItems` sur la grille ; leur contenu reste consultable via l'appui
+  long (Vision) ou en les reprenant en main, exactement comme le dos d'une pioche reste
+  caché jusqu'au tirage. Ne concerne que ce site précis (pile/main/défausse/agrandi
+  restent face visible comme avant).
+- **Aperçu Vision d'un item seul sur une case : se fermait instantanément** (Gus,
+  précisé : "uniquement si y a qu'un seul item sur une case") — l'ancien design ("reste
+  appuyé pour prévisualiser, disparaît au relâchement") fermait la fenêtre dès que le
+  doigt se soulevait, ce qui arrive quasi immédiatement après avoir perçu la carte en
+  pratique (pas le temps de la lire). Remplacé par le même comportement persistant que le
+  picker multi-items (`visionPeekItem` reste ouvert jusqu'à un tap en dehors) — l'appui
+  long ouvre directement la fenêtre pour un item seul (sans passer par le picker,
+  puisqu'il n'y a aucune ambiguïté à lever), au lieu de nécessiter un maintien continu.
+  `peekingRef`/le cas `'peek'` de `handleItemLongPress` (devenus inutiles) supprimés.
+- **Tailles/positions de texte ajustées sur `CardFront`** (retours visuels de Gus après
+  avoir vu les premières cartes en jeu) : titre des sorts/monstres décalé un peu plus bas
+  (`marginTop` ajouté, il touchait presque le bord haut) ; texte de récompense de niveau
+  des monstres (`LR[lvl]`, ex: "1 sort / -1 au dé") agrandi ; texte de coin (niveau /
+  emoji élément, `cornerStyle`) agrandi ; bonus naturel des énergies (`+1 PA`/`+1 PV`)
+  agrandi. Toujours dérivé de `size` (jamais une taille fixe), donc le texte reste
+  proportionnel à la carte à toutes les échelles malgré ces augmentations.
+- **Réordonnancement des items équipés dans le pied de page ne fonctionnait pas en
+  pratique** (Gus : "j'arrive pas à déplacer les items entre eux dans le footer") —
+  `useFooterItemGestures` exigeait un maintien parfaitement immobile pendant 500ms avant
+  d'armer le glisser ; le moindre mouvement pendant cette fenêtre annulait le timer
+  entièrement (`clearTimeout`) sans jamais armer quoi que ce soit, or un vrai geste de
+  glisser commence quasiment toujours à bouger bien avant 500ms — la fenêtre "d'appui
+  immobile" requise n'était donc quasiment jamais atteignable en usage réel. Fix : dans
+  `onMove`, un mouvement détecté AVANT que le timer n'ait eu le temps de se déclencher
+  arme maintenant le glisser immédiatement (`armHold`) au lieu de simplement annuler —
+  le mouvement lui-même sert de signal "c'est un glisser", plus besoin d'attendre les
+  500ms d'immobilité complète en plus. Le tap court (→ agrandir) et l'appui long SANS
+  bouger (→ sélectionner pour déplacer) restent inchangés, seul le cas "bouge presque
+  tout de suite" change de comportement (annulé silencieusement avant → arme le glisser
+  maintenant).
 
 ### Cases de départ + marqueurs + extension du header — implémenté (dernier ajout, "on a fini la version locale !")
 Dernière couche avant la fin de la version locale hotseat : un petit bouton `+`/`−` en

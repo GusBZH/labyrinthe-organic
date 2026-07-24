@@ -351,12 +351,17 @@ function CardFront({kind, data, size}) {
     position:'absolute', inset:0, padding:pad, boxSizing:'border-box',
     display:'flex', flexDirection:'column', color:'#111', overflow:'hidden'
   };
-  const cornerStyle = {position:'absolute', top:pad, left:pad, fontSize:Math.max(6, 12*base), lineHeight:1, fontWeight:700};
+  // Corner text (lvl / element emoji) and the énergie bonus enlarged (Gus,
+  // after seeing the first pass): both a bit small relative to the rest.
+  const cornerStyle = {position:'absolute', top:pad, left:pad, fontSize:Math.max(7, 15*base), lineHeight:1, fontWeight:700};
 
   if (kind === 'sort') {
     return h('div', {style:wrapStyle},
       elEm && h('div', {style:cornerStyle}, elEm),
-      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginBottom:pad*0.5}}, data.nom || ''),
+      // A little breathing room under the corner emoji before the title
+      // (Gus: "décale le titre un peu vers le bas") — title sat almost flush
+      // with the top edge before, easy to misread as touching the emoji row.
+      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginTop:pad*1.5, marginBottom:pad*0.5}}, data.nom || ''),
       h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
       (data.cout || data.limite) && h('div', {style:{textAlign:'center', fontSize:smallSize, color:'#555'}}, [data.cout, data.limite].filter(Boolean).join(', '))
     );
@@ -365,14 +370,16 @@ function CardFront({kind, data, size}) {
     return h('div', {style:wrapStyle},
       elEm && h('div', {style:cornerStyle}, elEm),
       h('div', {style:{flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:size*0.2, textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
-      h('div', {style:{textAlign:'center', fontSize:Math.max(6, 10*base), fontWeight:700, color:'#175'}}, ENERGY_BONUS[data.element] || '')
+      h('div', {style:{textAlign:'center', fontSize:Math.max(8, 13*base), fontWeight:700, color:'#175'}}, ENERGY_BONUS[data.element] || '')
     );
   }
   if (kind === 'monstre') {
     return h('div', {style:wrapStyle},
       h('div', {style:cornerStyle}, (data.lvl || '').replace('Lvl ', 'L')),
-      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15}}, data.nom || ''),
-      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:smallSize, color:'#666', lineHeight:1.25}}, LR[data.lvl] || ''),
+      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginTop:pad*1.5}}, data.nom || ''),
+      // The LR reward text ("1 sort / -1 au dé") enlarged (Gus) — was the
+      // same size as the tiny fallback text, hard to read even at 140px.
+      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:Math.max(6, 10*base), color:'#666', lineHeight:1.25}}, LR[data.lvl] || ''),
       h('div', {style:{textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || '')
     );
   }
@@ -408,14 +415,12 @@ function CardFace({showBack, size, kind='case', data}) {
       transition:'transform .3s', transform: showBack ? 'rotateY(0deg)' : 'rotateY(180deg)'
     }},
       h('div', {style:{position:'absolute', inset:0, borderRadius:6, overflow:'hidden', background:'#111',
-        border:`1px solid ${BACK_ACCENT[kind] || BACK_ACCENT.case}`, backfaceVisibility:'hidden'}},
-        backSrc && h('img', {src:backSrc, draggable:false, style:{width:'100%', height:'100%', objectFit:'cover', display:'block'}})
-      ),
+        border:`1px solid ${BACK_ACCENT[kind] || BACK_ACCENT.case}`, backfaceVisibility:'hidden',
+        backgroundImage: backSrc ? `url(${backSrc})` : 'none', backgroundSize:'cover', backgroundPosition:'center'}}),
       h('div', {style:{position:'absolute', inset:0, borderRadius:6, overflow:'hidden', background:'#fff',
-        border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)'}},
-        frontSrc
-          ? h('img', {src:frontSrc, draggable:false, style:{width:'100%', height:'100%', objectFit:'cover', display:'block'}})
-          : h(CardFront, {kind, data, size})
+        border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)',
+        backgroundImage: frontSrc ? `url(${frontSrc})` : 'none', backgroundSize:'cover', backgroundPosition:'center'}},
+        !frontSrc && h(CardFront, {kind, data, size})
       )
     )
   );
@@ -749,8 +754,22 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
   function onMove(e){
     if (!firedRef.current) {
       const s = startRef.current;
-      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 6) clearTimeout(pressTimerRef.current);
-      return;
+      if (!s) return;
+      if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 6) {
+        // Movement itself IS the drag signal — no need to also wait out the
+        // full 500ms motionless first. A first pass required the hold to
+        // stay still until the timer fired before any movement counted,
+        // which doesn't match how a real press-and-drag gesture behaves
+        // (people start moving almost immediately, well under 500ms) —
+        // Gus: "j'arrive pas à déplacer les items entre eux dans le
+        // footer". Arms right here instead, using the index captured at
+        // pointerdown, then falls through to the normal move-tracking
+        // below so this same event already updates overIndex.
+        clearTimeout(pressTimerRef.current);
+        armHold(s.index);
+      } else {
+        return;
+      }
     }
     let next = overRef.current;
     for (let i = 0; i < rectsRef.current.length; i++) {
@@ -782,7 +801,7 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
   }
   function onItemPointerDown(index, e){
     if (e.pointerType === 'mouse' && e.button === 2) return; // right-click: onItemContextMenu handles it instead
-    startRef.current = {x:e.clientX, y:e.clientY};
+    startRef.current = {x:e.clientX, y:e.clientY, index};
     firedRef.current = false;
     clearTimeout(pressTimerRef.current);
     pressTimerRef.current = setTimeout(() => armHold(index), 500);
@@ -2185,12 +2204,6 @@ export function PlateauPage({onBack, data}) {
   // instant the long-press fires, checked and cleared at the top of
   // onContentClick.
   const suppressNextClickRef = useRef(false);
-  // True while a Vision-mode "hold to peek" is active (see
-  // handleItemLongPress) — onContentPointerUp uses this to know the peek
-  // card should disappear the instant the finger/mouse lifts, unlike the
-  // picker-opened peek below which stays open until dismissed like any
-  // other window.
-  const peekingRef = useRef(false);
 
   function onContentPointerDown(e){
     if (e.pointerType === 'mouse' && e.button !== 0) return; // only the primary button starts an item long-press
@@ -2202,9 +2215,7 @@ export function PlateauPage({onBack, data}) {
     itemPressTimerRef.current = setTimeout(() => {
       const s = itemPressStartRef.current;
       if (!s || s.moved) return;
-      const result = handleItemLongPress(s.row, s.col, s.x, s.y);
-      if (result === 'peek') peekingRef.current = true;
-      else if (result) suppressNextClickRef.current = true;
+      if (handleItemLongPress(s.row, s.col, s.x, s.y)) suppressNextClickRef.current = true;
     }, 500);
   }
   function onContentPointerMove(e){
@@ -2215,23 +2226,26 @@ export function PlateauPage({onBack, data}) {
   function onContentPointerUp(){
     clearTimeout(itemPressTimerRef.current);
     itemPressStartRef.current = null;
-    if (peekingRef.current) { setVisionPeekItem(null); peekingRef.current = false; }
   }
 
   // Picks up an item at (r,c) for the SAME "select then tap elsewhere to
   // move" flow tiles already use — see selectedItemId's own declaration
   // comment — UNLESS Vision mode is active, in which case it shows the card
-  // enlarged instead ("je dois être capable d'afficher le sort... en
-  // restant appuyé", no move/select happens in Vision, matching how it
-  // already blocks every other card gesture). Several items sharing a cell
-  // can't be told apart by a single long-press, so instead of silently
-  // grabbing whichever was placed last, it opens a small picker (mirrors
-  // the multi-player cellPicker) offset BELOW the press point — placing it
-  // right under the still-down pointer would let the release that follows
-  // land on one of the picker's own options by accident.
-  // Returns 'peek' (continuous-hold preview, cleared on release above),
-  // true (selected something / opened a picker — suppress the trailing
-  // click either way), or false (nothing there).
+  // enlarged instead. Several items sharing a cell can't be told apart by a
+  // single long-press, so instead of silently grabbing whichever was placed
+  // last, it opens a small picker (mirrors the multi-player cellPicker)
+  // offset BELOW the press point — placing it right under the still-down
+  // pointer would let the release that follows land on one of the picker's
+  // own options by accident.
+  // A single item in Vision mode used to only preview WHILE actually held
+  // down (cleared the instant the finger lifted) — Gus reported it "closes
+  // instantly", since in practice the release follows perception of the
+  // card almost immediately, not enough time to actually read it. Now opens
+  // the exact same persistent visionPeekItem window the multi-item picker
+  // already uses (stays until dismissed by tapping elsewhere), just skipping
+  // the picker step since there's no ambiguity to resolve for a single item.
+  // Returns true (selected something / opened a window — suppress the
+  // trailing click either way), or false (nothing there).
   function handleItemLongPress(r, c, clientX, clientY){
     const live = liveRef.current;
     if (live.heldTile || live.heldItem) return false;
@@ -2246,7 +2260,7 @@ export function PlateauPage({onBack, data}) {
       return true;
     }
     const item = items[0];
-    if (live.visionMode) { setVisionPeekItem({items:[item], index:0}); return 'peek'; }
+    if (live.visionMode) { setVisionPeekItem({items:[item], index:0}); return true; }
     setSelectedItemId(item.id);
     setSelectedId(null);
     clearTileSelection();
@@ -2695,19 +2709,7 @@ export function PlateauPage({onBack, data}) {
 
   return h('div', {style:{
       height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee',
-      fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111',
-      // iPhone/Safari: a finger resting even briefly on a long-press target
-      // (an item, a pile's Diviser/Mélanger option...) triggers the native
-      // text-selection magnifier/callout instead of (or racing) this app's
-      // own long-press handling — Gus: "rester appuyer force la sélection
-      // du texte... chiant quand on veut sélectionner les items ou les
-      // options de la pioche", and likely also the cause of "impossible de
-      // sélectionner un joueur/monstre" in the multi-entity picker (same
-      // interference, just on a different long-press-adjacent gesture).
-      // Scoped to the whole Plateau root (inherited by every descendant —
-      // grid, header, footer, popups) rather than a global body rule, so
-      // HomePage's rules/lexique/notes text stays normally selectable.
-      WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'
+      fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'
     }},
 
     // HEADER (sticky) — top row of controls, second row for tile piles.
@@ -2721,7 +2723,17 @@ export function PlateauPage({onBack, data}) {
     // selected card, same "click elsewhere deselects" rule as the grid.
     h('div', {onClick:clearCardSelection, style:{flexShrink:0, position:'relative',
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
-      borderBottom:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
+      borderBottom:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s',
+      // Scoped here (long-press pile/défausse targets live in the header)
+      // rather than on the Plateau root as a first attempt had it — that
+      // broke tapping inside popups on iPhone (Gus: "je peux plus afficher
+      // la fenêtre d'info... si il y a plusieurs personnages sur la même
+      // case"), since popups like cellPicker render as siblings of the
+      // header/grid/footer, not descendants — inheriting it from the root
+      // caught them too. Header/grid/footer are the only places with real
+      // long-press targets, so suppressing it just on those three leaves
+      // every popup (which are NOT nested inside any of them) unaffected.
+      WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}},
       h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'12px 16px'}},
         h('button', {onClick:onBack, style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
         h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
@@ -2925,7 +2937,8 @@ export function PlateauPage({onBack, data}) {
       onPointerMove:onViewportPointerMove,
       onPointerUp:onViewportPointerUp,
       onPointerCancel:onViewportPointerUp,
-      style:{flex:1, overflow:'auto', position:'relative', touchAction:'pan-x pan-y', cursor:'grab'}
+      style:{flex:1, overflow:'auto', position:'relative', touchAction:'pan-x pan-y', cursor:'grab',
+        WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}
     },
       h('div', {
         ref:contentRef,
@@ -2966,6 +2979,10 @@ export function PlateauPage({onBack, data}) {
         // quadrant by index (i%4) and sits near that corner; a 2nd/3rd/4th
         // item sharing the cell just takes the next corner over instead of
         // needing a separate "single vs. multiple" branch.
+        // Shown face-DOWN on the board (Gus: "les items doivent être côté
+        // dos sur le plateau") — its content is still revealed via long-
+        // press peek (Vision) or by picking it up, matching how a pioche's
+        // own top card stays face-down until actually drawn.
         Object.entries(itemCellGroups).map(([key, group]) => group.map((it, i) => {
           const q = i % 4;
           const cx = it.col*CELL + (q % 2 === 0 ? ITEM_CORNER_INSET : CELL - ITEM_CORNER_INSET);
@@ -2977,7 +2994,7 @@ export function PlateauPage({onBack, data}) {
               borderRadius:5, opacity:boardTokenOpacity,
               boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
             }
-          }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type, data:cardCatalogRef.current[it.id]}));
+          }, h(CardFace, {showBack:true, size:ITEM_BOARD_SIZE, kind:it.type, data:cardCatalogRef.current[it.id]}));
         })),
         // Players AND monsters, from the same cellGroups clustering (see its
         // own comment) — a monster is visually distinguishable (dark
@@ -3417,7 +3434,8 @@ export function PlateauPage({onBack, data}) {
     // as the header.
     h('div', {onClick:clearCardSelection, style:{flexShrink:0, display:'flex', flexDirection:'column',
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
-      borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s'}},
+      borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s',
+      WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}},
 
       // EQUIPPED ITEMS — "sort de nature" (single fixed-size slot, left)
       // beside two long fixed-size row slots (sorts, then énergies below) —
