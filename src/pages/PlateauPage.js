@@ -2505,7 +2505,22 @@ export function PlateauPage({onBack}) {
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
   const headerBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
 
-  return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'}},
+  return h('div', {style:{
+      height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee',
+      fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111',
+      // iPhone/Safari: a finger resting even briefly on a long-press target
+      // (an item, a pile's Diviser/Mélanger option...) triggers the native
+      // text-selection magnifier/callout instead of (or racing) this app's
+      // own long-press handling — Gus: "rester appuyer force la sélection
+      // du texte... chiant quand on veut sélectionner les items ou les
+      // options de la pioche", and likely also the cause of "impossible de
+      // sélectionner un joueur/monstre" in the multi-entity picker (same
+      // interference, just on a different long-press-adjacent gesture).
+      // Scoped to the whole Plateau root (inherited by every descendant —
+      // grid, header, footer, popups) rather than a global body rule, so
+      // HomePage's rules/lexique/notes text stays normally selectable.
+      WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'
+    }},
 
     // HEADER (sticky) — top row of controls, second row for tile piles.
     // `position:relative` is what makes its `zIndex` actually apply (an
