@@ -850,8 +850,15 @@
       "nom": "Case Bonus PA",
       "statut": "Validé",
       "effet": "Vous gagnez+1 PA. 1x tour\nToujours tout droit.",
-      "quantite": 10,
-      "notes": ""
+      "quantite": 1,
+      "notes": "",
+      "details": [
+        {
+          "id": "kntq0oayio",
+          "fichier": "Case_PA.png",
+          "quantite": 1
+        }
+      ]
     },
     {
       "id": "c6",
