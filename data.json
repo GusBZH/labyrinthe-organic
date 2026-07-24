@@ -84,17 +84,6 @@
       "notes": ""
     },
     {
-      "id": "s9",
-      "nom": "Non",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "",
-      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s10",
       "nom": "Chaussures qui Court Loin",
       "element": "Terre",
@@ -102,6 +91,17 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ annulé et vous téléportez sur n'importe quel portail.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s9",
+      "nom": "Non",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Quand un joueur vous attaque, lancez 1 d6 : sur 4+ le combat est annulé.",
       "quantite": 1,
       "notes": ""
     },
