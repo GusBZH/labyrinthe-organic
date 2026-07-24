@@ -4,18 +4,29 @@ import { EditText } from "./EditText.js";
 import { StatusDot } from "./StatusDot.js";
 import { Popup } from "./Popup.js";
 import { BlockEditor } from "./BlockEditor.js";
+import { DetailsEditor } from "./DetailsEditor.js";
 import { renderText, countNoteBlocks } from "../utils.js";
 
-export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, withLvl}) {
+export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, withLvl, withDetails}) {
   const [showSt, setShowSt] = useState(false);
   const [showEl, setShowEl] = useState(false);
   const [showLv, setShowLv] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const stRef = useRef(null);
   const elRef = useRef(null);
   const lvRef = useRef(null);
   const ec = item.element ? EC[item.element] : null;
   const noteCount = countNoteBlocks(item.notes);
+  const details = item.details || [];
+  // Once a bloc has at least one detail row (Cases only, e.g. "20 portails"
+  // split into "12 couloirs droits" + "8 en T"), the ×N badge stops being a
+  // free-typed number and becomes the sum of the rows instead — avoids the
+  // two ever silently drifting out of sync (Gus explicitly chose this over
+  // keeping them independent).
+  const derivedQuantite = withDetails && details.length > 0
+    ? details.reduce((s, r) => s + (r.quantite || 0), 0)
+    : null;
 
   return h('div', {
     className: 'card',
@@ -95,6 +106,17 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
                 fontSize:9, fontWeight:700, color:'#fff', background:'#d33', borderRadius:'50%',
                 minWidth:14, height:14, padding:'0 3px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1
               }}, noteCount)
+            ),
+            // Cases only (Gus: sorts/énergies/monstres will carry their
+            // real info on the card face itself instead, no need for this
+            // there) — same toggle+pastille pattern as notes, just a
+            // separate panel/count since details and notes are unrelated.
+            withDetails && h('span', {onClick:()=>setShowDetails(!showDetails), style:{fontSize:10, color:'#555', cursor:'pointer', display:'flex', alignItems:'center', gap:4}},
+              showDetails ? '▲ détails' : '▼ détails',
+              details.length > 0 && h('span', {style:{
+                fontSize:9, fontWeight:700, color:'#fff', background:'#369', borderRadius:'50%',
+                minWidth:14, height:14, padding:'0 3px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1
+              }}, details.length)
             )
           ),
           // Quantity badge re-centered (Gus: "actuellement il est en bas à
@@ -125,11 +147,16 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
           // `v.replace(/[^\d]/g,'')` strips whatever punctuation the user
           // left (or didn't) before parsing the integer back out.
           h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555'}},
-            h(EditText, {
-              value: '×' + (item.quantite || 1),
-              onChange: v => { const n = parseInt(v.replace(/[^\d]/g, ''), 10); onUpdate({...item, quantite: Number.isFinite(n) && n > 0 ? n : 1}); },
-              editMode
-            })
+            derivedQuantite !== null
+              // Sourced from the détails rows below (see derivedQuantite) —
+              // no longer directly editable here, matches Gus's choice of
+              // "somme automatique" over letting the two drift apart.
+              ? h('span', {title:'Calculé depuis les détails ci-dessous'}, '×' + derivedQuantite)
+              : h(EditText, {
+                  value: '×' + (item.quantite || 1),
+                  onChange: v => { const n = parseInt(v.replace(/[^\d]/g, ''), 10); onUpdate({...item, quantite: Number.isFinite(n) && n > 0 ? n : 1}); },
+                  editMode
+                })
           ),
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},
             editMode && h('span', {onClick:()=>onDelete(item.id), style:{fontSize:10, color:'#444', cursor:'pointer'}}, '✕')
@@ -144,6 +171,23 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
           editMode
             ? h(BlockEditor, {value:item.notes||'', onChange:v=>onUpdate({...item,notes:v})})
             : h('div', {style:{fontSize:12, color:'#bbb', lineHeight:1.6}}, renderText(item.notes||''))
+        ),
+        // Cases only — breakdown of non-identical exemplaires (ex: 20
+        // "Portail" cards split into "12 couloirs droits" + "8 en T").
+        // Editing a row's quantity also writes the sum back into
+        // item.quantite itself (not just the display-only derivedQuantite
+        // above) so anything else reading item.quantite later (ex: the
+        // planned "vraie pioche dynamique depuis le catalogue" — one
+        // physical card per quantite unit) sees the real total too.
+        showDetails && h('div', {style:{marginTop:8, padding:8, background:'rgba(0,0,0,.3)', borderRadius:6, border:'1px solid #2a2a2a'}},
+          h('div', {style:{fontSize:10, color:'#555', marginBottom:4}}, 'Détails'),
+          h(DetailsEditor, {
+            details, editMode,
+            onChange: next => {
+              const sum = next.reduce((s, r) => s + (r.quantite || 0), 0);
+              onUpdate({...item, details:next, quantite: next.length > 0 ? sum : item.quantite});
+            }
+          })
         )
       )
     )
