@@ -2,6 +2,7 @@ export const INIT = {
   gameName:"Labyrinthe Organic",
   reglesNotes:"",sortsNotes:"",monstresNotes:"",lexiqueNotes:"",materielNotes:"",
   casesNotes:"",modesNotes:"",visuelsNotes:"",applicationNotes:"",
+  applicationNoteNotes:"",applicationJeuNotes:"",
   sorts:[
     {id:"s1",nom:"Grenade",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Attaque en sélectionnant une case en ligne de vue. Touche la case sélectionnée + toutes les cases à 1 de distance en ligne de vue.",quantite:1,notes:""},
     {id:"s2",nom:"Lance Flamme",element:"Feu",statut:"Validé",cout:"1 PA",limite:"1x tour",effet:"Attaque tous les joueurs possibles sur une ligne droite en ligne de vue.",quantite:1,notes:""},

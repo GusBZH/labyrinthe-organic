@@ -1608,7 +1608,10 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
   propre note globale (`data.applicationNotes`) est déjà branchée. `application` a été
   ajouté à `SECTION_ORDER_DEFAULT`/`SECTION_LABELS_DEFAULT` (`src/config.js`) — la
   migration existante (`migrateSectionOrder`) l'injecte automatiquement pour les
-  data.json déjà existants, sans script de migration manuel.
+  data.json déjà existants, sans script de migration manuel. Chacune des deux
+  sous-catégories a aussi gagné son propre espace note (`data.applicationNoteNotes`/
+  `data.applicationJeuNotes`, distincts de `data.applicationNotes`) — trois espaces de
+  notes indépendants au total dans cette seule catégorie principale.
 
 ## Cartes catalogue (`src/components/Card.js`) — retouches de mise en page
 Deux ajustements demandés par Gus sur la ligne du bas de chaque carte (règles/cases/
@@ -1624,6 +1627,18 @@ sorts/énergies/monstres, tous via ce composant partagé) :
   `EditText` (même convention double-tap que partout ailleurs dans l'app), reparsé en
   entier positif au blur (`parseInt`, repli sur `1` si non numérique/≤0, même filet de
   sécurité que l'ancien affichage `||1`).
+  **Bug corrigé (le double-tap ne marchait qu'une fois sur dix)** : le "×" vivait comme
+  simple texte, frère de la `div` d'`EditText` mais EN DEHORS d'elle — `onDoubleClick`
+  vit uniquement sur cette `div`, un évènement déclenché sur un nœud frère ne peut
+  jamais l'atteindre (la bulle ne remonte que vers les ANCÊTRES, jamais latéralement
+  vers une fratrie). Un double-tap tombant sur le "×" (à peu près la moitié de la
+  largeur visible d'un badge aussi court que "×1") ne faisait donc rigoureusement rien —
+  seuls les taps tombant précisément sur le(s) chiffre(s) fonctionnaient, d'où le "1 fois
+  sur 10" observé. Fix : le "×" fait maintenant partie de la valeur éditée elle-même
+  (`value:'×'+quantite`, `v.replace(/[^\d]/g,'')` au blur pour retirer la ponctuation
+  avant de reparser l'entier) — même principe déjà utilisé pour `item.cout`/
+  `item.limite` juste au-dessus (texte complet édité tel quel, pas de préfixe séparé) —
+  toute la zone "×N" devient un seul élément, donc une seule cible de double-tap.
 - **Emoji élément (sorts/énergies) déplacé du haut-gauche vers le bas-gauche** :
   vivait empilé directement sous la pastille de couleur (`StatusDot`) dans la colonne
   d'édition à gauche de la carte, à seulement 4px d'écart — Gus les trouvait trop
