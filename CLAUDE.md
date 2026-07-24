@@ -55,7 +55,11 @@ seule source de vérité, ne pas se fier à un compte figé ici. Les catégories
   `src/utils.js`) — aucune modification manuelle de data.json requise.
 - `sectionOrder` — ordre d'affichage des grandes sections de la home page (tableau de
   clés). Absent ou incomplet → complété automatiquement (`migrateSectionOrder` dans
-  `src/utils.js`).
+  `src/utils.js`). Inclut désormais `application` (voir "Vocabulaire des notes" plus bas).
+- `<section>Notes` (`reglesNotes`, `sortsNotes`, `energiesNotes`, `monstresNotes`,
+  `lexiqueNotes`, `materielNotes`, `casesNotes`, `modesNotes`, `visuelsNotes`,
+  `applicationNotes`) — la "note globale" de chaque grande catégorie (voir "Vocabulaire
+  des notes" plus bas), rendue par `NotesBlock`.
 
 Chaque item a généralement un champ `statut` : Validé / Test 1 / Test 2 / Test 3 / Archivé,
 avec un système de pastilles colorées dans l'UI.
@@ -1558,6 +1562,54 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      Cloudflare — remplacée par l'approche cloud ci-dessus, plus simple et sans
      contrainte de disponibilité matérielle.
 
+## Vocabulaire des notes — à retenir (termes donnés par Gus)
+- **Catégorie principale** : un onglet déroulant de la home page (Règles de base, Cases,
+  Sorts, Énergies, Monstres, Lexique, Modes de jeu, Visuels, Matériel, Application) —
+  techniquement une `EditableSection` dans `sectionContent` (`src/pages/HomePage.js`),
+  pilotée par `data.sectionOrder`.
+- **Sous-catégorie** : un onglet déroulant imbriqué DANS une catégorie principale — pas
+  besoin d'une deuxième `EditableSection` (renommable/réordonnable), un `Section`
+  simple (`src/components/Section.js`, titre+emoji fixes) suffit tant que Gus donne le
+  nom exact et qu'il n'y a pas besoin de renommer/réordonner cette sous-catégorie
+  précise. Exemple : les deux sous-catégories de la catégorie principale Application
+  (voir plus bas).
+- **Bloc** : la plus petite entité d'une catégorie principale — une carte individuelle
+  (un sort, une énergie, une case, un monstre, une règle — tout ce qui passe par
+  `Card.js`). PAS un mode de jeu (`ModeCard.js` a son propre système de notes, resté
+  simple, voir plus bas) ni une entrée de lexique.
+- **Note des blocs** : le champ `notes` d'un bloc individuel (`item.notes` dans
+  `Card.js`). Contrairement à la note globale, **visible dans les DEUX modes**
+  (Gus : "j'aimerais que la pastille et les notes des blocs soient visibles même sans
+  le mode édition") — le toggle `▼/▲ notes` n'est plus caché par `editMode &&` comme
+  avant. En mode édition, le panneau est un `BlockEditor` (double entrée) ; hors édition,
+  un rendu lecture seule via `renderText` (même contenu, mêmes dividers, juste pas
+  éditable).
+- **Note globale** : le champ `data.<section>Notes` d'une catégorie principale entière
+  (`NotesBlock`, ex: `data.sortsNotes`) — sert à noter des idées générales sur toute la
+  catégorie, pas un bloc précis. **Reste édit-mode-only** (`if (!editMode) return null`
+  dans `NotesBlock.js`, comportement inchangé) — contrairement à la note des blocs,
+  Gus n'a pas demandé à la rendre visible hors édition.
+- **Double entrée** : le système de `BlockEditor.js` — Entrée deux fois de suite scinde
+  le texte en un nouveau bloc séparé par un vrai `<hr>` (déjà utilisé dans Idée en vrac
+  et Visuels avant cette session). Gus : "j'adore ce système et j'aimerais l'appliquer
+  sur tous les bloc note de l'appli" — **toutes** les notes globales (`NotesBlock`) et
+  toutes les notes des blocs (`Card.js`) utilisent maintenant `BlockEditor` au lieu d'un
+  simple `EditText multiline`. `BlockEditor` a gagné une **croix rouge en haut à droite
+  de chaque mini note** (bloc individuel du double entrée) pour la supprimer directement
+  — en plus du réordonnancement par glisser déjà existant (poignée `⠿` à gauche) et du
+  fusionnement par Backspace-en-début-de-bloc. Comme `BlockEditor` est un composant
+  partagé, cette croix profite aussi à Idée en vrac/Visuels/Matériel sans rien y changer.
+  Une pastille rouge de notification (`countNoteBlocks` dans `src/utils.js`, compte les
+  segments `\n\n` non vides) affiche le nombre de mini notes à côté du toggle `▼ notes`
+  d'un bloc — rien si 0, sinon le chiffre dans un petit cercle rouge plein.
+- **Catégorie principale Application (🤖)** : nouvelle catégorie créée cette session,
+  avec deux sous-catégories `Section` : 📜 Note et 👾 Jeu (vides pour l'instant, à
+  remplir plus tard — pas de contenu demandé pour l'instant, juste la structure). Sa
+  propre note globale (`data.applicationNotes`) est déjà branchée. `application` a été
+  ajouté à `SECTION_ORDER_DEFAULT`/`SECTION_LABELS_DEFAULT` (`src/config.js`) — la
+  migration existante (`migrateSectionOrder`) l'injecte automatiquement pour les
+  data.json déjà existants, sans script de migration manuel.
+
 ## Cartes catalogue (`src/components/Card.js`) — retouches de mise en page
 Deux ajustements demandés par Gus sur la ligne du bas de chaque carte (règles/cases/
 sorts/énergies/monstres, tous via ce composant partagé) :
@@ -1567,8 +1619,11 @@ sorts/énergies/monstres, tous via ce composant partagé) :
   `position:'absolute', left:'50%', transform:'translateX(-50%)'` — centré dans la
   ligne quel que soit la largeur des deux groupes flex de part et d'autre (gauche :
   emoji élément / niveau / toggle notes ; droite : juste la croix maintenant).
-  `item.quantite` reste non éditable directement (juste affiché) — aucune UI de
-  modification n'existe encore, seulement une valeur par défaut posée à la création.
+  **Devenu éditable par double-tap** (retouche suivante, Gus : "j'aimerais pouvoir
+  modifier le chiffre en faisant double tap en mode édition") — enveloppé dans un
+  `EditText` (même convention double-tap que partout ailleurs dans l'app), reparsé en
+  entier positif au blur (`parseInt`, repli sur `1` si non numérique/≤0, même filet de
+  sécurité que l'ancien affichage `||1`).
 - **Emoji élément (sorts/énergies) déplacé du haut-gauche vers le bas-gauche** :
   vivait empilé directement sous la pastille de couleur (`StatusDot`) dans la colonne
   d'édition à gauche de la carte, à seulement 4px d'écart — Gus les trouvait trop
@@ -1578,6 +1633,21 @@ sorts/énergies/monstres, tous via ce composant partagé) :
   possible). Reste strictement édit-mode-only comme avant ; la pastille élément
   affichée en lecture seule (`!editMode && showElem`) n'a pas bougé, elle était déjà au
   bon endroit.
+- **Notes des blocs** : voir "Vocabulaire des notes" plus haut pour le détail complet
+  (double entrée, visible hors édition, pastille de comptage).
+
+## Modes de jeu (`src/components/ModeCard.js`) — difficulté et joueurs éditables
+Gus : "j'aimerais aussi pouvoir modifier le nombre d'emoji étoiles et le nombre de
+joueurs". `mode.difficulte` (ex: `"⭐⭐⭐"`, texte libre — l'utilisateur tape lui-même le
+nombre d'étoiles voulu, pas de sélecteur dédié) et `mode.joueurs` (ex: `"2-10"`) étaient
+de simples `<span>` d'affichage dans l'en-tête toujours-visible de la carte (même repliée)
+— maintenant chacun enveloppé dans un `EditText` double-tap. **Piège** : cet en-tête a son
+propre `onClick` (plier/déplier la carte) — double-tapper `difficulte`/`joueurs` pour
+éditer déclenchait aussi ce toggle par bulle d'événement. Fix : chaque span enveloppant
+son `EditText` a `onClick:e=>e.stopPropagation()`, même garde que la croix ✕ de
+suppression juste à côté. `joueurs` passe d'un affichage conditionnel (`mode.joueurs &&`)
+à `(editMode || mode.joueurs) &&` pour rester éditable même vide (pouvoir en ajouter un
+là où il n'y en avait pas).
 
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)

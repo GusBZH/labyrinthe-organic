@@ -11,6 +11,7 @@ import { EditToggle } from "../components/EditToggle.js";
 import { UndoRedo } from "../components/UndoRedo.js";
 import { DragHandle } from "../components/DragHandle.js";
 import { EditableSection } from "../components/EditableSection.js";
+import { Section } from "../components/Section.js";
 import { BlockEditor } from "../components/BlockEditor.js";
 import { uid, editBgStyle, useEditFlash, useReorder, reorderSubset, renderText } from "../utils.js";
 
@@ -80,7 +81,8 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           h(Card, {item:c, onUpdate:i2=>updArr('cases',i2), onDelete:id=>delArr('cases',id), editMode, showElem:false})
         ))
       ),
-      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:''})})
+      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:''})}),
+      h(NotesBlock, {key:'notes', value:data.casesNotes, onChange:v=>upd({...data,casesNotes:v}), editMode, label:'Notes — Cases'})
     ],
 
     sorts: [
@@ -178,7 +180,8 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           ))
         ),
         editMode && h(AddBtn, {onClick:()=>upd({...data,ideesModes:[...data.ideesModes,{id:uid(),nom:'Nouveau mode',pitch:''}]})})
-      )
+      ),
+      h(NotesBlock, {key:'notes', value:data.modesNotes, onChange:v=>upd({...data,modesNotes:v}), editMode, label:'Notes — Modes de jeu'})
     ],
 
     visuels: [
@@ -196,7 +199,8 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
           )
         ))
       ),
-      editMode && h(AddBtn, {key:'add', onClick:()=>upd({...data,visuels:[...data.visuels,{id:uid(),label:'Nouvelle catégorie',content:''}]})})
+      editMode && h(AddBtn, {key:'add', onClick:()=>upd({...data,visuels:[...data.visuels,{id:uid(),label:'Nouvelle catégorie',content:''}]})}),
+      h(NotesBlock, {key:'notes', value:data.visuelsNotes, onChange:v=>upd({...data,visuelsNotes:v}), editMode, label:'Notes — Visuels'})
     ],
 
     materiel: [
@@ -204,6 +208,17 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
         ? h(BlockEditor, {key:'edit', value:data.materiel||'', onChange:v=>upd({...data,materiel:v})})
         : h('div', {key:'view', style:{fontSize:12, color:'#bbb', lineHeight:1.7}}, renderText(data.materiel||'')),
       h(NotesBlock, {key:'notes', value:data.materielNotes, onChange:v=>upd({...data,materielNotes:v}), editMode})
+    ],
+
+    // Nouvelle catégorie principale (Gus) — deux sous-catégories ("onglet
+    // déroulant dans l'onglet déroulant"), simple `Section` non-renamable
+    // (contrairement aux grandes catégories, pas besoin de renommer/glisser
+    // ces deux-là — Gus a donné leurs noms exacts) plutôt qu'une deuxième
+    // `EditableSection` imbriquée. Vides pour l'instant, à remplir plus tard.
+    application: [
+      h(Section, {key:'note', emoji:'📜', title:'Note'}),
+      h(Section, {key:'jeu', emoji:'👾', title:'Jeu'}),
+      h(NotesBlock, {key:'notes', value:data.applicationNotes, onChange:v=>upd({...data,applicationNotes:v}), editMode, label:'Notes — Application'})
     ],
   };
 
