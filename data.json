@@ -15,7 +15,7 @@
       "limite": "1x tour",
       "effet": "Attaque en sélectionnant une case en ligne de vue. Touche la case + toutes à 1 de distance en ligne de vue.",
       "quantite": 1,
-      "notes": ""
+      "notes": "Test"
     },
     {
       "id": "s2",
