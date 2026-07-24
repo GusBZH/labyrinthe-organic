@@ -766,7 +766,7 @@
       "id": "c7",
       "nom": "Case Monstre",
       "statut": "Validé",
-      "effet": "En arrivant dessus, si la case est vide, piochez une carte Monstre. \nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
+      "effet": "1x tour, affrontez le monstre présent sur la case ou piochez en un et posez le sur la case si elle est vide.\nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
       "quantite": 10,
       "notes": ""
     },
