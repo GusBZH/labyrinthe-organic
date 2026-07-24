@@ -1097,6 +1097,10 @@
       "label": "🎮 Modes de jeu"
     },
     {
+      "key": "application",
+      "label": "🤖 Application"
+    },
+    {
       "key": "visuels",
       "label": "🎨 Visuels"
     },
