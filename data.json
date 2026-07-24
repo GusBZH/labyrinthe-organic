@@ -684,20 +684,20 @@
       "notes": ""
     },
     {
+      "id": "m23",
+      "nom": "Monstre 8",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : rejouez immédiatement un tour entier après celui-ci.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "m22",
       "nom": "Monstre 7",
       "lvl": "Lvl 3",
       "statut": "Validé",
       "effet": "Victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "m23",
-      "nom": "Monstre 8",
-      "lvl": "Lvl 3",
-      "statut": "Test 1",
-      "effet": "Victoire : rejouez immédiatement un tour entier après celui-ci.",
       "quantite": 1,
       "notes": ""
     },
