@@ -612,15 +612,6 @@
       "notes": ""
     },
     {
-      "id": "m14",
-      "nom": "Monstre 11",
-      "lvl": "Lvl 2",
-      "statut": "Validé",
-      "effet": "Victoire : retirez la case où se trouve un ou plusieurs joueurs. Ils subissent une pénalité de mort.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "m15",
       "nom": "Craqueleur",
       "lvl": "Lvl 2",
@@ -716,6 +707,15 @@
       "lvl": "Lvl 4",
       "statut": "Validé",
       "effet": "Choisissez un joueur. Si vous perdez il perd aussi. Si vous gagnez il reçoit aussi les récompenses.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m14",
+      "nom": "Monstre 11",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : retirez la case où se trouve un ou plusieurs joueurs. Ils subissent une pénalité de mort.",
       "quantite": 1,
       "notes": ""
     }
