@@ -1704,6 +1704,42 @@ suppression juste à côté. `joueurs` passe d'un affichage conditionnel (`mode.
 à `(editMode || mode.joueurs) &&` pour rester éditable même vide (pouvoir en ajouter un
 là où il n'y en avait pas).
 
+## Détails d'un bloc Cases (`src/components/DetailsEditor.js`) — variantes non identiques
+Gus : "il y a 20 cases portails par exemple, mais les 20 ne sont pas identiques, certains
+sont une case d'un couloir tout droit, certains en forme de T" — le simple badge `×N`
+("nombre d'exemplaires") ne suffisait pas à distinguer les différentes variantes visuelles
+d'un même type de case. Nouveau panneau **"▼ détails"** sur chaque carte Cases uniquement
+(`withDetails:true`, prop ajoutée seulement au `Card` rendu dans `sectionContent.cases` de
+`HomePage.js` — Gus a explicitement dit ne pas en avoir besoin sur Sorts/Énergies/Monstres,
+"tu auras juste le dos de cartes et tu devras marquer les informations de chaque item/
+monstre sur la face" à la place), même emplacement/style que le toggle "▼ notes" juste à
+côté (pastille de comptage bleue plutôt que rouge, pour les distinguer au premier coup
+d'œil). `item.details` = tableau de `{id, fichier, quantite}` — un "+ ajouter une ligne"
+en bas du panneau ajoute une ligne (`fichier:''`, `quantite:1`), chaque ligne a son propre
+✕ de suppression. Pas de glisser-déposer pour réordonner ces lignes (pas demandé par Gus,
+contrairement à `BlockEditor` — liste courte, l'ordre n'a pas d'importance ici).
+- **Le badge `×N` devient calculé automatiquement dès qu'il y a au moins une ligne de
+  détails** (somme des `quantite` de chaque ligne, ex: 12+8=20) — Gus a explicitement
+  choisi cette option plutôt que de laisser les deux champs indépendants ("j'ai pas
+  compris tu peux réexpliquer" puis, après un second essai d'explication avec exemple
+  concret : "option a auto ça me va très bien"), pour ne jamais laisser le total et la
+  somme des variantes se désynchroniser silencieusement. Concrètement : `derivedQuantite`
+  (dans `Card.js`) vaut `null` tant qu'il n'y a aucune ligne de détails (le badge reste
+  alors un `EditText` éditable par double-tap, comportement inchangé) ; dès qu'il y a au
+  moins une ligne, le badge devient un simple `<span>` non éditable affichant la somme.
+  Supprimer la dernière ligne de détails rend le badge de nouveau éditable, en conservant
+  la dernière valeur connue (pas de retour silencieux à `1`).
+  **`item.quantite` lui-même reste à jour, pas seulement l'affichage** : à chaque
+  modification des lignes (ajout/suppression/changement de quantité), le `onChange` du
+  `DetailsEditor` recalcule la somme et l'écrit aussi dans `item.quantite` (pas seulement
+  dans une variable locale d'affichage) — pour que tout futur code lisant `item.quantite`
+  directement (ex: la "vraie pioche dynamique depuis le catalogue" prévue, un exemplaire
+  de carte par unité de `quantite`) voie déjà le bon total sans avoir besoin de connaître
+  `details`.
+- Undoable comme toute modification de `data.cases` : passe par `onUpdate` →
+  `updArr('cases', ...)` → `upd(...)` dans `App.js`, exactement le même chemin que
+  `notes`/`nom`/`effet` — aucun câblage undo/redo séparé à écrire.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

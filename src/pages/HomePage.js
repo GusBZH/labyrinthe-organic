@@ -78,10 +78,10 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     cases: [
       h('div', {key:'list', ref:casesRef},
         cases.display.map((c,i) => h(DragRow, {key:c.id, dragging:cases.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>cases.startDrag(i, e, casesRef.current)})},
-          h(Card, {item:c, onUpdate:i2=>updArr('cases',i2), onDelete:id=>delArr('cases',id), editMode, showElem:false})
+          h(Card, {item:c, onUpdate:i2=>updArr('cases',i2), onDelete:id=>delArr('cases',id), editMode, showElem:false, withDetails:true})
         ))
       ),
-      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:''})}),
+      editMode && h(AddBtn, {key:'add', onClick:()=>addArr('cases',{id:uid(),nom:'Nouvelle case',statut:'Test 3',effet:'',quantite:1,notes:'',details:[]})}),
       h(NotesBlock, {key:'notes', value:data.casesNotes, onChange:v=>upd({...data,casesNotes:v}), editMode, label:'Notes — Cases'})
     ],
 
