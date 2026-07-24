@@ -491,17 +491,6 @@
       "effet": "Si vous possédez Feu, Terre, Air et Eau : +5 au résultat de tous vos jets de dé.",
       "quantite": 1,
       "notes": ""
-    },
-    {
-      "id": "6rbbz3ahqv7",
-      "nom": "Nouvelle énergie",
-      "element": "Multi",
-      "statut": "Test 3",
-      "cout": "",
-      "limite": "",
-      "effet": "",
-      "quantite": 1,
-      "notes": ""
     }
   ],
   "monstres": [
