@@ -631,9 +631,9 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
    - Cliquer une pioche pendant qu'une tuile (ou une carte de la défausse) est
      sélectionnée n'y pioche pas — ça ouvre un mini menu Dessus/Dessous pour l'y
      ranger, voir "Pioches et défausses" ci-dessous.
-- Deck actuel : **100 cartes identiques (placeholder)** par type (cases/sorts/énergies,
-  `makeDeck(type)`), en attendant de brancher la vraie pioche dynamique — voir note
-  "Pioches dynamiques depuis le catalogue" ci-dessous.
+- Deck : généré depuis le vrai catalogue (`data.cases`, statut Validé, un exemplaire par
+  unité de `quantite`/ligne de détails) — voir "Pioches dynamiques depuis le catalogue"
+  ci-dessous pour le détail complet (remplace l'ancien deck de 100 cartes identiques).
 - **Piège rencontré (fenêtre du menu pioche invisible)** : la mini-fenêtre Diviser/
   Mélanger de l'appui long sur une pioche s'affichait derrière la grille malgré son
   propre `zIndex`. Cause : le header n'avait aucun `position` explicite (donc `static`
@@ -761,13 +761,85 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   fonction ne relise elle-même la ref au niveau du parent (qui, elle, est déjà repassée
   à `null` par la désarmement de la source à ce moment).
 
-### Pioches dynamiques depuis le catalogue (pas encore implémenté)
-Idée validée pour une prochaine passe : au lieu des 100 cartes identiques actuelles,
-générer la vraie pioche de cases depuis `data.cases` — un exemplaire de carte par unité
-de `quantite`, en ne prenant que les entrées avec le statut **Validé** (pastille verte).
-Modifier une quantité dans le catalogue et relancer une partie change directement la
-composition de la pioche, sans code à toucher. Même principe prévu plus tard pour les
-pioches de sorts et d'énergies (`data.sorts`/`data.energies`).
+### Pioches dynamiques depuis le catalogue — implémenté
+Les 100 cartes identiques placeholder sont remplacées par de vraies pioches générées
+depuis le catalogue (`data.cases`/`sorts`/`energies`/`monstres`, uniquement statut
+**Validé**, un exemplaire de carte par unité de `quantite`) — modifier le catalogue et
+faire Reset change directement la composition de la pioche, sans code à toucher.
+`makeInitialPiles(catalog)` (`PlateauPage.js`) construit les 5 decks :
+- **Cases** : `buildCaseCards` — un exemplaire par **ligne de détails** (`item.details[]`,
+  voir "Détails d'un bloc Cases" plus haut), pas par bloc entier, puisqu'un bloc comme
+  "Case Portail" recouvre plusieurs fichiers visuellement différents. La ligne dont le
+  `fichier` vaut exactement `Case_de_Depart.png` est explicitement exclue de ce deck-là —
+  elle alimente `buildDepartCards` à la place (pioche 'depart' séparée, "pas case map
+  classique"). Repli si un bloc Validé n'a encore aucune ligne de détails : génère quand
+  même `quantite` cartes, juste sans image de face spécifique (glyphe générique de
+  `CardFront`), plutôt que de faire disparaître silencieusement tout le bloc de la pioche.
+- **Sorts/Énergies/Monstres** : `buildSortCards`/`buildEnergieCards`/`buildMonstreCards`
+  (`expandByQuantite` commun) — chaque carte reçoit son `back` (fichier image du dos)
+  calculé une fois à la construction, AVANT le mélange (`shuffle` mélange l'ordre de
+  pioche, jamais le dos déjà assigné à chaque carte).
+
+**Table de correspondance id → données du catalogue (`cardCatalogRef`)** — pièce
+centrale de toute cette fonctionnalité : chaque transition d'état (piocher/poser/
+défausser/équiper) reconstruit un objet minimal (`{id, type, row, col, ...}`), **jamais**
+les champs du catalogue (nom/effet/élément/etc.) — confirmé en lisant `drawFromPile` :
+annuler une pioche remet la carte dans `pile.cards` sous la forme `{id:cardId}` seul, dos
+et tout le reste perdus. Threader `fichier`/`nom`/`effet`/... à travers chacun de ces
+~15 sites de reconstruction aurait été fragile (un seul oublié = donnée perdue). Solution
+retenue : une table `cardCatalogRef.current` (`useRef`, PAS un state React), remplie
+**une seule fois** à la création de chaque pioche (`registerDeckCards`, appelée dans
+l'initialiseur de `useState(piles)` et dans `resetBoard`), qui associe chaque `id` de
+carte à ses données complètes (`{kind, ...champs du catalogue}`) — persiste tant que la
+partie tourne, jamais mutée après coup. **Chaque site de rendu d'une `CardFace` résout
+`data` via `cardCatalogRef.current[cetIdLà]`** plutôt que de faire confiance à l'objet
+d'état qui le porte. Persistée dans le même blob `localStorage` que `players`/`piles`/etc.
+(clé `cardCatalog`) pour survivre à un rechargement de page — sans ça, un id chargé depuis
+une session sauvegardée ne retrouverait plus ses données après un `F5`. Pas incluse dans
+l'historique undo/redo : elle ne fait que grandir (nouvelles pioches au Reset), donc
+revenir en arrière sur le reste de l'état ne rend jamais orphelin un id qui y est encore.
+**Cas particulier du "tenir" (`heldTile`/`heldItem`)** : au moment où une carte est
+piochée, elle est retirée de `pile.cards` — la case/pioche qui l'affichait "en main"
+(`PileStack`, voir plus bas) ne peut donc plus la retrouver via `pile.cards`, seul le
+`cardId` transite (`heldTile.cardId`/`heldItem.cardId`) ; `holding` (objet passé à
+`PileGroup`) gagne un champ `cardId` en plus de `pileId` pour ça, relayé à `PileStack`
+sous le nom `heldCardId`.
+
+**Dos et faces des cartes** (`cardAssets.js` + `CardFace`/`CardFront` dans
+`PlateauPage.js`) — mapping donné par Gus :
+- **Cases** : dos toujours `Case_Map_Back.jpg` (identique pour toutes, seule la face
+  change) ; face = l'image du fichier de la ligne de détails correspondante, affichée
+  telle quelle (`object-fit:cover`), **aucun texte ajouté par-dessus**.
+- **Cases de départ** : face ET dos = `Case_de_Depart.png` (même image des deux côtés,
+  "recto verso identique") — codé en dur pour `kind:'depart'`, aucune donnée par carte
+  nécessaire.
+- **Sorts** : dos = `Sort_Back_<Élément>.jpg`, SAUF Ombre — pas de dos dédié (et jamais
+  `Sort_Back_Multi.jpg` non plus, exclu explicitement par Gus) : `sortBackFor` fait
+  alterner Feu→Eau→Terre→Air→Feu... dans l'ordre du catalogue (`ombreIndex`, incrémenté
+  uniquement pour les sorts Ombre, AVANT le mélange du deck — l'ordre "physique" de
+  pioche est aléatoire, mais l'assignation du dos reste stable par position catalogue).
+- **Énergies** : dos = `Energy_Back_<Élément>.jpg`, SAUF Ombre ET Multi qui partagent
+  tous les deux `Energy_Back_Multi.jpg` (`energyBackFor`).
+- **Monstres** : dos = `Monstre_<N>.jpg` où `N` = le numéro du niveau (`Lvl 2` →
+  `Monstre_2.jpg`), pas l'élément (les monstres n'en ont pas) — `monsterBackFor`.
+- **Faces des sorts/énergies/monstres** : pas d'image de face fournie, texte composité
+  par-dessus un fond blanc uni (`CardFront`, un seul composant à 3 branches par `kind`) :
+  - Sort : 🔮 élément en haut-gauche, nom en haut-centre, `effet` au centre, `cout`+
+    `limite` en bas (ex: "1 PA, 1x tour").
+  - Énergie : élément en haut-gauche, `effet` centré-haut, et en bas le **bonus naturel
+    fixe par élément** (pas une donnée du catalogue, une constante `ENERGY_BONUS` dans
+    `cardAssets.js`) : Multi/Ombre/Eau/Air → "+1 PA", Feu/Terre → "+1 PV".
+  - Monstre : niveau en haut-gauche, nom en haut-centre, **`LR[lvl]`** (config.js, déjà
+    utilisé ailleurs pour "1 énergie / -2 au dé" etc. — c'est l'exemple que Gus a donné
+    lui-même dans sa demande) centré au milieu, `effet` ("Victoire : ...") en bas.
+  - Toutes les tailles de police sont dérivées de `size` (la taille réelle de la carte à
+    l'écran, de 22px sur le plateau à 140px en grand) via un facteur `base = size/140` —
+    le texte rétrécit avec la carte mais **ne change jamais ses dimensions** (`overflow:
+    hidden`, `position:absolute inset:0`), quelle que soit la longueur du texte — exigence
+    explicite de Gus ("fait bien attention que le texte que tu ajoutes ne déplace pas la
+    taille de la carte"). Repli générique (glyphe `+`/🪄/🔥/👹 d'origine) si `data` est
+    vide (carte inconnue de `cardCatalogRef`, ex: session sauvegardée avant cette
+    fonctionnalité).
 
 ### Cases de départ + marqueurs + extension du header — implémenté (dernier ajout, "on a fini la version locale !")
 Dernière couche avant la fin de la version locale hotseat : un petit bouton `+`/`−` en
@@ -1234,9 +1306,10 @@ séparé par ligne. Accessible de deux endroits qui partagent exactement la mêm
 un tap sur un item déjà équipé dans son propre pied de page, ou un clic sur une carte
 listée dans la fenêtre Vision `visionPlayerId`.
 
-**Dos/face des cartes sort/énergie** : `FRONT_GLYPH` (`{case:'+', sort:'🪄',
-energie:'🔥'}`) — le dos garde le même traitement sombre uni + bordure d'accent
-colorée pour les 3 types (`BACK_ACCENT`, inchangé), seul le glyphe de la face change.
+**Dos/face des cartes sort/énergie** : remplacé depuis par le vrai système d'assets —
+voir "Pioches dynamiques depuis le catalogue" (dos = vraie image par élément/niveau,
+face = texte composité par `CardFront`). `FRONT_GLYPH`/`BACK_ACCENT` ne servent plus que
+de repli si une carte est inconnue de `cardCatalogRef`.
 
 **Fenêtre `visionPlayerId` (sidebar + mode Vision) — mise en page revue** : nom + cœur
 de PV en HAUT (une rangée horizontale), sorts/énergies équipés EN DESSOUS, disposés
@@ -1566,8 +1639,8 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      (pioches/défausses dédiées dans le header, pose/déplacement par appui long sur le
      plateau, équipement dans une nouvelle zone du pied de page avec emplacement
      "sort de nature", réordonnancement par glisser, fenêtre agrandie avec `‹`/`›`).
-     Reste : brancher la vraie pioche dynamique depuis `data.sorts`/`data.energies`, et
-     le contenu réel des cartes (toujours un simple "+" placeholder). Le contenu détaillé
+     Pioche dynamique depuis le catalogue et contenu réel des cartes (texte composité) :
+     implémentés, voir "Pioches dynamiques depuis le catalogue". Le contenu détaillé
      du mode Vision pour les cases/tuiles (Couche 4) : pas encore commencé. Toutes les
      actions d'items qui touchent l'état persisté (poser/déplacer/défausser/ranger dans
      une pioche/équiper/réordonner) passent par `commitBoard` comme les tuiles, donc
@@ -1576,10 +1649,10 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
    - **Cases de départ + marqueurs (voir "Cases de départ + marqueurs + extension du
      header" plus haut) : implémentés.** Gus a signalé cet ajout comme le dernier avant
      de considérer la version locale hotseat terminée ("on a fini la version locale !").
-     Reste, non-bloquant : brancher les vraies pioches dynamiques depuis le catalogue
-     (`data.cases`/`data.sorts`/`data.energies`, voir "Pioches dynamiques depuis le
-     catalogue"), le contenu réel des cartes (toujours des placeholders), et le contenu
-     détaillé du mode Vision pour les cases/tuiles (Couche 4, jamais commencé).
+     Pioches dynamiques depuis le catalogue et vrai contenu des cartes (assets uploadés
+     par Gus, back par élément/niveau, face texte-composité) : implémentés, voir "Pioches
+     dynamiques depuis le catalogue". Reste, non-bloquant : le contenu détaillé du mode
+     Vision pour les cases/tuiles (Couche 4, jamais commencé).
 2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
    JS open source pour jeux de plateau tour par tour, intégrée directement dans
    l'app, pas un service externe) pour la gestion des tours et la synchronisation

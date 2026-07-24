@@ -158,7 +158,7 @@ export function App() {
     canUndo, canRedo, onUndo:undo, onRedo:redo, onBack:()=>setPage('home')
   });
 
-  if (page === 'plateau') return h(PlateauPage, {onBack:()=>setPage('home')});
+  if (page === 'plateau') return h(PlateauPage, {onBack:()=>setPage('home'), data});
 
   return h(HomePage, {
     data, editMode, setEditMode, saving, saveErr,

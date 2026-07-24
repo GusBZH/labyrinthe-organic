@@ -1,9 +1,11 @@
 import { h, useState, useEffect, useLayoutEffect, useRef } from "../react.js";
 import { uid, useVisionFlash } from "../utils.js";
+import { EC, LR } from "../config.js";
 import { EditText } from "../components/EditText.js";
 import { AddBtn } from "../components/AddBtn.js";
 import { Popup } from "../components/Popup.js";
 import { UndoRedo } from "../components/UndoRedo.js";
+import { sortBackFor, energyBackFor, monsterBackFor, ENERGY_BONUS, CASE_BACK_IMG, DEPART_IMG } from "../data/cardAssets.js";
 
 // Live game session (grid, players, PV, dice, tiles) — a "confort visuel"
 // only, never an authoritative rules arbiter (see CLAUDE.md). Kept out of
@@ -204,30 +206,118 @@ function shuffle(arr){
   return a;
 }
 
-// Placeholder deck: 100 identical cards for now, so the draw/place/rotate/
-// split/shuffle mechanics can be built and tested before wiring in the real
-// thing — reading data.cases/data.sorts/data.energies (only "Validé"
-// entries, one card per `quantite`) so editing the catalog and starting a
-// new game is all it takes to change what's in the deck. Each deck gets its
-// own pile.type ('case'/'sort'/'energie') so piles can only ever merge
-// same-type — that's also what keeps their défausses separate (see
-// `discardCards`, each entry tagged with the same `type`).
-function makeDeck(type, count=100){
-  return shuffle(Array.from({length:count}, () => ({id:uid()})));
+// Real decks read straight from the catalog (data.cases/sorts/energies/
+// monstres) — only "Validé" entries, one physical card per unit of
+// `quantite` — so editing the catalog and starting a new game (Reset) is
+// all it takes to change what's in the deck. Replaces an earlier 100-
+// identical-placeholder-cards-per-type version now that Gus has uploaded
+// real card art and a text-layout spec for every type (see CLAUDE.md
+// "Assets — cartes réelles"). Each deck still gets its own pile.type
+// ('case'/'sort'/'energie'/'monstre'/'depart') so piles can only ever merge
+// same-type — unchanged from before.
+function expandByQuantite(items){
+  const out = [];
+  (items || []).filter(i => i.statut === 'Validé').forEach(item => {
+    const n = item.quantite || 1;
+    for (let i = 0; i < n; i++) out.push(item);
+  });
+  return out;
 }
 
-// Cases de départ: a 5th tile deck, mechanically identical to 'case' (same
-// draw/place/rotate/flip/discard machinery via placedTiles' own `type`
-// field — see heldTile/discardTile/CardFace below) but its OWN distinct
-// pile.type so it can never merge with the regular case deck (mergeArmedInto
-// already refuses to merge two piles of different types — this falls out
-// for free once départ has a type of its own, no extra check needed). Only
-// 10 cards ("y en a 10"), not the 100-card placeholder every other deck uses.
-function makeInitialPiles(){
+// Cases: one physical card per {fichier, quantite} détail row (see
+// DetailsEditor.js) — NOT per top-level catalog entry, since a single
+// bloc like "Case Portail" covers several visually distinct tile files.
+// The "Case de Départ" détail row (its file is always exactly
+// Case_de_Depart.png, Gus's own naming) is deliberately skipped here — it
+// feeds the separate 'depart' pile instead (see buildDepartCards), never
+// the regular case deck ("pas case map classique").
+function buildCaseCards(cases){
+  const cards = [];
+  (cases || []).filter(c => c.statut === 'Validé').forEach(item => {
+    const details = (item.details || []).filter(d => d.fichier !== 'Case_de_Depart.png');
+    if (details.length === 0) {
+      // No détails filled in for this bloc yet (or it's an old session
+      // predating the feature) — still deal `quantite` physical cards, just
+      // without a specific front image (CardFront's generic fallback glyph
+      // covers it), rather than silently dropping the whole bloc from the deck.
+      const n = item.quantite || 1;
+      for (let i = 0; i < n; i++) cards.push({id:uid()});
+      return;
+    }
+    details.forEach(d => {
+      const n = d.quantite || 1;
+      for (let i = 0; i < n; i++) cards.push({id:uid(), fichier:d.fichier});
+    });
+  });
+  return shuffle(cards);
+}
+
+// Cases de départ: mechanically a tile deck like 'case' (see heldTile/
+// discardTile/CardFace) but its own pile.type, and both faces show the
+// same image (Case_de_Depart.png, "recto verso identique") — no per-card
+// data needed at all, CardFace hardcodes it for kind:'depart'. Count comes
+// from the same "Case de Départ" détail row's quantite (falls back to 10,
+// matching the original placeholder count, if that row is ever missing).
+function buildDepartCards(cases){
+  let n = 10;
+  (cases || []).forEach(item => {
+    const d = (item.details || []).find(d => d.fichier === 'Case_de_Depart.png');
+    if (d) n = d.quantite || 1;
+  });
+  return shuffle(Array.from({length:n}, () => ({id:uid()})));
+}
+
+// Sorts: back image resolved per card at build time (see sortBackFor) — an
+// Ombre sort's back cycles Feu/Eau/Terre/Air in CATALOG order, so the index
+// must advance here, before the deck gets shuffled below (shuffling only
+// randomizes draw order, never re-assigns backs already baked into each
+// card object).
+function buildSortCards(sorts){
+  let ombreIndex = 0;
+  const cards = expandByQuantite(sorts).map(item => {
+    const back = sortBackFor(item.element, item.element === 'Ombre' ? ombreIndex++ : 0);
+    return {id:uid(), nom:item.nom, effet:item.effet, cout:item.cout, limite:item.limite, element:item.element, back};
+  });
+  return shuffle(cards);
+}
+
+function buildEnergieCards(energies){
+  const cards = expandByQuantite(energies).map(item => ({
+    id:uid(), nom:item.nom, effet:item.effet, element:item.element, back:energyBackFor(item.element)
+  }));
+  return shuffle(cards);
+}
+
+function buildMonstreCards(monstres){
+  const cards = expandByQuantite(monstres).map(item => ({
+    id:uid(), nom:item.nom, lvl:item.lvl, effet:item.effet, notes:item.notes, back:monsterBackFor(item.lvl)
+  }));
+  return shuffle(cards);
+}
+
+function makeInitialPiles(catalog){
+  const c = catalog || {};
   return [
-    ...['case', 'sort', 'energie', 'monstre'].map(type => ({id:uid(), type, cards:makeDeck(type)})),
-    {id:uid(), type:'depart', cards:makeDeck('depart', 10)}
+    {id:uid(), type:'case', cards:buildCaseCards(c.cases)},
+    {id:uid(), type:'sort', cards:buildSortCards(c.sorts)},
+    {id:uid(), type:'energie', cards:buildEnergieCards(c.energies)},
+    {id:uid(), type:'monstre', cards:buildMonstreCards(c.monstres)},
+    {id:uid(), type:'depart', cards:buildDepartCards(c.cases)}
   ];
+}
+
+// Every deck-transition site downstream (draw/place/discard/equip) rebuilds
+// a bare {id, type, row, col, ...} object rather than carrying a card's
+// extra catalog fields along — the id is the only thing guaranteed to
+// survive intact everywhere (confirmed by reading through drawFromPile's
+// own "put it back" branch, which already collapses a cancelled draw down
+// to {id}). So rather than threading fichier/nom/effet/etc. through every
+// one of those reconstruction sites (fragile, easy to miss one), every
+// card's full data is captured ONCE here, keyed by id, in a table that
+// outlives the card's journey through pile → held → placed/board/equipped
+// → discard. See cardCatalogRef in PlateauPage for where this is stored.
+function registerDeckCards(piles, table){
+  piles.forEach(p => p.cards.forEach(c => { table[c.id] = {kind:p.type, ...c}; }));
 }
 
 // Back-of-card accent color per deck type — the only visual difference
@@ -241,22 +331,91 @@ const BACK_ACCENT = {case:'#333', sort:'#8a6d1f', energie:'#1f6d7a', monstre:'#8
 // real card art exists.
 const FRONT_GLYPH = {case:'+', sort:'🪄', energie:'🔥', monstre:'👹', depart:'D'};
 
-// A real card square: black back (accent border by deck type), white front
-// with a glyph by type, flipped via a simple rotateY. Reused for the pile
-// stack, the held tile/item, the défausses (always shown face-up), and
-// tiles/items on the board.
-function CardFace({showBack, size, kind='case'}) {
+// Text-composited front for sorts/énergies/monstres (cases/départ use a
+// real front image instead — see CardFace). Layout positions come straight
+// from Gus's spec (CLAUDE.md "Assets — cartes réelles"): all font sizes are
+// derived from `size` (relative to the 140px "enlarged" reference most
+// legible everywhere it's actually read) so the text NEVER changes the
+// card's own box dimensions — it just gets tiny (and unreadable, same as a
+// real miniature board token) at the small header/board sizes, matching
+// how the pile/board only ever needs the BACK until a card is drawn.
+function CardFront({kind, data, size}) {
+  data = data || {};
+  const elEm = data.element ? (EC[data.element]?.em || '') : '';
+  const base = size / 140;
+  const pad = Math.max(2, size * 0.06);
+  const nameSize = Math.max(6, 11 * base);
+  const bodySize = Math.max(5, 9 * base);
+  const smallSize = Math.max(5, 8 * base);
+  const wrapStyle = {
+    position:'absolute', inset:0, padding:pad, boxSizing:'border-box',
+    display:'flex', flexDirection:'column', color:'#111', overflow:'hidden'
+  };
+  const cornerStyle = {position:'absolute', top:pad, left:pad, fontSize:Math.max(6, 12*base), lineHeight:1, fontWeight:700};
+
+  if (kind === 'sort') {
+    return h('div', {style:wrapStyle},
+      elEm && h('div', {style:cornerStyle}, elEm),
+      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginBottom:pad*0.5}}, data.nom || ''),
+      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
+      (data.cout || data.limite) && h('div', {style:{textAlign:'center', fontSize:smallSize, color:'#555'}}, [data.cout, data.limite].filter(Boolean).join(', '))
+    );
+  }
+  if (kind === 'energie') {
+    return h('div', {style:wrapStyle},
+      elEm && h('div', {style:cornerStyle}, elEm),
+      h('div', {style:{flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:size*0.2, textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
+      h('div', {style:{textAlign:'center', fontSize:Math.max(6, 10*base), fontWeight:700, color:'#175'}}, ENERGY_BONUS[data.element] || '')
+    );
+  }
+  if (kind === 'monstre') {
+    return h('div', {style:wrapStyle},
+      h('div', {style:cornerStyle}, (data.lvl || '').replace('Lvl ', 'L')),
+      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15}}, data.nom || ''),
+      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:smallSize, color:'#666', lineHeight:1.25}}, LR[data.lvl] || ''),
+      h('div', {style:{textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || '')
+    );
+  }
+  // Generic fallback: an unrecognized kind, or a case/départ card with no
+  // image data yet (e.g. a session saved before this feature existed) —
+  // same placeholder glyph the whole app used before real card art.
+  return h('div', {style:{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center'}},
+    h('div', {style:{fontSize:size*0.5, color:'#111', fontWeight:900, lineHeight:1}}, FRONT_GLYPH[kind] || FRONT_GLYPH.case)
+  );
+}
+
+// A real card square: back is always a real image now (Case_Map_Back.jpg /
+// Case_de_Depart.png / the per-card `data.back` sort-énergie-monstre file
+// picked at deck-build time — see cardAssets.js), flipped via a simple
+// rotateY. Front is a real image too for cases/départ (data.fichier, or the
+// same départ image both faces), and a text overlay (CardFront) for sorts/
+// énergies/monstres — their "real card art" is just a plain white face with
+// the catalog's own text on it, no template asset was given for those.
+// Reused for the pile stack, the held tile/item, the défausses (always
+// shown face-up), and tiles/items on the board.
+function CardFace({showBack, size, kind='case', data}) {
+  data = data || {};
+  const backSrc = kind === 'case' ? CASE_BACK_IMG
+    : kind === 'depart' ? DEPART_IMG
+    : data.back ? `assets/${data.back}` : null;
+  const frontSrc = kind === 'case' ? (data.fichier ? `assets/${data.fichier}` : null)
+    : kind === 'depart' ? DEPART_IMG
+    : null;
+
   return h('div', {style:{width:size, height:size, position:'relative', perspective:600}},
     h('div', {style:{
       position:'absolute', inset:0, transformStyle:'preserve-3d',
       transition:'transform .3s', transform: showBack ? 'rotateY(0deg)' : 'rotateY(180deg)'
     }},
-      h('div', {style:{position:'absolute', inset:0, borderRadius:6, background:'#111',
-        border:`1px solid ${BACK_ACCENT[kind] || BACK_ACCENT.case}`, backfaceVisibility:'hidden'}}),
-      h('div', {style:{position:'absolute', inset:0, borderRadius:6, background:'#fff',
-        border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)',
-        display:'flex', alignItems:'center', justifyContent:'center'}},
-        h('div', {style:{fontSize:size*0.5, color:'#111', fontWeight:900, lineHeight:1}}, FRONT_GLYPH[kind] || FRONT_GLYPH.case)
+      h('div', {style:{position:'absolute', inset:0, borderRadius:6, overflow:'hidden', background:'#111',
+        border:`1px solid ${BACK_ACCENT[kind] || BACK_ACCENT.case}`, backfaceVisibility:'hidden'}},
+        backSrc && h('img', {src:backSrc, draggable:false, style:{width:'100%', height:'100%', objectFit:'cover', display:'block'}})
+      ),
+      h('div', {style:{position:'absolute', inset:0, borderRadius:6, overflow:'hidden', background:'#fff',
+        border:'1px solid #ccc', backfaceVisibility:'hidden', transform:'rotateY(180deg)'}},
+        frontSrc
+          ? h('img', {src:frontSrc, draggable:false, style:{width:'100%', height:'100%', objectFit:'cover', display:'block'}})
+          : h(CardFront, {kind, data, size})
       )
     )
   );
@@ -270,7 +429,7 @@ function CardFace({showBack, size, kind='case'}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
@@ -341,7 +500,16 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
       // perspective stack: two offset squares behind the top card
       h('div', {style:{position:'absolute', left:5, top:5, width:cardSize, height:cardSize, borderRadius:6, background:'#151515', border:'1px solid #333'}}),
       h('div', {style:{position:'absolute', left:2, top:2, width:cardSize, height:cardSize, borderRadius:6, background:'#1a1a1a', border:'1px solid #383838'}}),
-      h('div', {style:{position:'absolute', left:0, top:0}}, h(CardFace, {showBack: !holding, size:cardSize, kind:pile.type})),
+      h('div', {style:{position:'absolute', left:0, top:0}}, h(CardFace, {
+        showBack: !holding, size:cardSize, kind:pile.type,
+        // Face-down: the actual top card of this pile (its specific back —
+        // an Ombre sort's back varies card-to-card, see sortBackFor).
+        // Holding: that same card was already removed from pile.cards by
+        // drawFromPile, so its id has to come from the caller instead
+        // (heldCardId) — it's now shown "in hand" via this very square's
+        // front face rather than a separate floating preview.
+        data: catalog && catalog[holding ? heldCardId : (pile.cards.length ? pile.cards[pile.cards.length-1].id : null)]
+      })),
       h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, pile.cards.length)
     ),
@@ -391,7 +559,7 @@ function PileStack({pile, holding, armedId, armedIdRef, hasSelectedCard, disable
 // pioche afterward reshuffles the whole défausse into it, letting you
 // recycle discarded cards back into circulation without picking them up
 // one at a time. Mirrors PileStack's own long-press-to-arm structure.
-function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSelectedTile, disabled, visionMode, boxSize=56, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, onOpenVisionPeek}) {
+function DiscardSlot({cards, type='case', catalog, selectedId, armedId, armedIdRef, hasSelectedTile, disabled, visionMode, boxSize=56, onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, onOpenVisionPeek}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
@@ -457,7 +625,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
         transition:'box-shadow .2s, outline-color .2s'
       }
     },
-      topCard && h(CardFace, {showBack:false, size:cardSize, kind:type}),
+      topCard && h(CardFace, {showBack:false, size:cardSize, kind:type, data: catalog && catalog[topCard.id]}),
       cards.length > 0 && h('div', {style:{position:'absolute', bottom:-4, right:-4, fontSize:9, fontWeight:700, color:'#fff',
         background:'rgba(0,0,0,.7)', borderRadius:8, padding:'1px 5px', border:'1px solid #444'}}, cards.length)
     ),
@@ -485,7 +653,7 @@ function DiscardSlot({cards, type='case', selectedId, armedId, armedIdRef, hasSe
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
   // `allowPileDraw` (case piles only, see its own comment where it's
@@ -511,7 +679,7 @@ function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedI
       // as many columns as there are piles (capped at 2) fixes both.
       ? h('div', {style:{display:'grid', gridTemplateColumns:`repeat(${Math.min(2, groupPiles.length)}, ${boxSize}px)`, gap:5}},
           groupPiles.map(p => h(PileStack, {
-            key:p.id, pile:p, boxSize, holding: holding.pileId === p.id,
+            key:p.id, pile:p, boxSize, holding: holding.pileId === p.id, heldCardId:holding.cardId, catalog,
             armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:pileArmBlocked,
             onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
           }))
@@ -522,7 +690,7 @@ function PileGroup({type, piles, discardCards, boxSize, holding, armedId, armedI
     // outright instead (see discardTile's own comment). Everything else
     // about the deck (draw/place/rotate/flip/Dessus-Dessous) stays generic.
     !hideDiscard && h(DiscardSlot, {
-      cards:groupDiscard, type, boxSize, selectedId:holding.discardId,
+      cards:groupDiscard, type, catalog, boxSize, selectedId:holding.discardId,
       armedId, armedIdRef, hasSelectedTile, disabled, visionMode,
       onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect,
       onOpenVisionPeek: () => onOpenDiscardPeek(type)
@@ -650,7 +818,7 @@ function useFooterItemGestures(items, onReorder, onSelectForMove){
 // the grid's tile/monster/item controls, a footer card has no grid
 // coordinates to anchor a corner-of-the-cell button to, so the badge sits
 // directly on the card itself instead).
-function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMove, onOpenEnlarge, onDiscard}) {
+function FooterItemRow({items, kind, size, catalog, selectedId, onReorder, onSelectForMove, onOpenEnlarge, onDiscard}) {
   const g = useFooterItemGestures(items, onReorder, onSelectForMove);
   return h('div', {ref:g.listElRef, style:{display:'flex', gap:4}},
     g.display.map((it, i) => h('div', {
@@ -663,7 +831,7 @@ function FooterItemRow({items, kind, size, selectedId, onReorder, onSelectForMov
         boxShadow: selectedId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
       }
     },
-      h(CardFace, {showBack:false, size, kind}),
+      h(CardFace, {showBack:false, size, kind, data: catalog && catalog[it.id]}),
       selectedId === it.id && onDiscard && h('div', {
         className:'footer-item-discard-btn',
         onClick: e => { e.stopPropagation(); onDiscard(); },
@@ -818,8 +986,17 @@ function MarkerButton({type, holding, disabled, onClick}){
   }, h(MarkerIcon, {type, size:22}));
 }
 
-export function PlateauPage({onBack}) {
+export function PlateauPage({onBack, data}) {
   const saved = loadSession();
+  // id -> {kind, ...catalog fields}, see registerDeckCards' own comment for
+  // why this table (rather than the state objects themselves) is the
+  // source of truth CardFace reads from everywhere. Persisted into the same
+  // localStorage blob as the rest of the session (below) so it survives a
+  // reload — piles/placedTiles/etc. already do, and their card ids need to
+  // keep resolving after one. Not part of the undo/redo snapshot: it only
+  // ever grows (new decks on Reset), so reverting the OTHER state to an
+  // earlier point never orphans an id that's still looked up here.
+  const cardCatalogRef = useRef(saved?.cardCatalog || {});
   const [players, setPlayers] = useState(saved?.players || []);
   const [currentIndex, setCurrentIndex] = useState(saved?.currentIndex || 0);
   const [selectedId, setSelectedId] = useState(null);
@@ -840,7 +1017,12 @@ export function PlateauPage({onBack}) {
   // order) or from tapping a token on the grid in Vision mode (no ‹/› —
   // "en mode vision et qu'on clique sur un joueur pas besoin de <>").
   const [visionPlayerFromSidebar, setVisionPlayerFromSidebar] = useState(false);
-  const [piles, setPiles] = useState(saved?.piles || makeInitialPiles());
+  const [piles, setPiles] = useState(() => {
+    if (saved?.piles) return saved.piles;
+    const fresh = makeInitialPiles(data);
+    registerDeckCards(fresh, cardCatalogRef.current);
+    return fresh;
+  });
   const [discardCards, setDiscardCards] = useState(saved?.discardCards || []);
   const [placedTiles, setPlacedTiles] = useState(saved?.placedTiles || []);
   // Monstres traités comme des "joueurs" (CLAUDE.md) : leur propre pioche/
@@ -1012,7 +1194,7 @@ export function PlateauPage({onBack}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers})); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, cardCatalog:cardCatalogRef.current})); } catch {}
   }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
@@ -2344,8 +2526,14 @@ export function PlateauPage({onBack}) {
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
     centerView();
+    // Old cards' ids are gone for good once Reset wipes piles/placedTiles/
+    // discardCards/etc. — start the lookup table fresh too rather than
+    // letting it grow unboundedly across repeated resets in a long session.
+    const freshPiles = makeInitialPiles(data);
+    cardCatalogRef.current = {};
+    registerDeckCards(freshPiles, cardCatalogRef.current);
     commitBoard({
-      players: [], piles: makeInitialPiles(),
+      players: [], piles: freshPiles,
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
       boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
     });
@@ -2566,8 +2754,8 @@ export function PlateauPage({onBack}) {
       // exactly like the sidebar's own squareSize floor+scroll.
       h('div', {style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto'}},
         h(PileGroup, {
-          type:'case', piles, discardCards, boxSize:headerBoxSize,
-          holding:{pileId: heldTile ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
+          type:'case', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
+          holding:{pileId: heldTile ? heldTile.fromPileId : null, cardId: heldTile ? heldTile.cardId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('case'), hasSelectedTile:hasSelectedForDiscardOfType('case'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
@@ -2587,8 +2775,8 @@ export function PlateauPage({onBack}) {
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
-          type:'sort', piles, discardCards, boxSize:headerBoxSize,
-          holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          type:'sort', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'sort' ? heldItem.fromPileId : null, cardId: heldItem && heldItem.itemType === 'sort' ? heldItem.cardId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('sort'), hasSelectedTile:hasSelectedForDiscardOfType('sort'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
@@ -2599,8 +2787,8 @@ export function PlateauPage({onBack}) {
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
-          type:'energie', piles, discardCards, boxSize:headerBoxSize,
-          holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          type:'energie', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'energie' ? heldItem.fromPileId : null, cardId: heldItem && heldItem.itemType === 'energie' ? heldItem.cardId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('energie'), hasSelectedTile:hasSelectedForDiscardOfType('energie'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
@@ -2617,8 +2805,8 @@ export function PlateauPage({onBack}) {
         // est spécifique, exactement comme `discardSelectedTile`/
         // `discardSelectedItem` le sont déjà pour les cases/sorts-énergies.
         h(PileGroup, {
-          type:'monstre', piles, discardCards, boxSize:headerBoxSize,
-          holding:{pileId: heldItem && heldItem.itemType === 'monstre' ? heldItem.fromPileId : null, discardId:selectedDiscardCardId},
+          type:'monstre', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
+          holding:{pileId: heldItem && heldItem.itemType === 'monstre' ? heldItem.fromPileId : null, cardId: heldItem && heldItem.itemType === 'monstre' ? heldItem.cardId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('monstre'), hasSelectedTile:hasSelectedForDiscardOfType('monstre'), disabled:pilesDisabled,
           visionMode, onOpenDiscardPeek:openDiscardPeek,
@@ -2647,8 +2835,8 @@ export function PlateauPage({onBack}) {
         }
       },
         h(PileGroup, {
-          type:'depart', piles, discardCards, boxSize:headerBoxSize, hideDiscard:true,
-          holding:{pileId: heldTile && heldTile.tileType === 'depart' ? heldTile.fromPileId : null, discardId:selectedDiscardCardId},
+          type:'depart', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize, hideDiscard:true,
+          holding:{pileId: heldTile && heldTile.tileType === 'depart' ? heldTile.fromPileId : null, cardId: heldTile && heldTile.tileType === 'depart' ? heldTile.cardId : null, discardId:selectedDiscardCardId},
           armedId:armedPileId, armedIdRef:armedPileIdRef,
           hasSelectedCard:hasSelectedCardOfType('depart'), hasSelectedTile:hasSelectedForDiscardOfType('depart'), disabled:pilesDisabled,
           // Same "deselect + draw the next one in one tap" passthrough as
@@ -2768,7 +2956,7 @@ export function PlateauPage({onBack}) {
             transform:`rotate(${t.rotation}deg)`, pointerEvents:'none',
             boxShadow: selectedTileId === t.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : 'none'
           }
-        }, h(CardFace, {showBack:t.flipped, size:CELL-4, kind:t.type || 'case'}))),
+        }, h(CardFace, {showBack:t.flipped, size:CELL-4, kind:t.type || 'case', data:cardCatalogRef.current[t.id]}))),
         // Items render ABOVE tiles, BELOW players — plain DOM order (no
         // z-index needed) already gives that: this block sits between the
         // placedTiles block above and the player-tokens block below.
@@ -2789,7 +2977,7 @@ export function PlateauPage({onBack}) {
               borderRadius:5, opacity:boardTokenOpacity,
               boxShadow: selectedItemId === it.id ? '0 0 0 2px #fff, 0 0 8px 2px #4fa3ff' : 'none'
             }
-          }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type}));
+          }, h(CardFace, {showBack:false, size:ITEM_BOARD_SIZE, kind:it.type, data:cardCatalogRef.current[it.id]}));
         })),
         // Players AND monsters, from the same cellGroups clustering (see its
         // own comment) — a monster is visually distinguishable (dark
@@ -3056,7 +3244,7 @@ export function PlateauPage({onBack}) {
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
-          h(CardFace, {showBack:false, size:140, kind: item.type === 'energie' ? 'energie' : 'sort'}),
+          h(CardFace, {showBack:false, size:140, kind: item.type === 'energie' ? 'energie' : 'sort', data:cardCatalogRef.current[item.id]}),
           visionPeekItem.items.length > 1 && h('div', {
             onClick:()=>shiftVisionPeek(-1),
             style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
@@ -3077,13 +3265,14 @@ export function PlateauPage({onBack}) {
     // in-grid monster controls). ‹/› cycle through every OTHER monster
     // sharing that monster's own cell.
     enlargedMonster && (() => {
-      if (!enlargedMonster.monsterIds[enlargedMonster.index]) return null;
+      const monsterId = enlargedMonster.monsterIds[enlargedMonster.index];
+      if (!monsterId) return null;
       return h('div', {
         onClick:()=>setEnlargedMonster(null),
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
-          h(CardFace, {showBack:false, size:140, kind:'monstre'}),
+          h(CardFace, {showBack:false, size:140, kind:'monstre', data:cardCatalogRef.current[monsterId]}),
           enlargedMonster.monsterIds.length > 1 && h('div', {
             onClick:()=>shiftEnlargedMonster(-1),
             style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
@@ -3113,7 +3302,7 @@ export function PlateauPage({onBack}) {
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
-          h(CardFace, {showBack:false, size:140, kind:visionDiscardPeek.type}),
+          h(CardFace, {showBack:false, size:140, kind:visionDiscardPeek.type, data:cardCatalogRef.current[card.id]}),
           visionDiscardPeek.index > 0 && h('div', {
             onClick:()=>shiftDiscardPeek(-1),
             style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
@@ -3188,7 +3377,7 @@ export function PlateauPage({onBack}) {
                     display:'flex', justifyContent:'center', alignItems:'center',
                     border:'1px dashed #444', borderRadius:6, padding:FOOTER_SLOT_PAD}},
                     h(FooterItemRow, {
-                      items: p.natureSort ? [p.natureSort] : [], kind:'sort', size:VISION_ITEM_SIZE, selectedId:null,
+                      items: p.natureSort ? [p.natureSort] : [], kind:'sort', size:VISION_ITEM_SIZE, catalog:cardCatalogRef.current, selectedId:null,
                       onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'nature', it.id)
                     })
                   ),
@@ -3197,7 +3386,7 @@ export function PlateauPage({onBack}) {
                       display:'flex', alignItems:'center', overflowX:'auto',
                       border:'1px dashed #444', borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
                       h(FooterItemRow, {
-                        items: p.sorts || [], kind:'sort', size:VISION_ITEM_SIZE, selectedId:null,
+                        items: p.sorts || [], kind:'sort', size:VISION_ITEM_SIZE, catalog:cardCatalogRef.current, selectedId:null,
                         onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'sort', it.id)
                       })
                     ),
@@ -3205,7 +3394,7 @@ export function PlateauPage({onBack}) {
                       display:'flex', alignItems:'center', overflowX:'auto',
                       border:'1px dashed #444', borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
                       h(FooterItemRow, {
-                        items: p.energies || [], kind:'energie', size:VISION_ITEM_SIZE, selectedId:null,
+                        items: p.energies || [], kind:'energie', size:VISION_ITEM_SIZE, catalog:cardCatalogRef.current, selectedId:null,
                         onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'energie', it.id)
                       })
                     )
@@ -3275,7 +3464,7 @@ export function PlateauPage({onBack}) {
           display:'flex', justifyContent:'center', alignItems:'center',
           border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:FOOTER_SLOT_PAD}},
           h(FooterItemRow, {
-            items: current.natureSort ? [current.natureSort] : [], kind:'sort', size:FOOTER_ITEM_SIZE,
+            items: current.natureSort ? [current.natureSort] : [], kind:'sort', size:FOOTER_ITEM_SIZE, catalog:cardCatalogRef.current,
             selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='nature' ? selectedFooterItem.cardId : null,
             onReorder:()=>{}, // a single slot never has anything to reorder against
             onSelectForMove:it=>selectFooterItem(current.id, 'nature', it.id),
@@ -3288,7 +3477,7 @@ export function PlateauPage({onBack}) {
             display:'flex', alignItems:'center', overflowX:'auto',
             border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
             h(FooterItemRow, {
-              items: current.sorts || [], kind:'sort', size:FOOTER_ITEM_SIZE,
+              items: current.sorts || [], kind:'sort', size:FOOTER_ITEM_SIZE, catalog:cardCatalogRef.current,
               selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='sort' ? selectedFooterItem.cardId : null,
               onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, sorts:next} : p)}),
               onSelectForMove:it=>selectFooterItem(current.id, 'sort', it.id),
@@ -3300,7 +3489,7 @@ export function PlateauPage({onBack}) {
             display:'flex', alignItems:'center', overflowX:'auto',
             border:`1px dashed ${borderColor(visionMode,'#444')}`, borderRadius:6, padding:`0 ${FOOTER_SLOT_PAD}px`}},
             h(FooterItemRow, {
-              items: current.energies || [], kind:'energie', size:FOOTER_ITEM_SIZE,
+              items: current.energies || [], kind:'energie', size:FOOTER_ITEM_SIZE, catalog:cardCatalogRef.current,
               selectedId: selectedFooterItem?.playerId===current.id && selectedFooterItem?.slot==='energie' ? selectedFooterItem.cardId : null,
               onReorder:next=>commitBoard({players: players.map(p => p.id===current.id ? {...p, energies:next} : p)}),
               onSelectForMove:it=>selectFooterItem(current.id, 'energie', it.id),
@@ -3375,7 +3564,7 @@ export function PlateauPage({onBack}) {
                   background:'rgba(220,60,40,.25)', border:'1px solid rgba(220,60,40,.6)', color:'#f66',
                   display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:15, zIndex:1}
               }, '✕'),
-              h(CardFace, {showBack:false, size:140, kind: card.slot==='energie' ? 'energie' : 'sort'}),
+              h(CardFace, {showBack:false, size:140, kind: card.slot==='energie' ? 'energie' : 'sort', data:cardCatalogRef.current[card.id]}),
               list.length > 1 && h('div', {
                 onClick:()=>shiftEnlarged(-1),
                 style:{position:'absolute', left:-18, bottom:-18, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,.95)',
