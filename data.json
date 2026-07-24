@@ -531,15 +531,6 @@
       "notes": ""
     },
     {
-      "id": "m5",
-      "nom": "Moskito",
-      "lvl": "Lvl 1",
-      "statut": "Test 2",
-      "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 2 case sans joueur dessus",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "m6",
       "nom": "Monstre 3",
       "lvl": "Lvl 2",
@@ -716,6 +707,15 @@
       "lvl": "Lvl 3",
       "statut": "Validé",
       "effet": "Victoire : retirez la case où se trouve un ou plusieurs joueurs. Ils subissent une pénalité de mort.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m5",
+      "nom": "Moskito",
+      "lvl": "Lvl 2",
+      "statut": "Test 2",
+      "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 2 case sans joueur dessus",
       "quantite": 1,
       "notes": ""
     }
