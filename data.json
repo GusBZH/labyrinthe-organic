@@ -718,6 +718,15 @@
       "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 2 case sans joueur dessus",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "ht768exg8x",
+      "nom": "Nom",
+      "lvl": "Lvl 3",
+      "statut": "Test 3",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "cases": [
