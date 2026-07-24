@@ -2,11 +2,25 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Labyrinthe Organic</title>
 <meta name="theme-color" content="#0e0e0e"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+/* iPhone/Safari: the Plateau's pinch-to-zoom is handled entirely in JS
+   (PlateauPage.js's own Pointer Events pinch logic) — `touch-action` on the
+   grid viewport already asks the browser to leave pinch alone, but Safari's
+   own native page-zoom gesture can still fire alongside it unless
+   `user-scalable=no` is also set on the viewport meta above (Gus: "zoom
+   buggé, ça bouge de manière glitché" on iPhone specifically — the native
+   and custom zoom fighting each other reproduces exactly that kind of
+   jumpy motion). `overscroll-behavior:none` stops iOS's rubber-band bounce
+   from moving the WHOLE PAGE when a drag starts on the header/footer (Gus:
+   "si notre doigt glisse depuis le header ou le footer ça bouge toute la
+   page") — those live outside the grid's own scrollable viewport, so a
+   touch starting there has nothing of the app's own to scroll, but iOS's
+   native overscroll still kicks in on the body itself unless told not to. */
+html,body{overscroll-behavior:none}
 body{background:#0e0e0e;color:#eee;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
 button,input,textarea{font-family:inherit;cursor:pointer}
 ::-webkit-scrollbar{width:4px}

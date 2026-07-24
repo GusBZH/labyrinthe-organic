@@ -142,6 +142,46 @@ corrompu. Gus a confirmé que ça fonctionne à nouveau après ce fix — si un 
 similaire réapparaît, vérifier en premier si data.json contient du texte corrompu
 (rechercher "Ã" dans le fichier).
 
+## Bugs iPhone/Safari (Plateau) — correctifs posés, PAS vérifiés sur vrai appareil
+Gus a remonté 4 problèmes en testant le Plateau sur iPhone, absents ailleurs (donc
+propres à Safari/iOS). **Aucun outil de test disponible dans cet environnement
+n'émule Safari/iOS** (le seul navigateur Playwright installé ici est Chromium — pas de
+build WebKit) : les correctifs ci-dessous s'appuient sur des comportements connus et
+documentés de Safari iOS pour ces symptômes précis, mais n'ont pu être vérifiés qu'en
+non-régression sur Chromium (aucune erreur, comportement desktop inchangé) — **pas
+confirmés comme résolus sur un vrai iPhone**. À valider par Gus, à revenir dessus s'il
+signale que ça persiste.
+- **Zoom glitché/saccadé, "comme au tout début"** (référence au bug de rebond de scroll
+  déjà corrigé une fois via `useLayoutEffect`, voir plus bas dans "Pan et zoom" — celui-là
+  reste inchangé, aucune preuve qu'il soit revenu). Hypothèse retenue : le pincement est
+  géré entièrement en JS (Pointer Events, voir "Pan et zoom"), et `touchAction:'pan-x
+  pan-y'` sur le viewport de la grille est censé empêcher le navigateur de zoomer
+  nativement par-dessus — mais Safari iOS est connu pour laisser son propre geste de zoom
+  natif s'activer quand même tant que `user-scalable=no` n'est pas aussi posé sur la
+  meta viewport, les deux zooms (natif + JS) se battant alors pour la même valeur, ce qui
+  donnerait exactement ce genre de mouvement saccadé. Fix : `user-scalable=no` ajouté à
+  la meta viewport (`index.html`).
+- **Impossible de sélectionner un joueur/monstre au sein du picker multi-entités en mode
+  Vision** — aucune preuve d'un bug de LOGIQUE (`cellPicker`/`handleSingleClick` déjà
+  vérifiés fonctionnels sur Chromium, y compris pour ce picker précis) : rattaché à la
+  cause suivante plutôt qu'à un bug séparé.
+- **Rester appuyé déclenche la sélection de texte / le menu contextuel natif d'iOS**
+  (Gus : "chiant quand on veut sélectionner un truc comme les items ou les options de la
+  pioche") — cause quasi certaine des deux points ci-dessus (le menu de sélection natif
+  interfère avec/annule le geste tactile que l'app essaie de gérer elle-même). Fix :
+  `WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'` posé sur le
+  conteneur racine de `PlateauPage` — hérite à tout le sous-arbre (grille, header,
+  footer, popups) sans toucher au reste de l'app (HomePage garde son texte sélectionnable
+  normalement, ex: copier une règle).
+- **Un glisser démarré depuis le header ou le pied de page fait bouger toute la page** —
+  ces deux zones vivent hors du viewport scrollable de la grille (qui, lui, a son propre
+  `overflow:'auto'` indépendant), donc rien de l'app elle-même ne devrait bouger — mais
+  le rebond ("rubber-band") natif d'iOS peut quand même faire bouger la PAGE ENTIÈRE
+  (body/html) même sans contenu réellement scrollable dessous. Fix : `overscroll-
+  behavior:none` sur `html,body` (`index.html`) — propriété moderne (Safari 16+), pas
+  d'équivalent nécessaire pour les navigateurs desktop qui n'ont pas ce comportement de
+  rebond de toute façon.
+
 ## Système de jeu — plateau interactif (design validé, à implémenter par couches)
 Philosophie générale : le plateau numérique est une **aide visuelle de confort**, jamais
 un arbitre de règles. Comme IRL, les joueurs restent responsables de calculer et valider
