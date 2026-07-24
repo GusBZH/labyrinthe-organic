@@ -108,11 +108,26 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
           // app, parsed back to a positive integer (falls back to 1 on
           // anything non-numeric, matching the existing `||1` display
           // fallback for an unset value).
-          h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555', display:'flex', alignItems:'center'}},
-            '×',
+          // Bug fixed here: the "×" used to be a plain text sibling OUTSIDE
+          // EditText's own div, only there for display — EditText's
+          // `onDoubleClick` lives on ITS div alone, which doesn't include
+          // that sibling text node at all, and never receives a bubbled
+          // event fired on a sibling either (bubbling only goes up the
+          // tree, never sideways). A double-tap landing on the "×" itself
+          // (roughly half of a target as short as "×1") therefore hit
+          // nothing and silently did nothing — explains the "works maybe
+          // 1 time in 10" symptom, it only worked on taps that happened to
+          // land precisely on the digit(s). Fix: fold the "×" into
+          // EditText's own value so the WHOLE "×N" string is one single
+          // element and thus one single double-tap target, same pattern
+          // already used for `item.cout`/`item.limite` just above (full
+          // text incl. non-numeric characters, edited as one string) —
+          // `v.replace(/[^\d]/g,'')` strips whatever punctuation the user
+          // left (or didn't) before parsing the integer back out.
+          h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555'}},
             h(EditText, {
-              value: String(item.quantite || 1),
-              onChange: v => { const n = parseInt(v, 10); onUpdate({...item, quantite: Number.isFinite(n) && n > 0 ? n : 1}); },
+              value: '×' + (item.quantite || 1),
+              onChange: v => { const n = parseInt(v.replace(/[^\d]/g, ''), 10); onUpdate({...item, quantite: Number.isFinite(n) && n > 0 ? n : 1}); },
               editMode
             })
           ),

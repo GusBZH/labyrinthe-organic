@@ -214,10 +214,17 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     // déroulant dans l'onglet déroulant"), simple `Section` non-renamable
     // (contrairement aux grandes catégories, pas besoin de renommer/glisser
     // ces deux-là — Gus a donné leurs noms exacts) plutôt qu'une deuxième
-    // `EditableSection` imbriquée. Vides pour l'instant, à remplir plus tard.
+    // `EditableSection` imbriquée. Chacune a son propre espace note (double
+    // entrée, comme toutes les autres) — `applicationNoteNotes`/
+    // `applicationJeuNotes`, distincts de `applicationNotes` (la note
+    // globale de la catégorie principale elle-même, juste en dessous).
     application: [
-      h(Section, {key:'note', emoji:'📜', title:'Note'}),
-      h(Section, {key:'jeu', emoji:'👾', title:'Jeu'}),
+      h(Section, {key:'note', emoji:'📜', title:'Note'},
+        h(NotesBlock, {value:data.applicationNoteNotes, onChange:v=>upd({...data,applicationNoteNotes:v}), editMode, label:'Notes'})
+      ),
+      h(Section, {key:'jeu', emoji:'👾', title:'Jeu'},
+        h(NotesBlock, {value:data.applicationJeuNotes, onChange:v=>upd({...data,applicationJeuNotes:v}), editMode, label:'Notes'})
+      ),
       h(NotesBlock, {key:'notes', value:data.applicationNotes, onChange:v=>upd({...data,applicationNotes:v}), editMode, label:'Notes — Application'})
     ],
   };
