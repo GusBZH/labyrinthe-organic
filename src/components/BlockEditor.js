@@ -38,6 +38,17 @@ export function BlockEditor({value, onChange, placeholder}){
     onChange(next.join('\n\n'));
   }
 
+  // Removes one whole "mini note" outright (Gus: "une croix rouge en haut à
+  // droite de chaque mini note créée par le double entrée pour pouvoir
+  // supprimer la note") — distinct from Backspace-at-start, which only
+  // merges a block into its neighbor. Deleting the last remaining block
+  // clears the field entirely rather than leaving an empty array (blocks
+  // always has at least one entry per this component's own convention).
+  function deleteBlock(i){
+    const next = blocks.filter((_, idx) => idx !== i);
+    onChange(next.length ? next.join('\n\n') : '');
+  }
+
   function handleKeyDown(e, i){
     const el = e.target;
     if (e.key === 'Enter' && el.value.slice(0, el.selectionStart).endsWith('\n')) {
@@ -67,7 +78,7 @@ export function BlockEditor({value, onChange, placeholder}){
       boxShadow: dragIndex===i?'0 4px 14px rgba(0,0,0,.4)':'none', transition:'opacity .1s, box-shadow .1s',
     }},
       i > 0 && h('hr', {className:'sep'}),
-      h('div', {style:{display:'flex', alignItems:'flex-start', gap:4}},
+      h('div', {style:{position:'relative', display:'flex', alignItems:'flex-start', gap:4}},
         h(DragHandle, {onPointerDown:e=>startDrag(i, e, containerRef.current)}),
         h('textarea', {
           ref: el => { refs.current[i] = el; autoGrow(el); },
@@ -76,8 +87,15 @@ export function BlockEditor({value, onChange, placeholder}){
           onKeyDown: e => handleKeyDown(e, i),
           placeholder: blocks.length === 1 ? (placeholder||'') : '',
           rows: 1,
-          style: blockStyle,
-        })
+          style: {...blockStyle, paddingRight:26},
+        }),
+        h('div', {
+          onClick: () => deleteBlock(i),
+          title: 'Supprimer cette note',
+          style: {position:'absolute', top:4, right:4, width:18, height:18, borderRadius:'50%',
+            background:'rgba(220,60,40,.2)', border:'1px solid rgba(220,60,40,.5)', color:'#f66',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:10, lineHeight:1}
+        }, '✕')
       )
     ))
   );

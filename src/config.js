@@ -32,7 +32,7 @@ export const VISUEL_CATS = [
   {key:'accessoires',label:'🎲 Accessoires'},{key:'references',label:'🎨 Références'},
 ];
 
-export const SECTION_ORDER_DEFAULT = ['regles','cases','sorts','energies','monstres','lexique','modes','visuels','materiel'];
+export const SECTION_ORDER_DEFAULT = ['regles','cases','sorts','energies','monstres','lexique','modes','visuels','materiel','application'];
 
 export const SECTION_LABELS_DEFAULT = {
   regles: '📋 Règles de base',
@@ -44,4 +44,5 @@ export const SECTION_LABELS_DEFAULT = {
   modes: '🎮 Modes de jeu',
   visuels: '🎨 Visuels',
   materiel: '🧰 Matériel',
+  application: '🤖 Application',
 };

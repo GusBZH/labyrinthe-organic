@@ -10,6 +10,17 @@ export function autoGrow(el){
   el.style.height = el.scrollHeight + 'px';
 }
 
+// How many "mini notes" a bloc/note-globale text currently holds — same
+// `\n\n`-separated-blocks convention as renderText/BlockEditor, just counted
+// instead of rendered. Empty/whitespace-only blocks (e.g. a trailing blank
+// divider) don't count, and an empty/unset field counts as 0 rather than 1 —
+// used to show (or hide) the little red notification pastille next to a
+// bloc's "▼ notes" toggle.
+export function countNoteBlocks(text){
+  if (!text) return 0;
+  return text.split('\n\n').filter(b => b.trim() !== '').length;
+}
+
 export function renderText(text){
   if(!text) return null;
   const parts = text.split('\n\n');

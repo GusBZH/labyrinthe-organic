@@ -3,6 +3,8 @@ import { EC, STATUTS, SC, ELEMENTS, LVLS } from "../config.js";
 import { EditText } from "./EditText.js";
 import { StatusDot } from "./StatusDot.js";
 import { Popup } from "./Popup.js";
+import { BlockEditor } from "./BlockEditor.js";
+import { renderText, countNoteBlocks } from "../utils.js";
 
 export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, withLvl}) {
   const [showSt, setShowSt] = useState(false);
@@ -13,6 +15,7 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
   const elRef = useRef(null);
   const lvRef = useRef(null);
   const ec = item.element ? EC[item.element] : null;
+  const noteCount = countNoteBlocks(item.notes);
 
   return h('div', {
     className: 'card',
@@ -82,23 +85,50 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
                 items: LVLS.map(l => ({label:l, onClick:()=>onUpdate({...item, lvl:l})}))
               })
             ),
-            editMode && h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer'}},
-              showNotes ? '▲ notes' : '▼ notes'
+            // "Notes des blocs" (Gus's own name) — toggle and count pastille
+            // now visible in BOTH modes ("j'aimerais que la pastille et les
+            // notes des blocs soient visibles même sans le mode édition"),
+            // not just editMode as before.
+            h('span', {onClick:()=>setShowNotes(!showNotes), style:{fontSize:10, color:'#555', cursor:'pointer', display:'flex', alignItems:'center', gap:4}},
+              showNotes ? '▲ notes' : '▼ notes',
+              noteCount > 0 && h('span', {style:{
+                fontSize:9, fontWeight:700, color:'#fff', background:'#d33', borderRadius:'50%',
+                minWidth:14, height:14, padding:'0 3px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1
+              }}, noteCount)
             )
           ),
           // Quantity badge re-centered (Gus: "actuellement il est en bas à
           // droite... je veux en bas au milieu") — was grouped with the ✕
           // in the right-hand flex group, too close to it; now absolutely
           // centered in the row regardless of how wide either side group is,
-          // leaving the ✕ alone on the right.
-          h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555'}}, `×${item.quantite||1}`),
+          // leaving the ✕ alone on the right. Also now editable by
+          // double-tap (Gus, on the case/sort/énergie decks specifically,
+          // but shared here like everything else in Card.js) — same
+          // double-tap-to-edit convention as every other EditText in the
+          // app, parsed back to a positive integer (falls back to 1 on
+          // anything non-numeric, matching the existing `||1` display
+          // fallback for an unset value).
+          h('span', {style:{position:'absolute', left:'50%', transform:'translateX(-50%)', fontSize:11, color:'#555', display:'flex', alignItems:'center'}},
+            '×',
+            h(EditText, {
+              value: String(item.quantite || 1),
+              onChange: v => { const n = parseInt(v, 10); onUpdate({...item, quantite: Number.isFinite(n) && n > 0 ? n : 1}); },
+              editMode
+            })
+          ),
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},
             editMode && h('span', {onClick:()=>onDelete(item.id), style:{fontSize:10, color:'#444', cursor:'pointer'}}, '✕')
           )
         ),
-        editMode && showNotes && h('div', {style:{marginTop:8, padding:8, background:'rgba(0,0,0,.3)', borderRadius:6, border:'1px solid #2a2a2a'}},
+        // Visible in both modes now (see the toggle's own comment) — edit
+        // mode gets the "double entrée" BlockEditor (Enter-twice splits a
+        // divider-separated mini note, ✕ per mini note), view mode gets the
+        // matching read-only rendering (renderText, same `\n\n` convention).
+        showNotes && h('div', {style:{marginTop:8, padding:8, background:'rgba(0,0,0,.3)', borderRadius:6, border:'1px solid #2a2a2a'}},
           h('div', {style:{fontSize:10, color:'#555', marginBottom:4}}, 'Notes'),
-          h(EditText, {value:item.notes||'', onChange:v=>onUpdate({...item,notes:v}), editMode, multiline:true})
+          editMode
+            ? h(BlockEditor, {value:item.notes||'', onChange:v=>onUpdate({...item,notes:v})})
+            : h('div', {style:{fontSize:12, color:'#bbb', lineHeight:1.6}}, renderText(item.notes||''))
         )
       )
     )
