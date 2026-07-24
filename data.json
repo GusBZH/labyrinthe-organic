@@ -1069,12 +1069,12 @@
   ],
   "sectionOrder": [
     {
-      "key": "regles",
-      "label": "📋 Règles de base"
-    },
-    {
       "key": "cases",
       "label": "🗺️ Cases"
+    },
+    {
+      "key": "regles",
+      "label": "📋 Règles de base"
     },
     {
       "key": "sorts",
