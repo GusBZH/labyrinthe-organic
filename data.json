@@ -735,8 +735,15 @@
       "nom": "Case de Départ",
       "statut": "Validé",
       "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. 4 portes",
-      "quantite": 10,
-      "notes": ""
+      "quantite": 1,
+      "notes": "",
+      "details": [
+        {
+          "id": "20x94mcxi5rj",
+          "fichier": "",
+          "quantite": 1
+        }
+      ]
     },
     {
       "id": "c2",
