@@ -782,7 +782,7 @@
       "id": "c8",
       "nom": "Case Bonus PA",
       "statut": "Validé",
-      "effet": "La première fois par tour qu'un joueur entre, il gagne +1 PA. Toujours tout droit.",
+      "effet": "Vous gagnez+1 PA. 1x tour\nToujours tout droit.",
       "quantite": 10,
       "notes": ""
     },
