@@ -775,7 +775,7 @@
       "nom": "Case Portail",
       "statut": "Validé",
       "effet": "Permet de se téléporter à n'importe quel autre portail révélé.",
-      "quantite": 14,
+      "quantite": 20,
       "notes": "",
       "details": [
         {
@@ -786,7 +786,7 @@
         {
           "id": "qjwll2i2pf",
           "fichier": "Case_Portail_Tout_Droit.png",
-          "quantite": 1
+          "quantite": 7
         },
         {
           "id": "ygneo6qj6gi",
