@@ -865,13 +865,13 @@
       "nom": "Case Œil",
       "statut": "Validé",
       "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. 4 portes.",
-      "quantite": 1,
+      "quantite": 7,
       "notes": "",
       "details": [
         {
           "id": "6x9w9fv928i",
           "fichier": "Case_Oeil.png",
-          "quantite": 1
+          "quantite": 7
         }
       ]
     },
