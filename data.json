@@ -743,13 +743,13 @@
       "nom": "Case Instable",
       "statut": "Validé",
       "effet": "Se défausse dès qu'un joueur en sort. Les joueurs restants meurent.",
-      "quantite": 12,
+      "quantite": 19,
       "notes": "",
       "details": [
         {
           "id": "7z888v28iq",
           "fichier": "Case_Instable_T.png",
-          "quantite": 1
+          "quantite": 8
         },
         {
           "id": "lm6vfzj4au",
