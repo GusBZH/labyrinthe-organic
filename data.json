@@ -775,13 +775,13 @@
       "nom": "Case Portail",
       "statut": "Validé",
       "effet": "Permet de se téléporter à n'importe quel autre portail révélé.",
-      "quantite": 15,
+      "quantite": 5,
       "notes": "",
       "details": [
         {
           "id": "c3spxily8l",
           "fichier": "Case_Portail_4P.png",
-          "quantite": 13
+          "quantite": 3
         },
         {
           "id": "qjwll2i2pf",
