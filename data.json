@@ -774,7 +774,7 @@
       "id": "c4",
       "nom": "Case Énergie",
       "statut": "Validé",
-      "effet": "La première fois par tour qu'on y entre, piocher une énergie dans la pile de son choix.",
+      "effet": "Piochez une énergie dans la pile de son choix. 1x tour",
       "quantite": 10,
       "notes": ""
     },
