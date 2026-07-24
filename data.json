@@ -499,7 +499,7 @@
       "nom": "Monstre 1",
       "lvl": "Lvl 1",
       "statut": "Validé",
-      "effet": "En cas de victoire : posez 3 cases Map n'importe où. Un joueur choisit l'orientation.",
+      "effet": "Victoire : posez 3 cases Map n'importe où. Un joueur de votre chois choisit l'orientation.",
       "quantite": 1,
       "notes": ""
     },
@@ -508,61 +508,214 @@
       "nom": "Monstre 2",
       "lvl": "Lvl 1",
       "statut": "Validé",
-      "effet": "En cas de victoire : chaque joueur retire une case dans le sens horaire en commençant par vous.",
+      "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 1 case sans joueur dessus",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m3",
-      "nom": "Monstre 3",
-      "lvl": "Lvl 2",
+      "nom": "Bouftou",
+      "lvl": "Lvl 1",
       "statut": "Validé",
-      "effet": "En cas de victoire : choisissez un joueur. Pendant son prochain tour vous choisissez l'orientation des cases qu'il révèle.",
+      "effet": "Victoire : chaque joueur pioche un sort.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m4",
-      "nom": "Monstre 4",
-      "lvl": "Lvl 2",
+      "nom": "Piou rose",
+      "lvl": "Lvl 1",
       "statut": "Validé",
-      "effet": "En cas de victoire : chaque joueur choisit une énergie à défausser puis en pioche une nouvelle.",
+      "effet": "Victoire : Tous les joueurs récupèrent tout leur PV",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m5",
-      "nom": "Monstre 5",
-      "lvl": "Lvl 3",
-      "statut": "Validé",
-      "effet": "En cas de victoire : chaque joueur pioche une énergie.",
+      "nom": "Moskito",
+      "lvl": "Lvl 1",
+      "statut": "Test 2",
+      "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 2 case sans joueur dessus",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m6",
-      "nom": "Monstre 6",
-      "lvl": "Lvl 3",
+      "nom": "Monstre 3",
+      "lvl": "Lvl 2",
       "statut": "Validé",
-      "effet": "En cas de victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",
+      "effet": "Victoire : choisissez un joueur, pendant son prochain tour vous choisissez l'orientation des cases qu'il révèle.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m7",
-      "nom": "Monstre 7",
-      "lvl": "Lvl 4",
+      "nom": "Monstre 4",
+      "lvl": "Lvl 2",
       "statut": "Validé",
-      "effet": "En cas de victoire : volez un sort à un joueur de votre choix.",
+      "effet": "Victoire : chaque joueur choisit une énergie à défausser puis en pioche une.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "m8",
-      "nom": "Monstre 8",
+      "nom": "Blop",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "Victoire : Tourner de 90° dans le sens horaire la case du joueur de votre choix",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m9",
+      "nom": "Arakne",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "Victoire : Tourner de 180° cette carte monstre",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m10",
+      "nom": "Corbac",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "Victoire : chaque joueur choisit un sort à défausser puis en pioche un.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m11",
+      "nom": "Chafer Lancier",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "Victoire : choisit une énergie à défausser puis pioches en une.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m12",
+      "nom": "Chafer Archer",
+      "lvl": "Lvl 2",
+      "statut": "Validé",
+      "effet": "Victoire : choisit un sort à défausser puis pioches en un.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m13",
+      "nom": "Monstre 5",
       "lvl": "Lvl 2",
       "statut": "Test 1",
-      "effet": "En cas de victoire : retirez la case d'un ou plusieurs joueurs. Ils subissent la pénalité de mort.",
+      "effet": "Victoire : choisissez une pioche d'items et coupez-la en deux.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m14",
+      "nom": "Monstre 11",
+      "lvl": "Lvl 2",
+      "statut": "Test 2",
+      "effet": "Victoire : retirez la case où se trouve un ou plusieurs joueurs. Ils subissent une pénalité de mort.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m15",
+      "nom": "Craqueleur",
+      "lvl": "Lvl 2",
+      "statut": "Test 3",
+      "effet": "Défaite : Tous les joueurs perdent 1 PV\nVictoire : Tous les joueurs récupères 1 PV",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m16",
+      "nom": "Monstre 6",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : chaque joueur pioche une énergie.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m17",
+      "nom": "Boufmouth",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : chaque joueur pioche un sort.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m18",
+      "nom": "Vilain petit Corbac",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Vole une énergie à un joueur",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m19",
+      "nom": "Tofukaz",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Défaite : choisissez un joueur. Si vous perdez il perd aussi.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m20",
+      "nom": "Tofoune",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : choisissez un joueur. Si vous gagnez il reçoit aussi les récompenses.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m21",
+      "nom": "Fantomalamère",
+      "lvl": "Lvl 3",
+      "statut": "Validé",
+      "effet": "Victoire : Si tu perds le combat le joueur à ta gauche perds aussi",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m22",
+      "nom": "Monstre 7",
+      "lvl": "Lvl 3",
+      "statut": "Test 1",
+      "effet": "Victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m23",
+      "nom": "Monstre 8",
+      "lvl": "Lvl 3",
+      "statut": "Test 1",
+      "effet": "Victoire : rejouez immédiatement un tour entier après celui-ci.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m24",
+      "nom": "Monstre 9",
+      "lvl": "Lvl 4",
+      "statut": "Validé",
+      "effet": "Victoire : volez un sort à un joueur de votre choix.\n(Mais vous piochez que un sort)",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "m25",
+      "nom": "Monstre 10",
+      "lvl": "Lvl 4",
+      "statut": "Validé",
+      "effet": "Choisissez un joueur. Si vous perdez il perd aussi. Si vous gagnez il reçoit aussi les récompenses.",
       "quantite": 1,
       "notes": ""
     }
