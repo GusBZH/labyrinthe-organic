@@ -835,8 +835,15 @@
       "nom": "Case Énergie",
       "statut": "Validé",
       "effet": "Piochez une énergie dans la pile de son choix. 1x tour",
-      "quantite": 10,
-      "notes": ""
+      "quantite": 1,
+      "notes": "",
+      "details": [
+        {
+          "id": "a8qqe3bt2j9",
+          "fichier": "Case_Energie_Virage",
+          "quantite": 1
+        }
+      ]
     },
     {
       "id": "c8",
