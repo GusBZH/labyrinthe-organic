@@ -881,7 +881,14 @@
       "statut": "Validé",
       "effet": "Utile dans certains modes de jeu.",
       "quantite": 1,
-      "notes": ""
+      "notes": "",
+      "details": [
+        {
+          "id": "doypmgje86w",
+          "fichier": "Case_cle.",
+          "quantite": 1
+        }
+      ]
     },
     {
       "id": "ekxjksry8",
