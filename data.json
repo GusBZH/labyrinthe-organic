@@ -106,17 +106,6 @@
       "notes": ""
     },
     {
-      "id": "s9",
-      "nom": "Non",
-      "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "",
-      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s10",
       "nom": "Chaussures qui Court Loin",
       "element": "Terre",
@@ -124,6 +113,17 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé et tu déplaces ton personnage sur n'importe quel portail.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s11",
+      "nom": "Mercy",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "3x partie",
+      "effet": "Vous avez 3 compteurs sur ce sort. Si 1 autre joueur perd un combat dans votre ligne de vue, vous pouvez utiliser 1 compteur et annuler ce combat.",
       "quantite": 1,
       "notes": ""
     },
@@ -381,17 +381,6 @@
       "notes": ""
     },
     {
-      "id": "s11",
-      "nom": "Mercy",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "3x partie",
-      "effet": "Vous avez 3 compteurs sur ce sort. Si 1 autre joueur perd un combat dans votre ligne de vue, vous pouvez utiliser 1 compteur et annuler ce combat.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s12",
       "nom": "Séisme",
       "element": "Terre",
@@ -458,6 +447,17 @@
       "notes": ""
     },
     {
+      "id": "s27",
+      "nom": "Flux Négatif",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s45",
       "nom": "Carapace",
       "element": "Terre",
@@ -491,6 +491,17 @@
       "notes": ""
     },
     {
+      "id": "s9",
+      "nom": "Non",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s37",
       "nom": "Poing Mexicain",
       "element": "Terre",
@@ -498,17 +509,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s38",
-      "nom": "Gourdeux",
-      "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
       "quantite": 1,
       "notes": ""
     },
@@ -843,6 +843,17 @@
       "notes": ""
     },
     {
+      "id": "s38",
+      "nom": "Gourdeux",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s48",
       "nom": "Vengeance !",
       "element": "Terre",
@@ -850,17 +861,6 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s27",
-      "nom": "Flux Négatif",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
       "quantite": 1,
       "notes": ""
     }
