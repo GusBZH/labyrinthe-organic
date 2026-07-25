@@ -205,17 +205,6 @@
       "notes": ""
     },
     {
-      "id": "s27",
-      "nom": "Flux Négatif",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s70",
       "nom": "Le Grand Détournement",
       "element": "Eau",
@@ -861,6 +850,17 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s27",
+      "nom": "Flux Négatif",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
       "quantite": 1,
       "notes": ""
     }
