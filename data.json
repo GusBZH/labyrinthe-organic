@@ -892,7 +892,7 @@
       "id": "e12",
       "nom": "Multiplicateur!",
       "element": "Air",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
       "effet": "Défaussez : doublez tous les chiffres de vos items jusqu'à la fin du tour.",
