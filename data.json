@@ -955,6 +955,17 @@
       "notes": ""
     },
     {
+      "id": "65mbl3q7lh4",
+      "nom": "+1 Magique !",
+      "element": "Commun",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Jusqu'à la fin de votre tour, augmente de 1 le chiffre d'un sort de cet élément.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
       "id": "e18",
       "nom": "Énergie Commune 2",
       "element": "Commun",
@@ -996,17 +1007,6 @@
       "limite": "",
       "effet": "Vous pouvez utiliser 1 fois de plus 1 sort pour chaque sort de cet élément.",
       "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "65mbl3q7lh4",
-      "nom": "+1 Magique !",
-      "element": "Commun",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Jusqu'à la fin de votre tour, augmente de 1 le chiffre d'un sort de cet élément.",
-      "quantite": 5,
       "notes": ""
     },
     {
