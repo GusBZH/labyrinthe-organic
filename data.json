@@ -332,7 +332,7 @@
       "statut": "Validé",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Quand vous tuez 1 joueur, piochez 1 sort et posez votre carte slot sur la case du combat.",
+      "effet": "Quand vous tuez 1 joueur, piochez 1 sort.",
       "quantite": 1,
       "notes": ""
     },
