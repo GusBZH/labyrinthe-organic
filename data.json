@@ -109,7 +109,7 @@
       "id": "s9",
       "nom": "Non",
       "element": "Terre",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "0 PA",
       "limite": "",
       "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
