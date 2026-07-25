@@ -1271,6 +1271,30 @@ undoable) contenant deux choses nouvelles :
   partagée `.popup` impose `min-width:130px`, un plancher qu'un `width` inline seul ne
   peut pas franchir (la spécificité CSS ne joue pas ici, `min-width` prime) — il faut
   aussi un `minWidth:56` inline pour l'emporter sur cette règle de classe.
+- **Bug corrigé (impossible de double-tap une case pour sélectionner la tuile quand
+  plusieurs joueurs/monstres/marqueurs la partagent)** : Gus — "one tape ouvre
+  instantanément la fenêtre de sélection... impossible de double taper pour
+  sélectionner la case". Cause : le premier tap d'un vrai double-clic déclenche déjà
+  `onContentClick`/`handleSingleClick` immédiatement (aucun délai depuis la refonte
+  "désambiguïsation par état", voir plus haut) — sur une case à plusieurs entités, ça
+  ouvrait `cellPicker` sur-le-champ, et cette fenêtre (son propre listener
+  `pointerdown` sur `document`, voir `Popup.js`) interceptait le second tap avant que
+  le navigateur n'ait la moindre chance de reconnaître un vrai `dblclick` natif sur la
+  grille. Fix (proposé par Gus lui-même) : `scheduleCellPicker(args)` remplace les deux
+  appels directs à `setCellPicker` dans `handleSingleClick` — au lieu d'ouvrir le picker
+  immédiatement, il programme son ouverture 300ms plus tard (`cellPickerTimerRef`).
+  `onContentDoubleClick` annule ce minuteur dès qu'un vrai double-clic sur la même case
+  est confirmé (avant d'appeler `selectTileAt`), donc le picker n'a jamais l'occasion de
+  s'afficher pour une séquence de double-clic authentique — seul un tap simple, sans
+  second tap dans la fenêtre des 300ms, laisse le minuteur aller au bout et ouvrir le
+  picker. `handleSingleClick` annule aussi ce minuteur en tout début d'exécution (avant
+  de décider quoi faire pour CE tap), pour qu'un tap sans rapport sur une autre case
+  n'hérite jamais d'un picker resté programmé pour une case précédente. Portée
+  volontairement étroite : seule l'ouverture du picker passe par ce délai, le reste de
+  `handleSingleClick` garde son exécution immédiate voulue par la refonte "état plutôt
+  que timer" — la règle d'occupation tuile/joueur (`selectTileAt` refuse toujours si un
+  joueur est présent) reste inchangée, ce fix ne fait que laisser le geste natif
+  `dblclick` avoir sa chance d'être détecté, pas de la contourner.
 - L'extension ne participe PAS au calcul `naturalHeaderWidth`/`headerScale` de la rangée
   principale (cases/sorts/énergies/monstres) — c'est une "petite extension" optionnelle,
   pas un 5ème groupe dans le budget de rétrécissement ; elle a son propre `overflowX:'auto'`
