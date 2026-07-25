@@ -306,8 +306,28 @@ function buildSortCards(sorts){
   return shuffle(cards);
 }
 
+// Gus: "toutes les énergies sauf ombre et multi vont dans la catégorie
+// commune, donc commune il doit en ajouter un exemplaire dans chaque
+// élément (eau feu air et terre), pas visible dans l'appli [le catalogue
+// data.energies garde une seule entrée 'Commun', jamais dupliquée là] mais
+// à ajouter quand même pour le jeu" — physiquement, une carte à effet
+// Commun existe comme 4 cartes distinctes (une par dos élément), donc
+// SEULE la pioche du Plateau clone chaque entrée Commun du catalogue en 4
+// (une par élément ci-dessous), chacune prenant le dos/l'élément affiché
+// de cet élément — le catalogue affiché dans l'app (Énergies) reste
+// inchangé, une seule carte "Commun" par effet.
+const COMMUN_ELEMENTS = ['Eau', 'Feu', 'Air', 'Terre'];
+function expandCommunEnergies(energies){
+  const out = [];
+  (energies || []).forEach(item => {
+    if (item.element === 'Commun') COMMUN_ELEMENTS.forEach(element => out.push({...item, element}));
+    else out.push(item);
+  });
+  return out;
+}
+
 function buildEnergieCards(energies){
-  const cards = expandByQuantite(energies).map(item => ({
+  const cards = expandByQuantite(expandCommunEnergies(energies)).map(item => ({
     id:uid(), nom:item.nom, effet:item.effet, element:item.element, back:energyBackFor(item.element)
   }));
   return shuffle(cards);

@@ -921,6 +921,18 @@ faire Reset change directement la composition de la pioche, sans code à toucher
   (`expandByQuantite` commun) — chaque carte reçoit son `back` (fichier image du dos)
   calculé une fois à la construction, AVANT le mélange (`shuffle` mélange l'ordre de
   pioche, jamais le dos déjà assigné à chaque carte).
+- **Énergies catégorie "Commun" — clonées en 4 (une par élément) SEULEMENT dans la
+  pioche du Plateau, jamais dans le catalogue affiché** (Gus : "toutes les énergies
+  sauf ombre et multi vont dans la catégorie commune, donc commune il doit en ajouter
+  un exemplaire dans chaque élément (eau feu air et terre), pas visible dans l'appli...
+  mais à ajouter quand même pour le jeu" — confirmé via `AskUserQuestion` : génération
+  côté Plateau plutôt que dupliquer des entrées dans `data.json`) : `expandCommunEnergies`
+  (`PlateauPage.js`), appelée par `buildEnergieCards` avant `expandByQuantite`, remplace
+  chaque entrée catalogue `element:'Commun'` par 4 clones (`COMMUN_ELEMENTS = ['Eau',
+  'Feu', 'Air', 'Terre']`), chacun avec `element` réécrit et donc son propre dos réel
+  (`energyBackFor`) — une entrée Commun à `quantite:2` donne 8 cartes physiques au
+  total (2 par élément). La page Énergies de l'app (catalogue) ne voit jamais ces clones
+  — `data.energies` garde une seule entrée "Commun" par effet, comme voulu.
 
 **Table de correspondance id → données du catalogue (`cardCatalogRef`)** — pièce
 centrale de toute cette fonctionnalité : chaque transition d'état (piocher/poser/
