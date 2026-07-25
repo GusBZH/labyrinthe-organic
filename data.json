@@ -90,7 +90,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur pour gagner 1 PV",
       "quantite": 1,
       "notes": ""
     },
