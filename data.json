@@ -1038,7 +1038,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Au début de votre tour, cette énergie devient la copie d'1 de vos sorts du même élément pendant 1 tour.",
+      "effet": "Au début de votre tour, cette énergie devient la copie d'1 de vos sorts du même jusqu'à la fin de votre tour.",
       "quantite": 1,
       "notes": ""
     },
