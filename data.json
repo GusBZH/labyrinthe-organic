@@ -958,7 +958,7 @@
       "id": "e17",
       "nom": "Énergie Commune 1",
       "element": "Commun",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
       "effet": "Pour chaque sort de cet élément, posez 1 marqueur +1 qui augmente de 1 le chiffre sur 1 item de cet élément pendant 1 tour global.",
