@@ -1524,7 +1524,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
-  const pileRowRef = useRef(null); // header's pile-groups row — anchors the marker shelf's fractional x/y
+  const markerShelfRef = useRef(null); // footer's equip zone — anchors the marker shelf's fractional x/y
   const dragRef = useRef(null);
   const wasDraggingRef = useRef(false);
   const pendingScrollRef = useRef(null);
@@ -2072,39 +2072,33 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       const mk = markers.find(m => m.id === selectedMarkerId);
       if (mk && mk.type === markerType) { discardSelectedMarker(); return; }
     }
+    // Same fast-discard shortcut, extended to a marker resting on the
+    // footer's shelf (Gus: "en sélectionnant le marqueur je peux
+    // sélectionner la pioche d'où il vient pour défausser") — selecting it
+    // there then tapping its own origin button deletes it directly instead
+    // of just cancelling the selection, exactly like a marker already on
+    // the board.
+    if (selectedShelfMarkerId) {
+      const sm = markerShelf.find(m => m.id === selectedShelfMarkerId);
+      if (sm && sm.type === markerType) { discardShelfMarker(); return; }
+    }
     drawMarkerOrCancelSelection(markerType);
   }
 
   // MARKER SHELF — a free-position resting spot for markers OVER the
-  // header's pile-groups row, "sans contraintes de ligne" (Gus). Reuses the
-  // exact select/move/discard shape already validated for markers on the
-  // board (selectedMarkerId), just against `markerShelf` instead of
-  // `markers`, plus a way to send a shelf marker onto the grid.
-  function pileRowFraction(clientX, clientY){
-    const rect = pileRowRef.current.getBoundingClientRect();
+  // footer's equip zone (nature/sorts/énergies of the current player),
+  // "sans contraintes de ligne" (Gus). Reuses the exact select/move/discard
+  // shape already validated for markers on the board (selectedMarkerId),
+  // just against `markerShelf` instead of `markers`, plus a way to send a
+  // shelf marker onto the grid. First tried living over the HEADER's
+  // pile-groups row — Gus caught his own mix-up right after ("je me suis
+  // trompé entre le footer et le header") and asked for the footer's equip
+  // zone instead, "là où il y a les sorts et énergie" — same feature,
+  // different anchor (`markerShelfRef` now points at that zone instead).
+  function markerShelfFraction(clientX, clientY){
+    const rect = markerShelfRef.current.getBoundingClientRect();
     const clamp01 = v => Math.max(0, Math.min(1, v));
     return {x:clamp01((clientX - rect.left) / rect.width), y:clamp01((clientY - rect.top) / rect.height)};
-  }
-  // Background click of the pile-groups row — reached only when the click
-  // didn't land on a pile/défausse/shelf marker (those all stopPropagation
-  // themselves, same convention as the header/footer background elsewhere).
-  // Stops propagation itself so it doesn't ALSO re-trigger the outer
-  // header's own onClick={clearCardSelection} a second time by bubbling.
-  function handlePileRowBackgroundClick(e){
-    e.stopPropagation();
-    const live = liveRef.current;
-    if (live.heldMarker) {
-      const {x, y} = pileRowFraction(e.clientX, e.clientY);
-      commitBoard({markerShelf: [...live.markerShelf, {id:live.heldMarker.cardId, type:live.heldMarker.markerType, x, y}], heldMarker: null});
-      return;
-    }
-    if (live.selectedShelfMarkerId) {
-      const {x, y} = pileRowFraction(e.clientX, e.clientY);
-      commitBoard({markerShelf: live.markerShelf.map(m => m.id === live.selectedShelfMarkerId ? {...m, x, y} : m)});
-      setSelectedShelfMarkerId(null);
-      return;
-    }
-    clearCardSelection();
   }
   function selectShelfMarker(e, id){
     e.stopPropagation();
@@ -3360,10 +3354,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // headerBoxSize (see its own comment) rather than letting the row
       // overflow off-screen; overflowX stays as a last-resort fallback
       // exactly like the sidebar's own squareSize floor+scroll.
-      h('div', {
-        ref:pileRowRef, onClick:handlePileRowBackgroundClick,
-        style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto', position:'relative'}
-      },
+      h('div', {style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto'}},
         h(PileGroup, {
           type:'case', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
           holding:{pileId: heldTile ? heldTile.fromPileId : null, cardId: heldTile ? heldTile.cardId : null, discardId:selectedDiscardCardId},
@@ -3430,39 +3421,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
-        (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte'),
-
-        // MARKER SHELF — free-position markers OVERLAID on this same row,
-        // "au premier plan par rapport aux items" (Gus): rendered LAST so
-        // they sit visually above the pile groups despite sharing their
-        // container, at whatever fractional (x,y) each one was last dropped
-        // at — never confined to the row's own flex layout. Each token
-        // keeps its own pointer events regardless of anything else in the
-        // row (piles included), so it's always selectable.
-        markerShelf.map(m => h('div', {
-          key:m.id,
-          onClick: e => selectShelfMarker(e, m.id),
-          style:{
-            position:'absolute', left:m.x*100+'%', top:m.y*100+'%', transform:'translate(-50%,-50%)',
-            zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', touchAction:'none',
-            filter: selectedShelfMarkerId===m.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
-          }
-        }, h(MarkerIcon, {type:m.type, size:22}))),
-        // Cross to discard the selected shelf marker — no eye (same as a
-        // marker on the board: the icon IS its whole appearance, no card
-        // content behind it to enlarge). Nudged up-right of the token
-        // itself via the transform, rather than a 4th direction of
-        // inGridBtnStyle's grid-coordinate math, which doesn't apply here.
-        selectedShelfMarkerObj && h('div', {
-          key:'shelf-marker-discard',
-          onClick: e => { e.stopPropagation(); discardShelfMarker(); },
-          style:{
-            ...inGridBtnStyle, width:20, height:20, fontSize:11,
-            left:selectedShelfMarkerObj.x*100+'%', top:selectedShelfMarkerObj.y*100+'%',
-            transform:'translate(calc(-50% + 16px), calc(-50% - 16px))',
-            color:'#f66', borderColor:'rgba(220,60,40,.5)'
-          }
-        }, '✕')
+        (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
       ),
 
       // HEADER EXTENSION — collapsed by default behind the small +/− button
@@ -4118,8 +4077,34 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // instead of letting an individual slot's own tap-to-enlarge handler
       // run — "peu importe où je clique dans cette zone avec un item".
       current && h('div', {
+        ref:markerShelfRef,
         onClickCapture: e => {
           const live = liveRef.current;
+          // MARKER SHELF — checked FIRST, before every other equip-zone
+          // interaction below (Gus: "quand on sélectionne le marqueur on
+          // peut pas sélectionner les items, pour pouvoir les poser par-
+          // dessus comme ils sont affichés devant les items") : holding or
+          // having selected a shelf marker fully takes over this zone's
+          // clicks until resolved, so a tap that visually lands on an item
+          // underneath moves/drops the marker instead of opening that item.
+          if (live.heldMarker) {
+            e.stopPropagation();
+            const {x, y} = markerShelfFraction(e.clientX, e.clientY);
+            commitBoard({markerShelf: [...live.markerShelf, {id:live.heldMarker.cardId, type:live.heldMarker.markerType, x, y}], heldMarker: null});
+            return;
+          }
+          // A tap on the shelf marker itself (select/deselect) or its own
+          // discard cross — let those run via their own bubble-phase
+          // onClick untouched, same "let this specific control's own
+          // handler win" exception as `.footer-item-discard-btn` below.
+          if (e.target.closest('.marker-shelf-token') || e.target.closest('.marker-shelf-discard-btn')) return;
+          if (live.selectedShelfMarkerId) {
+            e.stopPropagation();
+            const {x, y} = markerShelfFraction(e.clientX, e.clientY);
+            commitBoard({markerShelf: live.markerShelf.map(m => m.id === live.selectedShelfMarkerId ? {...m, x, y} : m)});
+            setSelectedShelfMarkerId(null);
+            return;
+          }
           // Bug fixed here (une carte monstre tenue depuis la pioche
           // devenait une énergie pour de bon si on tapait le pied de page) :
           // `heldItem` sert aussi aux monstres tenus depuis leur pioche
@@ -4162,7 +4147,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // is checking every OTHER kind.
           if (hasAnySelection()) { e.stopPropagation(); clearCardSelection(); }
         },
-        style:{display:'flex', alignItems:'center', gap:8, padding:'8px 14px 0', justifyContent:'center'}
+        style:{display:'flex', alignItems:'center', gap:8, padding:'8px 14px 0', justifyContent:'center', position:'relative'}
       },
         h('div', {style:{width:FOOTER_ROW_HEIGHT, height:FOOTER_ROW_HEIGHT, flexShrink:0, boxSizing:'border-box',
           display:'flex', justifyContent:'center', alignItems:'center',
@@ -4201,7 +4186,41 @@ export function PlateauPage({onBack, data, onlineRoom}) {
               onDiscard:discardSelectedItem
             })
           )
-        )
+        ),
+
+        // MARKER SHELF — free-position markers OVERLAID on this equip zone,
+        // "devant les items" (Gus): rendered LAST so they sit visually above
+        // the nature/sorts/énergies rows despite sharing this container, at
+        // whatever fractional (x,y) each one was last dropped at — never
+        // confined to a row/slot like the equip zone's own dashed-outline
+        // boxes. `.marker-shelf-token`/`.marker-shelf-discard-btn` classes
+        // let the onClickCapture handler above recognize and skip past them.
+        markerShelf.map(m => h('div', {
+          key:m.id,
+          className:'marker-shelf-token',
+          onClick: e => selectShelfMarker(e, m.id),
+          style:{
+            position:'absolute', left:m.x*100+'%', top:m.y*100+'%', transform:'translate(-50%,-50%)',
+            zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', touchAction:'none',
+            filter: selectedShelfMarkerId===m.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
+          }
+        }, h(MarkerIcon, {type:m.type, size:22}))),
+        // Cross to discard the selected shelf marker — no eye (same as a
+        // marker on the board: the icon IS its whole appearance, no card
+        // content behind it to enlarge). Nudged up-right of the token
+        // itself via the transform, rather than a 4th direction of
+        // inGridBtnStyle's grid-coordinate math, which doesn't apply here.
+        selectedShelfMarkerObj && h('div', {
+          key:'shelf-marker-discard',
+          className:'marker-shelf-discard-btn',
+          onClick: e => { e.stopPropagation(); discardShelfMarker(); },
+          style:{
+            ...inGridBtnStyle, width:20, height:20, fontSize:11,
+            left:selectedShelfMarkerObj.x*100+'%', top:selectedShelfMarkerObj.y*100+'%',
+            transform:'translate(calc(-50% + 16px), calc(-50% - 16px))',
+            color:'#f66', borderColor:'rgba(220,60,40,.5)'
+          }
+        }, '✕')
       ),
 
       // Every button in this row is game-flow control with no relationship

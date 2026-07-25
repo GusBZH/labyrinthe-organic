@@ -1354,72 +1354,62 @@ undoable) contenant deux choses nouvelles :
   rôle du mode Vision ("voir ce qu'il y a en dessous") : les pièces se lisent le mieux à
   100% en jeu normal, et c'est justement en mode Vision qu'on veut voir à travers la pile.
 
-#### Étagère à marqueurs libre dans le header — implémenté (troisième passage)
-Gus, après clarification (une première formulation parlait du "footer" — en fait la
-rangée de pioches cases/sorts/énergies/monstres du header, ce que le code appelle déjà
-des "items") : "je veux juste qu'on puisse les positionner comme on veut au niveau du
-header dans la partie avec les items, genre sans contraintes de ligne. on clique une
-fois pour sélectionner, une croix s'affiche pour défausser le marqueur et si on clique
-à un autre endroit du header ça le déplace, et quand il est sélectionné on peut aussi le
-placer sur une case du plateau." Contrairement aux 5 boutons de l'extension du header
-(toujours inchangés — ce sont eux qui font naître un marqueur neuf, `heldMarker`), cette
-étagère est une SECONDE destination possible pour ce marqueur tenu : en plus de pouvoir
-le poser directement sur une case de la grille (comportement déjà existant, inchangé),
-on peut désormais le déposer n'importe où dans la rangée de pioches du header — libre,
-sans être confiné à une ligne/grille comme les boutons de l'extension ou les cases de la
-grille.
-- **Nouvel état partagé `markerShelf`** (tableau de `{id, type, x, y}`, `x`/`y` en
-  **fractions 0..1** de la boîte de la rangée de pioches — pas des pixels absolus, pour
-  que la position suive si la rangée rétrécit/s'agrandit via `headerScale`). Partagé/
-  synchronisé comme `markers` (visible de tous les joueurs en ligne) — contrairement à
-  `heldTile`/`heldItem`/`heldMarker`, ce n'est pas un emplacement "tenu" transitoire, donc
-  il suit le même traitement que `markers` partout : `liveRef`, `commitBoard`/
-  `applySnapshot`/`currentSnapshot` (undo/redo), `resetBoard` (vidé), `localStorage`, et le
-  push/abonnement Firebase en ligne (inclus dans `initialBoard` à la création de room).
-  `selectedShelfMarkerId` (lequel est sélectionné) reste local à chaque appareil, comme
-  toute autre sélection.
-- **Rendu par-dessus la rangée de pioches, "au premier plan par rapport aux items"** :
-  la rangée (`pileRowRef`) passe en `position:'relative'` (nécessaire pour que les jetons
-  de l'étagère, en `position:'absolute'`, se positionnent par rapport à ELLE plutôt qu'un
-  ancêtre plus lointain) ; les jetons sont rendus en DERNIER dans cette rangée (après les
-  4 `PileGroup`), donc visuellement au-dessus malgré le fait qu'ils partagent le même
-  conteneur — pas besoin de z-index pour ça, juste l'ordre du DOM (même logique que les
-  items du plateau au-dessus des tuiles). Un simple `zIndex:30` les protège quand même
-  d'un éventuel bouton du header à z-index explicite (le `+/−` de l'extension est à 21).
-- **Un seul geste par action, exactement comme demandé** : `selectShelfMarker(e, id)`
-  (tap sur un jeton → sélectionne, re-tap désélectionne, "une seule chose sélectionnée à
-  la fois" comme partout ailleurs) ; `discardShelfMarker()` (croix ✕, visible seulement
-  sur le jeton sélectionné, même style `inGridBtnStyle` que les croix du plateau mais
-  réduit à 20px et décalé en haut-à-droite du jeton via un `transform:'translate(calc(-50%
-  + 16px), calc(-50% - 16px))'` plutôt que les coordonnées de grille — inapplicable ici) ;
-  `handlePileRowBackgroundClick(e)` (clic dans le VIDE de la rangée) gère les 3 cas
-  possibles dans cet ordre : un `heldMarker` en main → le dépose ici (`markerShelf`
-  grandit, `heldMarker` vidé) ; un `selectedShelfMarkerId` actif → le déplace à ces
-  nouvelles coordonnées ; sinon → retombe sur `clearCardSelection()` (comportement déjà
-  existant du clic dans le vide du header, inchangé pour toute autre sélection).
-- **`pileRowFraction(clientX, clientY)`** convertit des coordonnées écran en fraction
-  0..1 via `pileRowRef.current.getBoundingClientRect()`, `clamp01` pour ne jamais sortir
-  de la boîte même si le clic est tout au bord.
-- **Piège évité (double appel au clic dans le vide)** : la rangée de pioches vit DÉJÀ à
-  l'intérieur du header, qui a son propre `onClick:clearCardSelection` sur son fond —
-  ajouter un second `onClick` sur la rangée elle-même aurait fait remonter l'évènement en
-  bulle jusqu'au header ENSUITE, déclenchant `clearCardSelection` une seconde fois (sans
-  bug visible ici puisque c'est idempotent, mais un déplacement d'étagère aurait quand
-  même dû s'arrêter avant d'atteindre ce second appel). Fix : `handlePileRowBackgroundClick`
-  appelle `e.stopPropagation()` en tout début, exactement la même convention déjà en place
-  pour `PileStack`/`DiscardSlot` (qui stoppent leur propre clic pour ne pas se faire
-  annuler par ce même mécanisme) — un clic sur une pioche continue de fonctionner à
-  l'identique (son propre `handleClick` stoppe déjà la propagation AVANT d'atteindre ma
-  nouvelle rangée), vérifié en Playwright après coup (pioche cases toujours piochable,
-  100 → 99 cartes).
-- **Envoi vers la grille** : nouvelle branche dans `handleSingleClick`, juste après celle
-  de `selectedMarkerId` (marqueur déjà sur le plateau) — si `selectedShelfMarkerId` est
-  posé, un tap sur une case retire le marqueur de `markerShelf` et l'ajoute à `markers`
-  aux coordonnées `row`/`col` tapées, dans un seul `commitBoard` (undoable comme tout le
-  reste). Testé en Playwright de bout en bout : bouton marqueur → dépôt dans l'étagère à
-  la bonne fraction → sélection (croix visible) → déplacement dans l'étagère (nouvelle
-  fraction) → re-sélection → tap grille → marqueur retrouvé dans `markers` avec le bon
-  `row`/`col`, `markerShelf` vidé, aucune erreur console.
+#### Étagère à marqueurs libre dans le pied de page — implémenté (quatrième passage,
+remplace la version header du passage précédent)
+Un premier essai avait placé cette étagère dans la rangée de pioches du HEADER — Gus a
+corrigé son propre message juste après ("ah je me suis trompé entre le footer et le
+header désolé !!") : la bonne cible est le PIED DE PAGE, "là où il y a les sorts et
+énergie" — la zone d'équipement du joueur courant (nature/sorts/énergies). Reprend
+exactement la même mécanique (dépôt libre, sélection/déplacement/défausse), juste
+déplacée vers cette zone, avec deux règles supplémentaires précisées par Gus :
+"one tap sur le marqueur pour le sélectionner et quand on le sélectionne on peut pas
+sélectionner les items (pour pouvoir les poser par-dessus comme ils sont affichés devant
+les items) et en sélectionnant le marqueur je peux sélectionner la pioche d'où il vient
+pour défausser."
+- **Même état partagé `markerShelf`** (tableau de `{id, type, x, y}`, fractions 0..1 —
+  ici de la boîte de la zone d'équipement plutôt que de la rangée de pioches) et
+  `selectedShelfMarkerId` local — aucun changement de forme de données, seulement de
+  l'ancrage (`markerShelfRef` pointe maintenant sur le conteneur de la zone d'équipement,
+  visible seulement s'il y a un joueur courant — `current && h('div', {...})` — donc
+  l'étagère n'existe que quand cette zone existe elle-même, cohérent avec "là où il y a
+  les sorts et énergie").
+- **Rendu par-dessus la zone d'équipement, "devant les items"** : les jetons de
+  l'étagère sont rendus en DERNIER (après le slot nature et les 2 lignes sorts/énergies),
+  donc visuellement au-dessus malgré le même conteneur (`position:'relative'` ajouté à ce
+  conteneur) — même logique déjà validée pour le header, juste transposée.
+- **"Quand on le sélectionne on ne peut pas sélectionner les items" — implémenté au
+  niveau de l'`onClickCapture` déjà existant de la zone** (celui qui gère "peu importe où
+  je clique dans cette zone avec un item... équipe/annule la sélection", voir "Équiper un
+  item sur un joueur" plus haut) : la logique de l'étagère est insérée EN TOUT DÉBUT de ce
+  handler, avant la logique d'équipement existante — `heldMarker` (le dépose ici) et
+  `selectedShelfMarkerId` (le déplace ici) interceptent et `stopPropagation()`
+  systématiquement AVANT que la logique d'équipement/`hasAnySelection()` plus bas n'ait la
+  moindre chance de s'exécuter. Concrètement : tant qu'un marqueur est tenu ou sélectionné,
+  TOUT tap dans cette zone (même visuellement sur une carte équipée) déplace/dépose le
+  marqueur au lieu d'ouvrir/équiper la carte en dessous — exactement le comportement
+  demandé. Deux classes (`.marker-shelf-token`/`.marker-shelf-discard-btn`) laissent
+  passer les clics sur le jeton lui-même ou sa croix vers LEUR PROPRE `onClick` (phase de
+  bulle, pas interceptée par la capture), même exception que `.footer-item-discard-btn`
+  déjà en place juste en dessous dans ce même handler.
+- **`markerShelfFraction(clientX, clientY)`** (renommé depuis `pileRowFraction`) convertit
+  des coordonnées écran en fraction 0..1 relative à `markerShelfRef`, `clamp01` pour ne
+  jamais sortir de la boîte.
+- **"En sélectionnant le marqueur je peux sélectionner la pioche d'où il vient pour
+  défausser"** : `markerButtonClick(markerType)` (header extension, boutons d'origine)
+  gagne une branche `selectedShelfMarkerId` en plus de celle déjà existante pour
+  `selectedMarkerId` (marqueur sur le plateau) — même schéma "select it, tap its origin,
+  it's gone" déjà en place, juste étendu au cas où le marqueur sélectionné est celui de
+  l'étagère plutôt que celui posé sur la grille.
+- **Envoi vers la grille inchangé** : la branche de `handleSingleClick` qui retire un
+  marqueur de `markerShelf` pour l'ajouter à `markers` aux coordonnées tapées n'a pas eu
+  besoin d'être modifiée — elle ne dépend que de `selectedShelfMarkerId`/`markerShelf`,
+  indépendamment de l'endroit où l'étagère est affichée à l'écran.
+- Testé en Playwright de bout en bout dans la nouvelle zone : bouton marqueur → dépôt
+  dans la zone d'équipement (y compris en plein sur une carte déjà équipée) → sélection
+  (croix visible) → tap sur cette même carte équipée à nouveau → déplace le marqueur SANS
+  ouvrir la fenêtre agrandie de la carte ni la perturber → re-sélection → défausse par
+  croix ou par tap sur le bouton marqueur d'origine → `markerShelf` vidé dans les deux
+  cas, aucune erreur console.
 
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
