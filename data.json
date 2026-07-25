@@ -1192,7 +1192,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "+1 au résultat du dé en combat pendant 1 attaque pour chaque sort de cet élément.",
+      "effet": "+1 au résultat du dé en combat pour 1 lancé pour chaque sort de cet élément.",
       "quantite": 1,
       "notes": ""
     },
