@@ -859,7 +859,7 @@
       "id": "e4",
       "nom": "Philippe ! Je sais où tu te caches",
       "element": "Feu",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
       "effet": "Défaussez : lancez une attaque à distance sur un joueur où qu'il soit.",
