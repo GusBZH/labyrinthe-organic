@@ -128,6 +128,17 @@
       "notes": ""
     },
     {
+      "id": "s57",
+      "nom": "Ah Nan Nan Nan",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "3 PA",
+      "limite": "1x tour",
+      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s13",
       "nom": "Pas Fantôme",
       "element": "Air",
@@ -157,17 +168,6 @@
       "cout": "1 PA",
       "limite": "3x tour",
       "effet": "Déplacez-vous et explorez d'autant de cases que possible sur 1 ligne droite.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s57",
-      "nom": "Ah Nan Nan Nan",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "3 PA",
-      "limite": "1x tour",
-      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
     },
