@@ -852,6 +852,17 @@
       "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "427kyr43c62",
+      "nom": "Nouveau",
+      "element": "Eau",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
