@@ -988,6 +988,17 @@
       "notes": ""
     },
     {
+      "id": "tmttfed7x2o",
+      "nom": "Yoloooo",
+      "element": "Commun",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "+ 1PV pour chaque sort de cet élément.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "e20",
       "nom": "Nul en math",
       "element": "Commun",
@@ -1006,28 +1017,6 @@
       "cout": "",
       "limite": "",
       "effet": "Vous pouvez utiliser 1 fois de plus 1 sort pour chaque sort de cet élément.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e24",
-      "nom": "Énergie Commune 10",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous gagnez +1 au résultat du dé en combat pendant 1 tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e25",
-      "nom": "Énergie Commune 9",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous lancez 1 dé de plus en combat pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -1054,6 +1043,28 @@
       "notes": ""
     },
     {
+      "id": "e24",
+      "nom": "Énergie Commune 10",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous gagnez +1 au résultat du dé en combat pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e25",
+      "nom": "Énergie Commune 9",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous lancez 1 dé de plus en combat pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "e17",
       "nom": "Énergie Commune 1",
       "element": "Commun",
@@ -1072,17 +1083,6 @@
       "cout": "",
       "limite": "",
       "effet": "Vous pouvez attaquer les joueurs présents à 0 case de distance d'1 de vos cases élément.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e23",
-      "nom": "Énergie Commune 7",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "La première fois par tour que vous êtes sur une case de votre élément, vous gagnez 1 PA pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -1373,6 +1373,17 @@
       "notes": ""
     },
     {
+      "id": "e23",
+      "nom": "Énergie Commune 7",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "La première fois par tour que vous êtes sur une case de votre élément, vous gagnez 1 PA pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "e26",
       "nom": "Énergie Commune 10",
       "element": "Commun",
@@ -1380,17 +1391,6 @@
       "cout": "",
       "limite": "",
       "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "tmttfed7x2o",
-      "nom": "Yoloooo",
-      "element": "Commun",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "+ 1PV pour chaque sort de cet élément.",
       "quantite": 1,
       "notes": ""
     }
