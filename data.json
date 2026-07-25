@@ -106,6 +106,17 @@
       "notes": ""
     },
     {
+      "id": "s40",
+      "nom": "Cocotte Minute de Défense",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "3x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé au combat pendant 1 défense.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s11",
       "nom": "Mercy",
       "element": "Terre",
@@ -115,17 +126,6 @@
       "effet": "Vous avez 3 compteurs sur ce sort. Si 1 autre joueur perd un combat dans votre ligne de vue, vous pouvez utiliser 1 compteur et annuler ce combat.",
       "quantite": 1,
       "notes": ""
-    },
-    {
-      "id": "s12",
-      "nom": "Séisme",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Sélectionnez 1 carré de 3 tuiles de côté et supprimez toutes les tuiles contrôlables sans joueur dessus ",
-      "quantite": 1,
-      "notes": "Doublon avec énergie "
     },
     {
       "id": "s56",
@@ -392,26 +392,15 @@
       "notes": ""
     },
     {
-      "id": "s37",
-      "nom": "Poing Mexicain",
+      "id": "s12",
+      "nom": "Séisme",
       "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
+      "statut": "Validé",
+      "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+      "effet": "Sélectionnez 1 carré de 3 tuiles de côté et supprimez toutes les tuiles contrôlables sans joueur dessus ",
       "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s38",
-      "nom": "Gourdeux",
-      "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
-      "quantite": 1,
-      "notes": ""
+      "notes": "Doublon avec énergie "
     },
     {
       "id": "s39",
@@ -421,17 +410,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Les monstres ont -1 au résultat du dé pendant 1 tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s40",
-      "nom": "Cocotte Minute de Défense",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "3x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé au combat pendant 1 défense.",
       "quantite": 1,
       "notes": ""
     },
@@ -509,6 +487,28 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Pendant 1 tour global, lancez 1 dé de plus en combat pendant les défenses pour chaque énergie que vous possédez.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s37",
+      "nom": "Poing Mexicain",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s38",
+      "nom": "Gourdeux",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
       "quantite": 1,
       "notes": ""
     },
