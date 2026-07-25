@@ -955,17 +955,6 @@
       "notes": ""
     },
     {
-      "id": "e17",
-      "nom": "Énergie Commune 1",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "Pour chaque sort de cet élément, posez 1 marqueur +1 qui augmente de 1 le chiffre sur 1 item de cet élément pendant 1 tour global.",
-      "quantite": 5,
-      "notes": ""
-    },
-    {
       "id": "e18",
       "nom": "Énergie Commune 2",
       "element": "Commun",
@@ -1010,25 +999,14 @@
       "notes": ""
     },
     {
-      "id": "e22",
-      "nom": "Énergie Commune 6",
+      "id": "65mbl3q7lh4",
+      "nom": "+1 Magique !",
       "element": "Commun",
-      "statut": "Test 1",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Vous pouvez attaquer les joueurs présents à 0 case de distance d'1 de vos cases élément.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e23",
-      "nom": "Énergie Commune 7",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "La première fois par tour que vous êtes sur une case de votre élément, vous gagnez 1 PA pendant 1 tour.",
-      "quantite": 1,
+      "effet": "Jusqu'à la fin de votre tour, augmente de 1 le chiffre d'un sort de cet élément.",
+      "quantite": 5,
       "notes": ""
     },
     {
@@ -1054,17 +1032,6 @@
       "notes": ""
     },
     {
-      "id": "e26",
-      "nom": "Énergie Commune 10",
-      "element": "Commun",
-      "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "e27",
       "nom": "Énergie Commune 11",
       "element": "Commun",
@@ -1083,6 +1050,39 @@
       "cout": "",
       "limite": "",
       "effet": "Réduit de 1 PA le coût d'un sort de cet élément.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e17",
+      "nom": "Énergie Commune 1",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort de cet élément, posez 1 marqueur +1 qui augmente de 1 le chiffre sur 1 item de cet élément pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
+      "id": "e22",
+      "nom": "Énergie Commune 6",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "Vous pouvez attaquer les joueurs présents à 0 case de distance d'1 de vos cases élément.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e23",
+      "nom": "Énergie Commune 7",
+      "element": "Commun",
+      "statut": "Test 1",
+      "cout": "",
+      "limite": "",
+      "effet": "La première fois par tour que vous êtes sur une case de votre élément, vous gagnez 1 PA pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -1373,14 +1373,14 @@
       "notes": ""
     },
     {
-      "id": "65mbl3q7lh4",
-      "nom": "+1 Magique !",
+      "id": "e26",
+      "nom": "Énergie Commune 10",
       "element": "Commun",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
-      "effet": "Jusqu'à la fin de votre tour, augmente de 1 le chiffre d'un sort de cet élément.",
-      "quantite": 5,
+      "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
+      "quantite": 1,
       "notes": ""
     }
   ],
