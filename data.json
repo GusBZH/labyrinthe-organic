@@ -1104,7 +1104,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Pour chaque sort d'élément différent, augmentez posez 1 marqueur +1 qui augmente de 1 le chiffre sur 1 item pendant 1 tour global.",
+      "effet": "Pour chaque sort d'élément différent, augmentez de 1 le chiffre sur 1 item pendant 1 tour global.",
       "quantite": 5,
       "notes": ""
     },
