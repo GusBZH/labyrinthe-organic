@@ -846,10 +846,10 @@
       "id": "xvekgvqvpks",
       "nom": "Dropbox",
       "element": "Feu",
-      "statut": "Test 3",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     }
