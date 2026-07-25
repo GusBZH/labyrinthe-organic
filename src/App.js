@@ -5,6 +5,7 @@ import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { PlateauPage } from "./pages/PlateauPage.js";
+import { OnlineLobbyPage } from "./pages/OnlineLobbyPage.js";
 import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder } from "./utils.js";
 
 const MAX_HISTORY = 50;
@@ -29,6 +30,10 @@ export function App() {
   const [saveErr, setSaveErr] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [page, setPage] = useState('home');
+  // {code, creating} en mode partie en ligne (Firebase), null en solo/hotseat
+  // — voir CLAUDE.md "Version en ligne entre amis". Réinitialisé à chaque
+  // retour à l'accueil pour ne pas rester "collé" à une ancienne partie.
+  const [onlineRoom, setOnlineRoom] = useState(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const saveTimer = useRef(null);
@@ -158,7 +163,14 @@ export function App() {
     canUndo, canRedo, onUndo:undo, onRedo:redo, onBack:()=>setPage('home')
   });
 
-  if (page === 'plateau') return h(PlateauPage, {onBack:()=>setPage('home'), data});
+  if (page === 'online-lobby') return h(OnlineLobbyPage, {
+    onBack:()=>setPage('home'),
+    onEnterRoom:(code, creating) => { setOnlineRoom({code, creating}); setPage('plateau'); }
+  });
+
+  if (page === 'plateau') return h(PlateauPage, {
+    onBack:()=>{ setOnlineRoom(null); setPage('home'); }, data, onlineRoom
+  });
 
   return h(HomePage, {
     data, editMode, setEditMode, saving, saveErr,

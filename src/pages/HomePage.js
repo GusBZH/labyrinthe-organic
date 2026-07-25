@@ -253,11 +253,23 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     // CONTENT
     h('div', {style:{padding:'16px 16px 100px'}},
 
-      // JOUER
-      h('div', {onClick:()=>setPage('plateau'), style:{background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)',
-        borderRadius:12, padding:16, marginBottom:20, textAlign:'center', cursor:'pointer'}},
-        h('div', {style:{fontSize:14, fontWeight:600, color:'#eee'}}, '🎮 Jouer'),
-        h('div', {style:{fontSize:11, color:'#666', marginTop:4}}, 'Plateau hotseat (v1)')
+      // JOUER — solo/hotseat (un seul écran) à gauche, en ligne (Firebase,
+      // voir CLAUDE.md "Version en ligne entre amis") à droite. Deux entrées
+      // séparées plutôt qu'un choix caché dans le Plateau lui-même : le mode
+      // solo existant reste intouché (même bouton, même comportement),
+      // "Jouer en ligne" passe par un petit écran dédié (OnlineLobbyPage)
+      // pour créer/rejoindre une partie avant d'entrer dans le Plateau.
+      h('div', {style:{display:'flex', gap:10, marginBottom:20}},
+        h('div', {onClick:()=>setPage('plateau'), style:{flex:1, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)',
+          borderRadius:12, padding:16, textAlign:'center', cursor:'pointer'}},
+          h('div', {style:{fontSize:14, fontWeight:600, color:'#eee'}}, '🎮 Jouer'),
+          h('div', {style:{fontSize:11, color:'#666', marginTop:4}}, 'Plateau hotseat (v1)')
+        ),
+        h('div', {onClick:()=>setPage('online-lobby'), style:{flex:1, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)',
+          borderRadius:12, padding:16, textAlign:'center', cursor:'pointer'}},
+          h('div', {style:{fontSize:14, fontWeight:600, color:'#eee'}}, '🌐 Jouer en ligne'),
+          h('div', {style:{fontSize:11, color:'#666', marginTop:4}}, 'Avec des amis')
+        )
       ),
 
       h('div', {ref:sectionsRef},

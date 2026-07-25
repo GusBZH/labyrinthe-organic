@@ -6,6 +6,12 @@ import { AddBtn } from "../components/AddBtn.js";
 import { Popup } from "../components/Popup.js";
 import { UndoRedo } from "../components/UndoRedo.js";
 import { sortBackFor, energyBackFor, monsterBackFor, ENERGY_BONUS, CASE_BACK_IMG, DEPART_IMG } from "../data/cardAssets.js";
+// multiplayer.js (donc firebase.js, donc le CDN gstatic) est chargé en
+// import DYNAMIQUE, jamais statique ici : un import statique échouerait au
+// chargement de TOUTE la page si gstatic.com est injoignable (bloqueur de
+// pub, pare-feu, panne Google...) — cassant même le mode solo/hotseat, qui
+// n'a rien à voir avec Firebase. En dynamique, un échec ne touche que la
+// partie en ligne (voir l'effet de mise en place plus bas), jamais le reste.
 
 // Live game session (grid, players, PV, dice, tiles) — a "confort visuel"
 // only, never an authoritative rules arbiter (see CLAUDE.md). Kept out of
@@ -1120,8 +1126,17 @@ function MarkerButton({type, holding, disabled, onClick}){
   }, h(MarkerIcon, {type, size:22}));
 }
 
-export function PlateauPage({onBack, data}) {
-  const saved = loadSession();
+export function PlateauPage({onBack, data, onlineRoom}) {
+  // onlineRoom = {code, creating} en partie en ligne (Firebase), sinon null
+  // (solo/hotseat, comportement 100% inchangé — voir CLAUDE.md "Version en
+  // ligne entre amis"). En ligne, la session ne vient jamais de
+  // localStorage (multi-appareils) : tout arrive via l'abonnement Firebase
+  // plus bas, sauf `currentIndex` qui reste local À CET APPAREIL (Gus :
+  // "il faut que le footer du joueur en bas soit indépendant aussi") et se
+  // persiste sous une clé localStorage propre à ce code de partie.
+  const isOnline = !!onlineRoom;
+  const saved = isOnline ? null : loadSession();
+  const [onlineReady, setOnlineReady] = useState(!isOnline);
   // id -> {kind, ...catalog fields}, see registerDeckCards' own comment for
   // why this table (rather than the state objects themselves) is the
   // source of truth CardFace reads from everywhere. Persisted into the same
@@ -1129,10 +1144,19 @@ export function PlateauPage({onBack, data}) {
   // reload — piles/placedTiles/etc. already do, and their card ids need to
   // keep resolving after one. Not part of the undo/redo snapshot: it only
   // ever grows (new decks on Reset), so reverting the OTHER state to an
-  // earlier point never orphans an id that's still looked up here.
-  const cardCatalogRef = useRef(saved?.cardCatalog || {});
+  // earlier point never orphans an id that's still looked up here. En
+  // ligne, se remplit plutôt depuis le `cardCatalog` partagé de la room
+  // (voir l'effet d'abonnement plus bas) — jamais construit localement,
+  // sauf par le créateur de la partie au tout premier lancement.
+  const cardCatalogRef = useRef(isOnline ? {} : (saved?.cardCatalog || {}));
   const [players, setPlayers] = useState(saved?.players || []);
-  const [currentIndex, setCurrentIndex] = useState(saved?.currentIndex || 0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (isOnline) {
+      try { return parseInt(localStorage.getItem('labyrinthe_organic_online_currentIndex_' + onlineRoom.code) || '0', 10) || 0; }
+      catch { return 0; }
+    }
+    return saved?.currentIndex || 0;
+  });
   const [selectedId, setSelectedId] = useState(null);
   const [showReset, setShowReset] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
@@ -1157,6 +1181,11 @@ export function PlateauPage({onBack, data}) {
   // browse, not the whole player list.
   const [visionPlayerCycleIds, setVisionPlayerCycleIds] = useState(null);
   const [piles, setPiles] = useState(() => {
+    // En ligne, ne JAMAIS construire un deck ici (des ids/mélange différents
+    // à chaque appareil) — même le créateur de la partie le fait dans
+    // l'effet de mise en place de la room plus bas, qui le pousse ensuite
+    // vers Firebase ; ce composant reçoit toujours ses piles via l'abonnement.
+    if (isOnline) return [];
     if (saved?.piles) return saved.piles;
     const fresh = makeInitialPiles(data);
     registerDeckCards(fresh, cardCatalogRef.current);
@@ -1255,6 +1284,71 @@ export function PlateauPage({onBack, data}) {
   // Drawn from a sort/énergie pile, mirrors heldTile exactly (see its own
   // comments) but for items: {cardId, itemType:'sort'|'energie', fromPileId}.
   const [heldItem, setHeldItem] = useState(null);
+
+  // Module multiplayer.js chargé dynamiquement (voir le commentaire sur
+  // l'import plus haut) — rempli une fois par l'effet ci-dessous, relu par
+  // l'effet de persistance plus bas pour pousser chaque mutation.
+  const multiplayerModRef = useRef(null);
+  const [onlineError, setOnlineError] = useState(null);
+
+  // Mise en place + abonnement de la partie en ligne — une seule fois au
+  // montage (onlineRoom ne change jamais pendant la vie de cette page : un
+  // changement de partie recharge la page via App.js). Le créateur construit
+  // le deck initial UNE SEULE FOIS ici (comme resetBoard) et le pousse vers
+  // Firebase ; tout le monde (créateur inclus) reçoit ensuite son état par
+  // l'abonnement — jamais par une construction locale indépendante, qui
+  // donnerait des ids/mélanges différents à chaque appareil.
+  useEffect(() => {
+    if (!isOnline) return;
+    let unsubscribe = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import("../multiplayer.js");
+        if (cancelled) return;
+        multiplayerModRef.current = mod;
+        if (onlineRoom.creating) {
+          const fresh = makeInitialPiles(data);
+          registerDeckCards(fresh, cardCatalogRef.current);
+          const initialBoard = {
+            players: [], piles: fresh, discardCards: [], placedTiles: [], heldTile: null,
+            boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
+          };
+          await mod.createRoom(onlineRoom.code, initialBoard, cardCatalogRef.current);
+        }
+        if (cancelled) return;
+        unsubscribe = mod.subscribeToRoom(onlineRoom.code, (roomVal) => {
+          if (!roomVal) return;
+          if (roomVal.cardCatalog) Object.assign(cardCatalogRef.current, roomVal.cardCatalog);
+          const b = roomVal.board;
+          if (b) {
+            setPlayers(b.players || []);
+            setPiles(b.piles || []);
+            setDiscardCards(b.discardCards || []);
+            setPlacedTiles(b.placedTiles || []);
+            setHeldTile(b.heldTile || null);
+            setBoardItems(b.boardItems || []);
+            setHeldItem(b.heldItem || null);
+            setMonsters(b.monsters || []);
+            setMarkers(b.markers || []);
+            setHeldMarker(b.heldMarker || null);
+          }
+          setOnlineReady(true);
+        });
+      } catch (e) {
+        if (!cancelled) setOnlineError(e.message || String(e));
+      }
+    })();
+    return () => { cancelled = true; if (unsubscribe) unsubscribe(); };
+    // eslint-disable-next-line
+  }, []);
+
+  // Persistance de `currentIndex` (quel joueur CET APPAREIL regarde) sous une
+  // clé propre à ce code de partie — jamais partagé, voir plus haut.
+  useEffect(() => {
+    if (!isOnline) return;
+    try { localStorage.setItem('labyrinthe_organic_online_currentIndex_' + onlineRoom.code, String(currentIndex)); } catch {}
+  }, [isOnline, onlineRoom, currentIndex]);
   // An item already on the board, picked up via long-press (items' dedicated
   // gesture — see the grid long-press handlers below) — mirrors selectedTileId
   // in 'moving' mode: stays in `boardItems` at its current cell while
@@ -1382,8 +1476,27 @@ export function PlateauPage({onBack, data}) {
   const effectiveCell = CELL * zoom;
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, cardCatalog:cardCatalogRef.current})); } catch {}
-  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers]);
+    if (isOnline) {
+      // Ne jamais pousser avant d'avoir reçu au moins un instantané de la
+      // room (voir l'effet de mise en place plus haut) — sinon cet effet,
+      // qui se déclenche dès le premier rendu comme n'importe quel autre,
+      // écraserait la partie déjà en cours d'un autre joueur avec un
+      // plateau vide avant même que l'abonnement n'ait eu le temps de
+      // répondre. Idem si le module n'a pas fini de se charger (ou a
+      // échoué, voir onlineError).
+      if (!onlineReady || !multiplayerModRef.current) return;
+      const mod = multiplayerModRef.current;
+      mod.pushBoardUpdate(onlineRoom.code, {
+        players, piles, discardCards, placedTiles, heldTile, boardItems, heldItem, monsters, markers, heldMarker
+      });
+      // Le catalogue ne fait que grossir — repousser la table entière à
+      // chaque fois est sans risque (merge, jamais un écrasement) et évite
+      // de traquer chaque site où une nouvelle carte y est enregistrée.
+      mod.pushCardCatalogEntries(onlineRoom.code, cardCatalogRef.current);
+    } else {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, cardCatalog:cardCatalogRef.current})); } catch {}
+    }
+  }, [players, currentIndex, piles, discardCards, placedTiles, heldTile, boardItems, heldItem, monsters, markers, heldMarker, isOnline, onlineReady]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -2991,6 +3104,20 @@ export function PlateauPage({onBack, data}) {
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
   const headerBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
 
+  // Rien à afficher tant que le tout premier instantané de la room n'est
+  // pas arrivé (voir l'effet de mise en place plus haut) — évite de montrer
+  // un plateau vide qui donnerait l'impression que la partie est cassée, et
+  // empêche surtout toute action locale avant que l'état ne soit vraiment
+  // synchronisé (rien n'est cliquable puisque rien n'est encore rendu).
+  if (isOnline && !onlineReady) {
+    return h('div', {style:{height:'100dvh', display:'flex', flexDirection:'column', gap:16, alignItems:'center', justifyContent:'center', color:'#eee', background:'#111', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', padding:24, textAlign:'center'}},
+      onlineError
+        ? h('div', {style:{color:'#f88'}}, 'Connexion impossible : ' + onlineError)
+        : 'Connexion à la partie…',
+      h('button', {onClick:onBack, style:{background:'none', border:'1px solid #333', borderRadius:6, color:'#aaa', padding:'8px 16px', fontSize:13}}, '← Retour')
+    );
+  }
+
   return h('div', {style:{
       height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee',
       fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'
@@ -3020,7 +3147,10 @@ export function PlateauPage({onBack, data}) {
       WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}},
       h('div', {style:{display:'flex', alignItems:'center', gap:12, padding:'12px 16px'}},
         h('button', {onClick:onBack, style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#aaa', padding:'6px 12px', fontSize:12}}, '← Retour'),
-        h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}}, '🎮 Plateau'),
+        h('h2', {style:{margin:0, fontSize:16, color:'#eee', flex:1}},
+          '🎮 Plateau',
+          isOnline && h('span', {style:{fontSize:11, color:'#9cf', marginLeft:8, fontWeight:400}}, `🌐 ${onlineRoom.code}`)
+        ),
         h('div', {ref:resetAnchorRef, style:{position:'relative'}},
           h('button', {onClick:guardedBySelection(()=>setShowReset(!showReset)), style:{background:'none', border:`1px solid ${borderColor(visionMode,'#333')}`, borderRadius:6, color:'#a55', padding:'6px 10px', fontSize:12}}, '⟲ Reset'),
           showReset && h(Popup, {
