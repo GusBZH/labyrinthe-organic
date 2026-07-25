@@ -524,6 +524,17 @@
       "notes": ""
     },
     {
+      "id": "s56",
+      "nom": "Nan J'crois Pas",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s50",
       "nom": "Marque du Voyageur",
       "element": "Air",
@@ -553,17 +564,6 @@
       "cout": "0 PA",
       "limite": "3x tour",
       "effet": "À la place d'attaquer 1 joueur, vous pouvez le pousser de 3 cases dans 1 direction. La cible ne peut pas vous attaquer avant pour contrer.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s56",
-      "nom": "Nan J'crois Pas",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
     },
