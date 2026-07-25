@@ -704,6 +704,29 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   `cellPicker`/la modale Vision le font déjà avec succès. `anchorRef` reste inchangé
   (toujours nécessaire pour la fermeture au clic extérieur de `Popup`, indépendante
   du positionnement visuel).
+- **Suspecté : diviser une pioche qui a débordé sur une 2ème ligne du header ne
+  fonctionnait plus sur Android** (Gus, testant sur téléphone Android : "je ne peux
+  plus diviser les pioches qui sont sur une nouvelle ligne (la 3ème et 4ème pioche des
+  sorts par exemple)") — non reproduit en simulation souris/Chromium malgré plusieurs
+  essais (le clic/appui long fonctionne à l'identique quelle que soit la ligne dans ce
+  cadre de test), donc pas de confirmation directe possible dans cet environnement
+  (aucun WebKit/Chrome mobile réel disponible ici, même limite que les bugs iPhone déjà
+  documentés plus haut). Hypothèse retenue, appuyée sur un bug de MÊME NATURE déjà
+  rencontré et corrigé ailleurs dans l'app (voir "Réordonnancement des items équipés du
+  pied de page ne fonctionnait pas en pratique" plus haut) : la rangée du header qui
+  contient les pioches a `overflowX:'auto'` (scroll horizontal natif) — sur un
+  navigateur tactile, un appui qui reste posé dans un conteneur scrollable peut être
+  interprété par le navigateur comme le début d'un geste de scroll, qui annule le
+  `pointerdown` en cours via un `pointercancel` avant que le minuteur de 500ms de
+  l'appui long n'ait eu le temps de se déclencher — plus il y a de pioches/de lignes
+  dans cette rangée, plus il y a de "surface scrollable" dans laquelle le navigateur
+  peut chercher à interpréter le geste comme tel. Fix (même remède déjà validé pour le
+  pied de page) : `touchAction:'none'` posé sur le carré cliquable de `PileStack` ET de
+  `DiscardSlot` (les deux vivent dans cette même rangée) — indique au navigateur que
+  l'élément gère lui-même ses propres gestes, sans empêcher le scroll HORIZONTAL de la
+  rangée elle-même porté par le CONTENEUR parent (qui n'a pas cette propriété). Pas
+  vérifié sur un vrai appareil Android — à confirmer par Gus, à revenir dessus si le
+  symptôme persiste.
 - **Ces popups peuvent quand même sortir de l'écran (bord droit surtout) — clampées
   maintenant** (Gus : "possible de vérifier si la fenêtre a la place pour s'ouvrir
   avant ? et si non qu'elle se déplace un peu") : `clampPopupPos(left, top, width,
@@ -767,22 +790,41 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   animation indépendamment ; chaque `PileStack` retire sa propre entrée via
   `onSpawnAnimDone(pile.id)` une fois son animation terminée (~400ms).
 - **Reset mélange déjà toutes les pioches (rien à faire) et divise maintenant sorts +
-  énergies en 2 chacune, avec la même animation** (Gus : "quand on reset une partie tu
-  peux mélanger toutes les pioches ? puis diviser en 2 les pioches sorts, énergie...
-  et si quand on reset on peut voir l'animation des paquets qui se divise juste après
-  c'est top") — chaque deck frais est déjà rebrassé à sa construction (`buildSortCards`/
-  `buildEnergieCards`/etc. finissent tous par `shuffle()`), donc "mélanger" ne demandait
-  aucun code nouveau. `resetBoard` coupe en plus les paquets `sort`/`energie` fraîchement
-  construits en deux (même logique que `splitPile`) avant de committer. Contrairement à
-  une division manuelle, Reset n'a **aucun DOM préexistant** à mesurer pour une origine
-  FLIP classique (l'ancien paquet n'existe déjà plus) — solution : un state dédié
-  `pendingResetSplitAnim` (`{sort:{firstId,secondId}, energie:{firstId,secondId}}`),
-  posé juste après le `commitBoard` du reset, déclenche un `useLayoutEffect` séparé qui
-  mesure la position de la PREMIÈRE moitié (déjà montée à sa position naturelle par le
-  rendu qui vient de se produire) et l'utilise comme origine `fromRect` pour la SECONDE —
-  exécuté dans un layout effect (donc avant la peinture écran), aucun flash visible même
-  si la 2ème moitié est techniquement déjà affichée à sa position finale une fraction de
-  rendu plus tôt.
+  énergies + monstres en 2 chacune, avec la même animation jouée dans l'ordre gauche à
+  droite** (Gus : "quand on reset une partie tu peux mélanger toutes les pioches ? puis
+  diviser en 2 les pioches sorts, énergie... et si quand on reset on peut voir
+  l'animation des paquets qui se divise juste après c'est top", puis dans un second
+  temps : "il faut aussi mélanger puis diviser la pioche de monstre" et "l'animation de
+  division tu peux faire dans l'ordre gauche à droite ? sort, énergie puis monstre") —
+  chaque deck frais est déjà rebrassé à sa construction (`buildSortCards`/
+  `buildEnergieCards`/`buildMonstreCards` finissent tous par `shuffle()`), donc
+  "mélanger" ne demandait aucun code nouveau. `resetBoard` coupe en plus les paquets
+  `sort`/`energie`/`monstre` fraîchement construits en deux (même logique que
+  `splitPile`) avant de committer. Contrairement à une division manuelle, Reset n'a
+  **aucun DOM préexistant** à mesurer pour une origine FLIP classique (l'ancien paquet
+  n'existe déjà plus) — solution : un state dédié `pendingResetSplitAnim`
+  (`{sort:{firstId,secondId}, energie:{...}, monstre:{...}}`), posé juste après le
+  `commitBoard` du reset, déclenche un `useLayoutEffect` séparé qui mesure la position
+  de la PREMIÈRE moitié (déjà montée à sa position naturelle par le rendu qui vient de
+  se produire) et l'utilise comme origine `fromRect` pour la SECONDE — le tout premier
+  groupe (`sort`) le fait de façon synchrone à l'intérieur du layout effect (donc avant
+  la peinture écran, aucun flash visible même si la 2ème moitié est techniquement déjà
+  affichée à sa position finale une fraction de rendu plus tôt) ; `énergie` et `monstre`
+  sont ensuite décalés via `setTimeout` (échelonnés de 180ms) pour obtenir la cascade
+  gauche-à-droite demandée, un flash minime au démarrage de chacun étant cette fois
+  attendu (c'est littéralement l'effet "cascade" recherché).
+  - **Piège rencontré (les animations décalées ne jouaient jamais, seule la première
+    partait)** : `setPendingResetSplitAnim(null)` était appelé juste après avoir
+    programmé les `setTimeout` de la cascade, dans l'idée de "consommer" l'état une
+    fois traité — mais cet appel change la dépendance de CE MÊME `useLayoutEffect`
+    (`[pendingResetSplitAnim]`), donc React exécute son cleanup (`timers.forEach
+    (clearTimeout)`) immédiatement, avant même que le premier timer n'ait eu la chance
+    de se déclencher — confirmé en ajoutant des logs temporaires (`fire()` n'était
+    appelé qu'une seule fois, jamais pour `énergie`/`monstre`). Fix : ne plus annuler
+    `pendingResetSplitAnim` du tout après usage — le laisser en place ne pose aucun
+    problème puisqu'un futur Reset construit de toute façon un objet flambant neuf
+    (nouvelle identité), qui re-déclenche l'effet indépendamment de la valeur
+    précédente.
 - Au lieu d'utiliser le menu, cliquer une **autre** pioche (ou la défausse) pendant
   qu'une pioche est armée fusionne celle-ci dans la cible — et là ça **rebrasse** le
   résultat (contrairement à Diviser). C'est comme ça qu'on peut diviser une pioche en
@@ -837,6 +879,20 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   à `null` par la désarmement de la source à ce moment).
 
 ### Pioches dynamiques depuis le catalogue — implémenté
+**Bug signalé, PAS reproduit, cause inconnue** : Gus a signalé que "quand je reset le
+plateau maintenant toutes les images qui sont dans asset ne sont plus link" (après un
+Reset, les images de `/assets` ne se chargent plus). Non reproductible en Playwright
+(souris, Chromium) : les requêtes réseau vers `/assets/...` réussissent (aucune 404) et
+les `backgroundImage` calculés après Reset pointent vers les bons fichiers, avant comme
+après le split automatique sorts/énergies/monstres ajouté cette même session — la piste
+"le split casse `cardCatalogRef`" a été vérifiée et écartée (`registerDeckCards` tourne
+sur `freshPiles`, AVANT la coupe en 2, donc chaque carte — y compris celles qui finiront
+dans la seconde moitié — est bien enregistrée avant que `commitBoard` ne s'exécute). À
+creuser avec plus de détails de Gus (est-ce TOUTES les images y compris celles déjà
+posées sur le plateau avant le Reset, ou seulement les nouvelles cartes piochées après ;
+icône d'image cassée ou carte blanche/vide ; persiste après un rechargement complet de
+la page ou seulement jusqu'au prochain Reset) — pas d'hypothèse fiable pour l'instant.
+
 Les 100 cartes identiques placeholder sont remplacées par de vraies pioches générées
 depuis le catalogue (`data.cases`/`sorts`/`energies`/`monstres`, uniquement statut
 **Validé**, un exemplaire de carte par unité de `quantite`) — modifier le catalogue et
@@ -1053,21 +1109,30 @@ sous le nom `heldCardId`.
   fenêtre — sans effet dans les deux AUTRES façons de les ouvrir (tap direct en mode
   Vision, sélection via `itemCellPicker`/`cellPicker` en mode Vision), qui ne posent
   jamais ces ids de sélection normale de toute façon.
-- **Bug corrigé (poser un item déjà sélectionné demandait systématiquement 2 taps)** :
-  Gus, très précis — "le premier tap quand l'item est sélectionné... c'est le tap
-  d'après qui va déplacer l'item". Cause : un appui long qui tient parfaitement immobile
-  pendant 500ms est en pratique presque impossible (main ou doigt réel) — un léger
-  tremblement pendant la tenue dépasse souvent le seuil de 3px du détecteur de
-  glisser-panoramique (`onViewportPointerDown`, complètement séparé du système d'appui
-  long des items) sans dépasser le seuil de 6px qui annulerait l'appui long lui-même —
-  l'appui long réussit donc (l'item se sélectionne bien) mais `wasDraggingRef` se
-  retrouve à `true` en plus. Le clic natif qui suit systématiquement le relâchement d'un
-  appui long était déjà absorbé via `suppressNextClickRef` — mais ce court-circuit
-  `return`ait AVANT d'atteindre la vérification/remise-à-zéro de `wasDraggingRef` juste
-  en dessous, laissant ce drapeau `true` fuiter jusqu'au tap SUIVANT (le vrai tap de
-  pose) qui se faisait alors avaler à sa place, croyant conclure un glisser. Fix :
+- **Bug PAS résolu malgré une première tentative (poser un item déjà sélectionné demande
+  systématiquement 2 taps)** : Gus, très précis — "le premier tap quand l'item est
+  sélectionné... c'est le tap d'après qui va déplacer l'item". Première hypothèse
+  (session précédente) : un appui long qui tient parfaitement immobile pendant 500ms est
+  en pratique presque impossible (main ou doigt réel) — un léger tremblement pendant la
+  tenue dépasse souvent le seuil de 3px du détecteur de glisser-panoramique
+  (`onViewportPointerDown`, complètement séparé du système d'appui long des items) sans
+  dépasser le seuil de 6px qui annulerait l'appui long lui-même — l'appui long réussit
+  donc (l'item se sélectionne bien) mais `wasDraggingRef` se retrouve à `true` en plus.
+  Le clic natif qui suit systématiquement le relâchement d'un appui long était déjà
+  absorbé via `suppressNextClickRef` — mais ce court-circuit `return`ait AVANT
+  d'atteindre la vérification/remise-à-zéro de `wasDraggingRef` juste en dessous,
+  laissant ce drapeau `true` fuiter jusqu'au tap SUIVANT (le vrai tap de pose) qui se
+  faisait alors avaler à sa place, croyant conclure un glisser. Fix appliqué :
   `wasDraggingRef.current` est aussi remis à `false` au moment où `suppressNextClickRef`
-  est consommé.
+  est consommé — **mais Gus a confirmé que le bug persiste** identique après ce fix, et a
+  explicitement écarté l'hypothèse du tremblement ("je pense que ça n'a rien à voir avec
+  le doigt qui bouge quand on sélectionne, parce que même très zoomé le problème est
+  quand même là"). Détails précisés par Gus : sur téléphone Android, le premier tap
+  "dans le vide" (sur une case libre du plateau) ne produit RIEN de visible (pas de
+  changement d'apparence de l'item tenu), et ça arrive SYSTÉMATIQUEMENT, pas de façon
+  intermittente. Non reproduit malgré plusieurs scénarios testés en Playwright (appui
+  immobile, appui quasi instantané, sélection via `itemCellPicker`) — cause réelle
+  encore non identifiée, à revoir avec plus de détails/logs si possible côté Gus.
 - **Noms des monstres/items ajoutés dans les fenêtres de choix multi-entités** (Gus :
   "essaie d'ajouter les noms des items et des monstres... réduire la taille de la police
   si trop grand") — colonne monstres de `cellPicker` et les deux colonnes de

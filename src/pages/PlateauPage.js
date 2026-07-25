@@ -551,6 +551,14 @@ function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, has
       onClick:handleClick,
       style:{
         width:boxSize, height:boxSize, borderRadius:8, cursor:'pointer', position:'relative',
+        // The header row this sits in scrolls horizontally (overflowX:
+        // 'auto') — without this, a touch browser can interpret the hold
+        // as the start of a scroll gesture and fire pointercancel before
+        // the 500ms long-press timer completes, silently swallowing
+        // Diviser/Mélanger (same class of bug already fixed for footer
+        // item dragging, see its own comment — touchAction:'none' tells
+        // the browser this element handles its own gestures).
+        touchAction:'none',
         boxShadow: isArmed ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
         outline: isArmed ? '2px solid #4fa3ff' : 'none',
         transition:'box-shadow .2s, outline-color .2s'
@@ -679,6 +687,10 @@ function DiscardSlot({cards, type='case', catalog, selectedId, armedId, armedIdR
         width:boxSize, height:boxSize, borderRadius:8, cursor:'pointer', position:'relative',
         border: topCard ? 'none' : '2px dashed #444',
         display:'flex', alignItems:'center', justifyContent:'center',
+        // Same touch-vs-scroll fix as PileStack's own clickable div (see
+        // its comment) — this also sits in the horizontally-scrollable
+        // header row.
+        touchAction:'none',
         boxShadow: (isSelected || isArmed) ? '0 0 10px 3px rgba(79,163,255,.6)' : 'none',
         outline: (isSelected || isArmed) ? '2px solid #4fa3ff' : 'none',
         transition:'box-shadow .2s, outline-color .2s'
@@ -1162,27 +1174,47 @@ export function PlateauPage({onBack, data}) {
   // null/empty the rest of the time. Purely presentational, never
   // persisted/undoable.
   const [splitAnim, setSplitAnim] = useState(null);
-  // Set by resetBoard right after committing an auto-split (sort/énergie),
-  // to {sort:{firstId,secondId}, energie:{firstId,secondId}} — a fresh
-  // object each time so identity change alone re-triggers the effect below,
-  // even on back-to-back resets. Reset has no pre-existing DOM to measure a
-  // FLIP origin rect from (unlike a manual pile split, which measures the
-  // pile BEFORE it splits) — instead this fires once the freshly-split
-  // piles have already mounted, measures where the FIRST half landed, and
-  // uses that as the SECOND half's spawn origin, all inside a layout effect
-  // (runs after DOM update, before paint) so there's no visible flash.
+  // Set by resetBoard right after committing an auto-split (sort/énergie/
+  // monstre), to {sort:{firstId,secondId}, energie:{...}, monstre:{...}} —
+  // a fresh object each time so identity change alone re-triggers the
+  // effect below, even on back-to-back resets. Reset has no pre-existing
+  // DOM to measure a FLIP origin rect from (unlike a manual pile split,
+  // which measures the pile BEFORE it splits) — instead this fires once the
+  // freshly-split piles have already mounted, measures where each FIRST
+  // half landed, and uses that as the SECOND half's spawn origin.
   const [pendingResetSplitAnim, setPendingResetSplitAnim] = useState(null);
   useLayoutEffect(() => {
     if (!pendingResetSplitAnim) return;
-    const entries = [];
-    ['sort', 'energie'].forEach(type => {
+    // Gus: "l'animation de division tu peux faire dans l'ordre gauche à
+    // droite ? sort, énergie puis monstre" — fire each group's animation
+    // in header order instead of all at once. The FIRST one still fires
+    // synchronously inside this layout effect (runs after DOM update,
+    // before paint — no visible flash); the rest are staggered via
+    // setTimeout so they visibly cascade left to right one after another.
+    const order = ['sort', 'energie', 'monstre'];
+    const present = order.filter(type => pendingResetSplitAnim[type]);
+    const timers = [];
+    function fire(type){
       const group = pendingResetSplitAnim[type];
-      if (!group) return;
       const el = document.querySelector(`[data-pile-id="${group.firstId}"]`);
-      if (el) entries.push({pileId: group.secondId, fromRect: (({left, top}) => ({left, top}))(el.getBoundingClientRect())});
+      if (!el) return;
+      const {left, top} = el.getBoundingClientRect();
+      setSplitAnim(prev => [...(prev || []), {pileId: group.secondId, fromRect: {left, top}}]);
+    }
+    present.forEach((type, i) => {
+      if (i === 0) fire(type);
+      else timers.push(setTimeout(() => fire(type), i * 180));
     });
-    if (entries.length) setSplitAnim(entries);
-    setPendingResetSplitAnim(null);
+    // Deliberately NOT nulling pendingResetSplitAnim back out here: doing so
+    // synchronously would change this same effect's own dependency, which
+    // makes React run ITS cleanup (the clearTimeout below) immediately —
+    // canceling the very timers just scheduled a line above, before any of
+    // them got a chance to fire (found by adding debug logging: only the
+    // i===0 "sort" entry was ever firing). Leaving the object in place is
+    // harmless — the next real Reset always builds a brand new object, so
+    // its identity change alone re-triggers this effect regardless of what
+    // pendingResetSplitAnim currently holds.
+    return () => timers.forEach(clearTimeout);
   }, [pendingResetSplitAnim]);
   const [selectedTileId, setSelectedTileId] = useState(null);
   // 'placed' (right after placing a fresh tile) only allows rotating it —
@@ -2747,17 +2779,19 @@ export function PlateauPage({onBack, data}) {
     cardCatalogRef.current = {};
     registerDeckCards(freshPiles, cardCatalogRef.current);
     // Gus: "tu peux mélanger toutes les pioches ? puis diviser en 2 les
-    // pioches sorts, énergie" — every deck is already shuffled at build
-    // time (see buildSortCards/buildEnergieCards, both end in shuffle()),
-    // so "mélanger" needed no extra step here; only the 2-way split is new.
-    // Cut sort/énergie in place (mirrors splitPile's own cards.slice logic)
-    // and remember which id became which half so the layout effect above
-    // can play the "slides out of the first pile" entrance animation for
-    // each new second half, right after Reset — same visual language as a
-    // manual split.
+    // pioches sorts, énergie... il faut aussi mélanger puis diviser la
+    // pioche de monstre" — every deck is already shuffled at build time
+    // (see buildSortCards/buildEnergieCards/buildMonstreCards, all end in
+    // shuffle()), so "mélanger" needed no extra step here; only the 2-way
+    // split is new, now for all 3 (sort/énergie/monstre). Cut each in place
+    // (mirrors splitPile's own cards.slice logic) and remember which id
+    // became which half so the layout effect above can play the "slides out
+    // of the first pile" entrance animation for each new second half, right
+    // after Reset — same visual language as a manual split.
+    const SPLITTABLE = ['sort', 'energie', 'monstre'];
     const splitInfo = {};
     const splitPiles = freshPiles.flatMap(p => {
-      if ((p.type !== 'sort' && p.type !== 'energie') || p.cards.length < 2) return [p];
+      if (!SPLITTABLE.includes(p.type) || p.cards.length < 2) return [p];
       const mid = Math.floor(p.cards.length / 2);
       const secondId = uid();
       splitInfo[p.type] = {firstId: p.id, secondId};
