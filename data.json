@@ -1170,7 +1170,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Quand vous attaquez 1 joueur, tous les joueurs adjacents à lui subissent l'attaque (ignore murs et vides).",
+      "effet": "Quand vous attaquez 1 joueur, tous les joueurs adjacents ennemis à lui subissent l'attaque (ignore murs et vides).",
       "quantite": 1,
       "notes": ""
     },
