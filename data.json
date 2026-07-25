@@ -359,6 +359,17 @@
       "notes": ""
     },
     {
+      "id": "s35",
+      "nom": "Tonnerre de Zeus",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque 1 joueur en ligne de vue et crée une réaction en chaîne. Chaque joueur touché propage l'attaque à tous les joueurs à 4 cases de lui sans ligne de vue jusqu'à épuisement. Chaque propagation réduit le résultat du dé de 1.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s33",
       "nom": "Sacrieur",
       "element": "Feu",
@@ -377,17 +388,6 @@
       "cout": "1 PA",
       "limite": "3x tour",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé au combat pendant 1 attaque.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s35",
-      "nom": "Tonnerre de Zeus",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Attaque 1 joueur en ligne de vue et crée une réaction en chaîne. Chaque joueur touché propage l'attaque à tous les joueurs à 4 cases de lui sans ligne de vue jusqu'à épuisement. Chaque propagation réduit le résultat du dé de 1.",
       "quantite": 1,
       "notes": ""
     },
