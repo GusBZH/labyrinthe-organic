@@ -852,6 +852,17 @@
       "effet": "À la fin de votre tour vous avez 1 sprint gratuit.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "e679rt2rpz7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
