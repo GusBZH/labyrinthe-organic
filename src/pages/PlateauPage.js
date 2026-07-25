@@ -1964,15 +1964,12 @@ export function PlateauPage({onBack, data}) {
     const r = Math.floor((clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
-    // Reads everything through liveRef (always current), not the closure
-    // variables directly — this can run from a setTimeout scheduled up to
-    // 250ms earlier (see clickTimerRef below), and by execution time a
-    // DIFFERENT click that landed in between may have already changed
-    // selectedId/selectedTileId/etc. A stale closure read here was exactly
-    // the "player AND a tile both stay selected" bug: the queued single
-    // click ran using the pre-selection snapshot, so it re-selected the
-    // player instead of moving it, leaving both it and an unrelated tile
-    // selected for the next tap to stumble into.
+    // Reads everything through liveRef (always current) rather than the
+    // closure variables directly — no longer strictly required now that
+    // onContentClick calls this synchronously with no setTimeout delay (see
+    // its own comment; a stale-closure bug used to live here specifically
+    // because of that now-removed delay), but kept for consistency with
+    // every other handler in this file that already reads state this way.
     const live = liveRef.current;
 
     // Vision mode is inspect-only: no card ever moves while it's active (a
@@ -2115,7 +2112,23 @@ export function PlateauPage({onBack, data}) {
 
     if (live.selectedId) {
       const sel = live.players.find(p => p.id === live.selectedId);
-      if (sel && sel.row === r && sel.col === c) { setSelectedId(null); return; }
+      // Retapping the SAME cell used to just deselect — now that a click
+      // always resolves immediately (no more 250ms wait for a possible
+      // double-click, see onContentClick's own comment), this exact repeat
+      // tap is itself an unambiguous "no, I meant the tile" signal (Gus's
+      // own proposal, replacing the old timer-based disambiguation with a
+      // state-based one): if there's a tile here, switch the selection to
+      // it — bypassing the tile's own occupancy check (selectTileAt) that
+      // normally blocks selecting a tile a player is standing on, since
+      // that block exists for an accidental/spurious double-click, not for
+      // this deliberate two-tap sequence. A third tap on the same cell then
+      // falls through to the ALREADY-existing "retap a selected tile on its
+      // own cell deselects it" rule below (selectedTileId branch) for free.
+      // Falls back to a plain deselect if there's no tile to switch to.
+      if (sel && sel.row === r && sel.col === c) {
+        if (!selectTileIgnoringOccupancy(r, c)) setSelectedId(null);
+        return;
+      }
       commitPlayers(live.players.map(p => p.id === live.selectedId ? {...p, row:r, col:c} : p));
       setSelectedId(null);
       return;
@@ -2163,17 +2176,23 @@ export function PlateauPage({onBack, data}) {
     }
   }
 
-  // Distinguishing a single click (select/move a player) from a double-click
-  // (select the tuile under the cursor) on the same element requires a
-  // short delay: a native 'click' fires for BOTH clicks of a dblclick, so
-  // the first one is held back briefly — if a second click arrives in time
-  // it's cancelled and 'onContentDoubleClick' takes over instead. Stores
-  // {timer, row, col, clientX, clientY} rather than just the timer, so a
-  // second click can tell whether it's really a double-click on the SAME
-  // cell (cancel and hand off to onContentDoubleClick) or an unrelated
-  // click on a DIFFERENT cell (see bug fix below).
-  const clickTimerRef = useRef(null);
-
+  // A single click used to be held back 250ms before running, purely to
+  // find out whether a second click was about to arrive and turn it into a
+  // double-click instead — every ordinary tap paid that lag, always. Gus's
+  // own proposal removes the wait entirely: run every click IMMEDIATELY,
+  // and let the resulting STATE (what's now selected) disambiguate instead
+  // of a timer — a click always does exactly one sensible thing given
+  // what's currently selected, so there's nothing left to "wait and see".
+  // Concretely, for the case this used to exist for (player vs. the tile
+  // under them): tap 1 selects the player (immediate) ; tap 2 on that SAME
+  // cell switches the selection to the tile there instead of moving/
+  // deselecting the player (see the selectedId branch of
+  // handleSingleClick, selectTileIgnoringOccupancy) ; tap 3 on that same
+  // cell deselects, via the already-existing "retap a selected tile's own
+  // cell" rule. A genuine fast double-click still fires two ordinary
+  // 'click' events first (browsers always do this), so it's automatically
+  // handled by that same two-tap sequence — no special-casing needed.
+  //
   // The grid is rendered as ONE giant div (no per-cell elements, for perf —
   // see contentRef below), so the browser's own native 'dblclick' event only
   // checks "same DOM target + within the OS timing/distance threshold" — it
@@ -2186,24 +2205,11 @@ export function PlateauPage({onBack, data}) {
   // the SAME cell (recomputed on every onContentClick call, since it always
   // runs before the dblclick that may follow), so onContentDoubleClick can
   // reject a spurious native dblclick that doesn't correspond to a real
-  // same-cell double-tap.
+  // same-cell double-tap — this part is unrelated to the delay removed
+  // above and still needed exactly as before.
   const lastClickCellRef = useRef(null);
   const sameCellStreakRef = useRef(false);
 
-  // Bug fixed here: the previous version cancelled ANY pending single
-  // click whenever a second click arrived within 250ms, regardless of
-  // where — so a normal, fast "select a player, then tap where they
-  // should go" always risked losing the first tap (its action silently
-  // never ran) whenever the two taps landed under 250ms apart, which is a
-  // completely ordinary pace during real play, not just a mis-click.
-  // Symptom Gus hit: the player never actually moved, so it stayed
-  // selected — and since a tile happened to be selected too from some
-  // earlier action, the NEXT tap moved the tile instead of the player.
-  // Fix: only treat a second click as "this might be a double-click" (and
-  // let onContentDoubleClick decide) when it lands on the SAME cell as the
-  // pending one. A second click on a DIFFERENT cell can't be part of the
-  // same double-click gesture, so instead of dropping the first click, we
-  // run it immediately (flush it) and then schedule the new one normally.
   function onContentClick(e){
     if (suppressNextClickRef.current) { suppressNextClickRef.current = false; return; } // the click that follows a successful item long-press
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
@@ -2215,21 +2221,7 @@ export function PlateauPage({onBack, data}) {
     sameCellStreakRef.current = !!(lastClickCellRef.current && lastClickCellRef.current.row === row && lastClickCellRef.current.col === col);
     lastClickCellRef.current = {row, col};
 
-    if (clickTimerRef.current) {
-      const pending = clickTimerRef.current;
-      clearTimeout(pending.timer);
-      clickTimerRef.current = null;
-      if (pending.row === row && pending.col === col) return; // genuine double-click: let onContentDoubleClick handle it alone
-      handleSingleClick(pending.clientX, pending.clientY); // different cell: the earlier click was real, run it now instead of dropping it
-    }
-
-    clickTimerRef.current = {
-      row, col, clientX, clientY,
-      timer: setTimeout(() => {
-        clickTimerRef.current = null;
-        handleSingleClick(clientX, clientY);
-      }, 250)
-    };
+    handleSingleClick(clientX, clientY);
   }
 
   function selectTileAt(r, c){
@@ -2246,9 +2238,31 @@ export function PlateauPage({onBack, data}) {
     setSelectedMarkerId(null);
   }
 
+  // Same field-setting as selectTileAt, minus its occupancy check —
+  // used ONLY by the "retap the cell of the player you just selected"
+  // gesture (see handleSingleClick's selectedId branch and onContentClick's
+  // own comment). That retap is a deliberate, unambiguous "I meant the
+  // tile" signal, unlike a plain double-click (still funneled through
+  // selectTileAt, still blocked while a player stands there) which could in
+  // principle be an accidental mis-click. Returns whether a tile was
+  // actually there to select, so the caller can fall back to a plain
+  // deselect when there's nothing to switch to.
+  function selectTileIgnoringOccupancy(r, c){
+    const tile = placedTiles.find(t => t.row === r && t.col === c);
+    if (!tile) return false;
+    setSelectedTileId(tile.id);
+    setSelectedTileMode('moving');
+    setSelectedDiscardCardId(null);
+    setSelectedId(null);
+    setSelectedItemId(null);
+    setSelectedFooterItem(null);
+    setSelectedMonsterId(null);
+    setSelectedMarkerId(null);
+    return true;
+  }
+
   function onContentDoubleClick(e){
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
-    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current.timer); clickTimerRef.current = null; }
     if (!sameCellStreakRef.current) return; // spurious native dblclick: the two clicks weren't actually on the same cell
     if (visionMode) return; // inspect-only: no new tile selection while Vision is active
     const rect = contentRef.current.getBoundingClientRect();

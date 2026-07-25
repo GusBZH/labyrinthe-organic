@@ -276,6 +276,32 @@ du timer, pas juste le timer seul.
   lit aussi `liveRef.current.players` plutôt que sa propre closure `players`, pour la
   même raison (sinon l'historique undo/redo pourrait pousser un ancien instantané).
 
+**Délai de 250ms supprimé — désambiguïsation par état plutôt que par timer (idée de
+Gus)** : le correctif ci-dessus retardait quand même CHAQUE clic simple de 250ms avant
+de l'exécuter, le temps de vérifier qu'un second clic n'allait pas arriver (auquel cas
+`onContentDoubleClick` prenait le relais à la place). Gus a proposé de supprimer
+totalement ce lag : au lieu d'attendre pour savoir si un clic simple ou double est en
+train de se produire, chaque clic s'exécute maintenant immédiatement, et c'est **l'état
+courant** (ce qui est déjà sélectionné) qui détermine l'action, plus un minuteur.
+Concrètement, pour le cas qui justifiait le délai à l'origine (joueur vs. la tuile
+en dessous) : 1er tap sélectionne le joueur (immédiat) ; 2ème tap sur la MÊME case
+fait maintenant basculer la sélection sur la tuile plutôt que désélectionner (voir
+`selectTileIgnoringOccupancy`, nouvelle fonction qui reprend `selectTileAt` mais sans
+son vérificateur d'occupation — ce dernier reste là pour un double-clic "accidentel"
+classique, mais ce re-tap délibéré est un signal explicite qui justifie de l'ignorer) ;
+un 3ème tap sur la même case retombe gratuitement sur la règle déjà existante
+"re-taper une tuile sélectionnée sur sa propre case désélectionne". Un vrai double-clic
+rapide déclenche de toute façon TOUJOURS deux évènements `click` natifs avant le
+`dblclick` lui-même, donc cette même séquence à deux temps le gère automatiquement,
+sans cas particulier à coder. `clickTimerRef` (le `setTimeout` de 250ms) est
+entièrement supprimé ; `lastClickCellRef`/`sameCellStreakRef` restent inchangés (leur
+rôle — rejeter un `dblclick` natif "parasite" entre deux clics sur des cases
+DIFFÉRENTES vu que la grille entière est un seul élément DOM — est indépendant du
+délai supprimé). Portée volontairement limitée aux joueurs (pas les monstres/
+marqueurs) : `selectTileAt` ne bloquait déjà que sur la présence d'un **joueur**, donc
+une tuile sous un monstre ou un marqueur n'a jamais été bloquée par l'occupation —
+rien à corriger là pour ce cas précis.
+
 **Une fois qu'une carte est "en main" d'une façon ou d'une autre — tuile tenue depuis
 une pioche (`heldTile`), carte prise dans la défausse (`selectedDiscardCardId`), ou
 tuile ramassée par double-clic (`selectedTileId`) — un seul tap suffit pour la poser/
