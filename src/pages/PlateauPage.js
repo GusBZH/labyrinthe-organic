@@ -1346,9 +1346,11 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // resetBoard uses, splitInfo simply unused here (no pre-existing
           // DOM to animate a split entrance from at room-creation time).
           const {piles: splitPiles} = splitFreshDeckPiles(fresh);
+          // heldTile/heldItem/heldMarker n'en font plus partie — voir
+          // "Cartes tenues en main : locales, jamais synchronisées" plus bas.
           const initialBoard = {
-            players: [], piles: splitPiles, discardCards: [], placedTiles: [], heldTile: null,
-            boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
+            players: [], piles: splitPiles, discardCards: [], placedTiles: [],
+            boardItems: [], monsters: [], markers: []
           };
           await mod.createRoom(onlineRoom.code, initialBoard, cardCatalogRef.current);
         }
@@ -1362,12 +1364,14 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             setPiles(b.piles || []);
             setDiscardCards(b.discardCards || []);
             setPlacedTiles(b.placedTiles || []);
-            setHeldTile(b.heldTile || null);
             setBoardItems(b.boardItems || []);
-            setHeldItem(b.heldItem || null);
             setMonsters(b.monsters || []);
             setMarkers(b.markers || []);
-            setHeldMarker(b.heldMarker || null);
+            // heldTile/heldItem/heldMarker sont volontairement IGNORÉS ici —
+            // voir "Cartes tenues en main : locales, jamais synchronisées" —
+            // sinon une carte tenue par UN joueur (piochée mais pas encore
+            // posée) écraserait celle tenue par tous les autres, puisque ces
+            // trois clés n'étaient chacune qu'un seul emplacement partagé.
           }
           setOnlineReady(true);
         });
@@ -1522,8 +1526,20 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // échoué, voir onlineError).
       if (!onlineReady || !multiplayerModRef.current) return;
       const mod = multiplayerModRef.current;
+      // heldTile/heldItem/heldMarker sont volontairement EXCLUS de ce qui est
+      // poussé — voir "Cartes tenues en main : locales, jamais synchronisées".
+      // Gus : "révéler la première carte d'une pioche empêche de révéler une
+      // autre carte d'une autre pioche en même temps" — en ligne, ce trio
+      // n'était qu'un SEUL emplacement partagé par catégorie (case/depart vs.
+      // sort/energie/monstre) : un joueur qui pioche/tient une carte
+      // bloquait TOUS les autres joueurs de la même catégorie jusqu'à ce
+      // qu'il la pose/annule. La pile elle-même (déjà privée de sa carte du
+      // dessus) reste synchronisée, donc "afficher la première carte d'une
+      // pioche" reste visible de tous sans avoir besoin de synchroniser la
+      // carte TENUE en main — exactement le même traitement que
+      // `currentIndex`, déjà local par appareil.
       mod.pushBoardUpdate(onlineRoom.code, {
-        players, piles, discardCards, placedTiles, heldTile, boardItems, heldItem, monsters, markers, heldMarker
+        players, piles, discardCards, placedTiles, boardItems, monsters, markers
       });
       // Le catalogue ne fait que grossir — repousser la table entière à
       // chaque fois est sans risque (merge, jamais un écrasement) et évite
@@ -1532,7 +1548,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     } else {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, cardCatalog:cardCatalogRef.current})); } catch {}
     }
-  }, [players, currentIndex, piles, discardCards, placedTiles, heldTile, boardItems, heldItem, monsters, markers, heldMarker, isOnline, onlineReady]);
+  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, isOnline, onlineReady]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
