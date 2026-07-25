@@ -90,7 +90,7 @@
       "statut": "Validé",
       "cout": "1 PA",
       "limite": "3x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé au combat pendant 1 défense.",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur pour gagner 1 PV",
       "quantite": 1,
       "notes": ""
     },
