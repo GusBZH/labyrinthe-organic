@@ -1387,10 +1387,10 @@
       "id": "tmttfed7x2o",
       "nom": "Yoloooo",
       "element": "Commun",
-      "statut": "Test 3",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "+ 1PV pour chaque sort de cet élément.",
       "quantite": 1,
       "notes": ""
     }
