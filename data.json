@@ -73,13 +73,13 @@
       "notes": ""
     },
     {
-      "id": "s6",
-      "nom": "Poing Américain",
+      "id": "xvekgvqvpks",
+      "nom": "Dropbox",
       "element": "Feu",
       "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "+1 au résultat du dé pendant les attaques pendant 1 tour.",
+      "cout": "",
+      "limite": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     },
@@ -293,6 +293,17 @@
       "notes": ""
     },
     {
+      "id": "s6",
+      "nom": "Poing Américain",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "+1 au résultat du dé pendant les attaques pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s7",
       "nom": "Lutte Illimitée",
       "element": "Feu",
@@ -333,17 +344,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Quand vous tuez 1 joueur, piochez 1 sort.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "xvekgvqvpks",
-      "nom": "Dropbox",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     },
