@@ -1024,7 +1024,7 @@
       "id": "e25",
       "nom": "Énergie Commune 9",
       "element": "Commun",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
       "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous lancez 1 dé de plus en combat pendant 1 tour.",
