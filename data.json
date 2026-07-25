@@ -29,6 +29,17 @@
       "notes": "Test"
     },
     {
+      "id": "xvekgvqvpks",
+      "nom": "Dropbox",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s2",
       "nom": "Lance Flamme",
       "element": "Feu",
@@ -69,17 +80,6 @@
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "(Vous avez un jeton mort et deux jetons neutres.) Pose 1 jeton face cachée sur une case vide. Quand un joueur arrive sur un jeton, il le retourne, il meurt uniquement si c'est le jeton mort puis le jeton revient dans votre main. Les cases où les pièges sont posés deviennent indestructibles.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "xvekgvqvpks",
-      "nom": "Dropbox",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     },
