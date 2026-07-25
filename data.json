@@ -161,6 +161,17 @@
       "notes": ""
     },
     {
+      "id": "s57",
+      "nom": "Ah Nan Nan Nan",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "3 PA",
+      "limite": "1x tour",
+      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s56",
       "nom": "Nan J'crois Pas",
       "element": "Air",
@@ -179,17 +190,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "À la fin de ton tour, tu peux choisir de revenir sur la case où tu as commencé ton tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s18",
-      "nom": "Talisman d'Équilibre",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "",
-      "effet": "Échange ce sort avec celui d'un autre joueur.",
       "quantite": 1,
       "notes": ""
     },
@@ -282,13 +282,13 @@
       "notes": ""
     },
     {
-      "id": "s49",
-      "nom": "2 pour 1",
+      "id": "s18",
+      "nom": "Talisman d'Équilibre",
       "element": "Air",
       "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
+      "cout": "1 PA",
+      "limite": "",
+      "effet": "Échange ce sort avec celui d'un autre joueur.",
       "quantite": 1,
       "notes": ""
     },
@@ -524,13 +524,13 @@
       "notes": ""
     },
     {
-      "id": "s57",
-      "nom": "Ah Nan Nan Nan",
+      "id": "s49",
+      "nom": "2 pour 1",
       "element": "Air",
       "statut": "Validé",
-      "cout": "3 PA",
+      "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+      "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
       "quantite": 1,
       "notes": ""
     },
