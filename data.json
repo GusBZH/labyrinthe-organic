@@ -961,7 +961,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Jusqu'à la fin de votre tour, augmente de 1 le chiffre d'un sort de cet élément pendant 1 tour global.",
+      "effet": "Pendant 1 tour global, augmente de 1 le chiffre d'un sort de cet élément.",
       "quantite": 5,
       "notes": ""
     },
