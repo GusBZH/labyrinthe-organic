@@ -1013,7 +1013,7 @@
       "id": "e24",
       "nom": "Home sweet home",
       "element": "Commun",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
       "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous gagnez +1 au résultat du dé en combat pendant 1 tour.",
