@@ -860,7 +860,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
       "quantite": 1,
       "notes": ""
     }
