@@ -469,6 +469,17 @@
       "notes": ""
     },
     {
+      "id": "e679rt2rpz7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s46",
       "nom": "Eh Viens ! Viens !",
       "element": "Terre",
@@ -509,17 +520,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s48",
-      "nom": "Vengeance !",
-      "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "",
-      "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
       "quantite": 1,
       "notes": ""
     },
@@ -854,13 +854,13 @@
       "notes": ""
     },
     {
-      "id": "e679rt2rpz7",
-      "nom": "Nouveau",
+      "id": "s48",
+      "nom": "Vengeance !",
       "element": "Terre",
-      "statut": "Test 3",
-      "cout": "",
+      "statut": "Test 1",
+      "cout": "0 PA",
       "limite": "",
-      "effet": "",
+      "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
       "quantite": 1,
       "notes": ""
     }
