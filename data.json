@@ -125,7 +125,7 @@
       "limite": "1x tour",
       "effet": "Sélectionnez 1 carré de 3 tuiles de côté et supprimez toutes les tuiles contrôlables sans joueur dessus ",
       "quantite": 1,
-      "notes": ""
+      "notes": "Doublon avec énergie "
     },
     {
       "id": "s56",
