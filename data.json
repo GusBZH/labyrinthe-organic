@@ -194,17 +194,6 @@
       "notes": ""
     },
     {
-      "id": "s19",
-      "nom": "Éliotrope",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "4x tour",
-      "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s20",
       "nom": "Xelor",
       "element": "Eau",
@@ -850,6 +839,17 @@
       "cout": "",
       "limite": "",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s19",
+      "nom": "Éliotrope",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "4x tour",
+      "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
       "quantite": 1,
       "notes": ""
     }
