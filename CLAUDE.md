@@ -789,6 +789,32 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   peut faire naître 2 paquets à la fois (sorts + énergies), chacun doit pouvoir jouer son
   animation indépendamment ; chaque `PileStack` retire sa propre entrée via
   `onSpawnAnimDone(pile.id)` une fois son animation terminée (~400ms).
+  - **Bug corrigé (impossible de diviser une pioche au-delà de la première d'un type,
+    fenêtre Diviser/Mélanger quasi hors écran sur la 2ème, invisible sur la 3ème)** —
+    Gus : "à part la première pioche d'un type de carte, je ne peux pas les diviser...
+    la fenêtre pour diviser ou mélanger est quasi à l'extérieur de l'écran et quand j'en
+    fais une 3ème je ne vois pas du tout la fenêtre". Cause : une fois la transition FLIP
+    "posée" (transform `translate(0,0) scale(1)`, valeur identité donc visuellement
+    invisible), ce style inline **restait pour de bon** sur la racine `anchorRef` du
+    paquet concerné — seul `spawnFromRect` (la prop qui déclenche l'effet, donc
+    seulement pour un paquet NÉ d'une division, jamais le tout premier paquet d'un
+    type) en héritait, ce qui explique très exactement le symptôme "sauf le premier".
+    Or un `transform` autre que `none` sur un ancêtre — même une valeur identité —
+    fait de CET ancêtre le bloc de référence ("containing block") pour tout
+    descendant `position:'fixed'`, à la place du viewport (règle CSS). Le menu
+    Diviser/Mélanger est justement rendu en `position:'fixed'`, avec un `left`/`top`
+    calculés en coordonnées VIEWPORT par `menuPosNow()` — une fois le bloc de
+    référence détourné vers le petit carré de la pioche (au lieu du viewport), ces
+    mêmes coordonnées se retrouvaient interprétées relativement à ce petit carré,
+    projetant le menu très loin de sa position voulue (pire à chaque pioche issue
+    d'une division supplémentaire, chacune portant sa propre valeur détournée). Fix :
+    le `setTimeout` qui marque la fin de l'animation (~400ms) efface maintenant
+    entièrement `transition`/`transform`/`opacity` (chaînes vides) au lieu de les
+    laisser à leur valeur "posée" — l'ancêtre redevient `transform:none`, rendant le
+    viewport comme bloc de référence normal pour le menu `position:'fixed'`. Vérifié
+    en Playwright : diviser une pioche 3 fois de suite, le menu Diviser/Mélanger de
+    chaque pioche (la toute première, la 2ème, la 3ème) reste entièrement dans les
+    limites de l'écran à chaque fois.
 - **Reset mélange déjà toutes les pioches (rien à faire) et divise maintenant sorts +
   énergies + monstres en 2 chacune, avec la même animation jouée dans l'ordre gauche à
   droite** (Gus : "quand on reset une partie tu peux mélanger toutes les pioches ? puis
@@ -1410,6 +1436,14 @@ pour défausser."
   ouvrir la fenêtre agrandie de la carte ni la perturber → re-sélection → défausse par
   croix ou par tap sur le bouton marqueur d'origine → `markerShelf` vidé dans les deux
   cas, aucune erreur console.
+- **Icône réduite de moitié dans cette zone uniquement** (Gus : "que quand ils sont dans
+  le footer ils fassent la moitié de leur taille (avant et après ils sont à leur taille
+  normale)") — nouvelle constante `MARKER_SHELF_ICON_SIZE = 11` (moitié des 22px de
+  `MarkerButton`, sa taille "normale" partout ailleurs : le bouton d'origine dans
+  l'extension du header, et une fois posé sur le plateau) passée au `MarkerIcon` de
+  CE site de rendu précis — `MarkerButton` et le rendu sur la grille (`cellGroups`)
+  gardent leurs propres tailles (22px/18px) inchangées. Vérifié en Playwright
+  (`fontSize` calculé du glyphe : 11px dans l'étagère, 22px sur le bouton d'origine).
 
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,

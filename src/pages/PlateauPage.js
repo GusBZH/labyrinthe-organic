@@ -77,6 +77,12 @@ const FOOTER_ROW_WIDTH = FOOTER_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
 const VISION_ITEM_SIZE = 56;
 const VISION_ROW_HEIGHT = VISION_ITEM_SIZE + FOOTER_SLOT_PAD*2;
 const VISION_ROW_WIDTH = VISION_ITEM_SIZE*3 + FOOTER_SLOT_PAD*2 + 4*2;
+// Gus: "que quand ils sont dans le footer ils fassent la moitié de leur
+// taille" — half of MarkerButton's own 22px icon (its normal size
+// everywhere else: the header extension button, and once placed on the
+// board). Scoped to just the footer shelf token, not MarkerButton/the
+// on-board render, which keep their own sizes unchanged.
+const MARKER_SHELF_ICON_SIZE = 11;
 
 function loadSession(){
   try {
@@ -546,7 +552,32 @@ function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, has
       el.style.transform = 'translate(0,0) scale(1)';
       el.style.opacity = '1';
     });
-    const timer = setTimeout(() => { onSpawnAnimDone && onSpawnAnimDone(pile.id); }, 400);
+    // Bug fixed here (Gus: "à part la première pioche d'un type de carte,
+    // je ne peux pas les diviser... la fenêtre pour diviser/mélanger est
+    // quasi à l'extérieur de l'écran" — worse on a 3rd pile) : the settled
+    // state above left a permanent inline `transform:'translate(0,0)
+    // scale(1)'` on this pile's own anchor div — identity-valued, so
+    // visually invisible, but a `transform` other than `none` on an
+    // ancestor makes THAT ancestor the containing block for any
+    // `position:'fixed'` descendant (CSS spec), instead of the viewport.
+    // The Diviser/Mélanger menu is exactly such a `position:'fixed'` child
+    // (see its own render below) — `menuPosNow()` computes its `left`/`top`
+    // as VIEWPORT pixel coordinates via `getBoundingClientRect()`, but once
+    // this stray transform lingered, the browser resolved those same
+    // numbers against the small pile square's own box instead, throwing
+    // the popup far off its intended spot. Only piles born from a split
+    // (`spawnFromRect` truthy) ever ran this effect, matching exactly which
+    // piles Gus saw fail (every pile except each type's original first one,
+    // worse the more splits piled up — each pile's own div carrying its own
+    // stray transform independently). Fix: clear the inline styles entirely
+    // once the transition has visually finished, instead of leaving them at
+    // their "settled" identity values.
+    const timer = setTimeout(() => {
+      el.style.transition = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+      onSpawnAnimDone && onSpawnAnimDone(pile.id);
+    }, 400);
     return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
   }, [spawnFromRect]);
   const pendingArmedRef = useRef(null);
@@ -4204,7 +4235,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', touchAction:'none',
             filter: selectedShelfMarkerId===m.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
           }
-        }, h(MarkerIcon, {type:m.type, size:22}))),
+        }, h(MarkerIcon, {type:m.type, size:MARKER_SHELF_ICON_SIZE}))),
         // Cross to discard the selected shelf marker — no eye (same as a
         // marker on the board: the icon IS its whole appearance, no card
         // content behind it to enlarge). Nudged up-right of the token
