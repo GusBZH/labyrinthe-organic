@@ -458,6 +458,17 @@
       "notes": ""
     },
     {
+      "id": "e679rt2rpz7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s45",
       "nom": "Carapace",
       "element": "Terre",
@@ -487,17 +498,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Pendant 1 tour global, lancez 1 dé de plus en combat pendant les défenses pour chaque énergie que vous possédez.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e679rt2rpz7",
-      "nom": "Nouveau",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "",
       "quantite": 1,
       "notes": ""
     },
