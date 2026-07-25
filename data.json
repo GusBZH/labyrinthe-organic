@@ -574,7 +574,7 @@
       "statut": "Validé",
       "cout": "1 PA",
       "limite": "",
-      "effet": "Portez 1 personnage présent 1 case adjacente de vous et jetez-le à 3 cases de distance sans ligne de vue.",
+      "effet": "Portez 1 personnage sur la même case que vous.\nVous pouvez vous déplacer en le portant et le jeter à 4 cases de distance sans ligne de vue.",
       "quantite": 1,
       "notes": ""
     },
