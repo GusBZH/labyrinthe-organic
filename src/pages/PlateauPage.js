@@ -2772,11 +2772,24 @@ export function PlateauPage({onBack, data}) {
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
     centerView();
-    // Old cards' ids are gone for good once Reset wipes piles/placedTiles/
-    // discardCards/etc. — start the lookup table fresh too rather than
-    // letting it grow unboundedly across repeated resets in a long session.
+    // Bug fixed here: this used to wipe cardCatalogRef.current back to {}
+    // before repopulating it — reasonable-looking at the time ("old cards'
+    // ids are gone for good once Reset wipes piles/placedTiles/discardCards/
+    // etc, so start the lookup table fresh too rather than letting it grow
+    // unboundedly across repeated resets"), but wrong once Reset itself
+    // became undoable: Reset's OWN commitBoard call below pushes the
+    // PRE-reset piles/placedTiles/discardCards/boardItems onto the undo
+    // history, and Undo can restore them — bringing back old card ids that
+    // the wipe had just erased from the catalog. Gus: "les images cassés
+    // après un reset j'ai oublié de préciser, c'est quand je fais un reset
+    // puis un undo" — exactly this: every pre-reset card's image/text
+    // permanently falls back to the generic placeholder after Undo, since
+    // cardCatalogRef.current[id] no longer resolves for it. Fix: never wipe
+    // the table, only ever add to it (registerDeckCards already just sets
+    // individual keys, never clears unrelated ones) — a plain object of a
+    // few hundred small entries growing across a long session's repeated
+    // resets is a non-issue next to Undo silently losing card art/text.
     const freshPiles = makeInitialPiles(data);
-    cardCatalogRef.current = {};
     registerDeckCards(freshPiles, cardCatalogRef.current);
     // Gus: "tu peux mélanger toutes les pioches ? puis diviser en 2 les
     // pioches sorts, énergie... il faut aussi mélanger puis diviser la

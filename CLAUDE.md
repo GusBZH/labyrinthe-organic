@@ -879,19 +879,30 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   à `null` par la désarmement de la source à ce moment).
 
 ### Pioches dynamiques depuis le catalogue — implémenté
-**Bug signalé, PAS reproduit, cause inconnue** : Gus a signalé que "quand je reset le
-plateau maintenant toutes les images qui sont dans asset ne sont plus link" (après un
-Reset, les images de `/assets` ne se chargent plus). Non reproductible en Playwright
-(souris, Chromium) : les requêtes réseau vers `/assets/...` réussissent (aucune 404) et
-les `backgroundImage` calculés après Reset pointent vers les bons fichiers, avant comme
-après le split automatique sorts/énergies/monstres ajouté cette même session — la piste
-"le split casse `cardCatalogRef`" a été vérifiée et écartée (`registerDeckCards` tourne
-sur `freshPiles`, AVANT la coupe en 2, donc chaque carte — y compris celles qui finiront
-dans la seconde moitié — est bien enregistrée avant que `commitBoard` ne s'exécute). À
-creuser avec plus de détails de Gus (est-ce TOUTES les images y compris celles déjà
-posées sur le plateau avant le Reset, ou seulement les nouvelles cartes piochées après ;
-icône d'image cassée ou carte blanche/vide ; persiste après un rechargement complet de
-la page ou seulement jusqu'au prochain Reset) — pas d'hypothèse fiable pour l'instant.
+**Bug corrigé (images cassées après un Reset suivi d'un Undo)** : Gus, précisant un
+premier rapport trop vague ("j'ai oublié de préciser, c'est quand je fais un reset puis
+un undo") — pas reproductible en cherchant juste "après un Reset" seul (voir la 1ère
+tentative ci-dessous, gardée pour mémoire), mais évident une fois le bon scénario en
+tête. Cause : `resetBoard` faisait `cardCatalogRef.current = {}` avant de repeupler la
+table avec les nouvelles cartes — logique en apparence ("les anciens ids ont disparu
+pour de bon puisque Reset vide piles/placedTiles/discardCards/etc, autant repartir
+propre plutôt que laisser la table grossir sans limite à chaque reset") mais faux depuis
+que Reset lui-même est devenu annulable (voir "Undo/redo global" plus haut) : le
+`commitBoard` du reset pousse l'état PRÉ-reset (piles/placedTiles/discardCards/
+boardItems, avec les anciens ids) dans l'historique, et Undo peut le restaurer — sauf
+que la table venait justement d'effacer les entrées de ces mêmes anciens ids. Résultat :
+toute carte déjà posée avant le Reset retombe sur le glyphe/couleur générique de repli
+après un Undo, plus jamais sur sa vraie image/texte. Fix : ne plus jamais vider la
+table, seulement y ajouter (`registerDeckCards` ne fait déjà que poser des clés
+individuelles, jamais un vidage) — une table qui grossit un peu à chaque reset d'une
+longue session ne pèse rien face à perdre silencieusement l'art des cartes à l'Undo.
+- **1ère tentative (non concluante)** : sans le détail "+ undo", cherché en testant
+  "après un Reset" seul en Playwright — requêtes réseau et `backgroundImage` calculés
+  tous corrects immédiatement après Reset (rien à voir avec le split automatique
+  sorts/énergies/monstres ajouté la même session, cette piste a été vérifiée et
+  écartée : `registerDeckCards` tourne sur `freshPiles`, AVANT la coupe en 2, donc
+  chaque carte est bien enregistrée avant `commitBoard`). Le bug ne pouvait pas
+  apparaître dans ce scénario puisqu'il ne se déclenche qu'à l'Undo qui suit.
 
 Les 100 cartes identiques placeholder sont remplacées par de vraies pioches générées
 depuis le catalogue (`data.cases`/`sorts`/`energies`/`monstres`, uniquement statut
