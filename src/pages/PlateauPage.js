@@ -1245,6 +1245,21 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   const [markers, setMarkers] = useState(saved?.markers || []);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
   const [heldMarker, setHeldMarker] = useState(null); // {cardId, markerType}
+  // Marker "shelf" — a free-position resting spot for marker tokens living
+  // OVER the header's pile-groups row (cases/sorts/énergies/monstres), NOT
+  // confined to a row/grid like the header extension's buttons or the
+  // board's discrete cells (Gus: "qu'on puisse les positionner comme on
+  // veut au niveau du header dans la partie avec les items... sans
+  // contraintes de ligne"). Each entry is {id, type, x, y} with x/y as
+  // FRACTIONS (0..1) of the pile-groups row's own box, so it scales with
+  // that row instead of using absolute pixels tied to one screen size.
+  // Shared/synced board state (visible to every player, like `markers`
+  // itself) — NOT a `held`-style transitory slot, so unlike heldTile/
+  // heldItem/heldMarker it's included in the online push/subscribe.
+  const [markerShelf, setMarkerShelf] = useState(saved?.markerShelf || []);
+  // Which shelf marker is selected — local only, same treatment as every
+  // other selection id (selectedMarkerId, selectedItemId...).
+  const [selectedShelfMarkerId, setSelectedShelfMarkerId] = useState(null);
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
   // Array of {pileId, fromRect} — one entry per pile currently playing its
@@ -1350,7 +1365,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // "Cartes tenues en main : locales, jamais synchronisées" plus bas.
           const initialBoard = {
             players: [], piles: splitPiles, discardCards: [], placedTiles: [],
-            boardItems: [], monsters: [], markers: []
+            boardItems: [], monsters: [], markers: [], markerShelf: []
           };
           await mod.createRoom(onlineRoom.code, initialBoard, cardCatalogRef.current);
         }
@@ -1367,6 +1382,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             setBoardItems(b.boardItems || []);
             setMonsters(b.monsters || []);
             setMarkers(b.markers || []);
+            setMarkerShelf(b.markerShelf || []);
             // heldTile/heldItem/heldMarker sont volontairement IGNORÉS ici —
             // voir "Cartes tenues en main : locales, jamais synchronisées" —
             // sinon une carte tenue par UN joueur (piochée mais pas encore
@@ -1485,7 +1501,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   const liveRef = useRef({});
   useEffect(() => {
     liveRef.current = { visionMode, heldTile, selectedDiscardCardId, selectedTileId, selectedTileMode, selectedId, players, placedTiles, discardCards, piles, currentIndex,
-      boardItems, heldItem, selectedItemId, selectedFooterItem, monsters, selectedMonsterId, markers, selectedMarkerId, heldMarker };
+      boardItems, heldItem, selectedItemId, selectedFooterItem, monsters, selectedMonsterId, markers, selectedMarkerId, heldMarker, markerShelf, selectedShelfMarkerId };
   });
   const pastRef = useRef([]);
   const futureRef = useRef([]);
@@ -1508,6 +1524,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
+  const pileRowRef = useRef(null); // header's pile-groups row — anchors the marker shelf's fractional x/y
   const dragRef = useRef(null);
   const wasDraggingRef = useRef(false);
   const pendingScrollRef = useRef(null);
@@ -1539,16 +1556,16 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // carte TENUE en main — exactement le même traitement que
       // `currentIndex`, déjà local par appareil.
       mod.pushBoardUpdate(onlineRoom.code, {
-        players, piles, discardCards, placedTiles, boardItems, monsters, markers
+        players, piles, discardCards, placedTiles, boardItems, monsters, markers, markerShelf
       });
       // Le catalogue ne fait que grossir — repousser la table entière à
       // chaque fois est sans risque (merge, jamais un écrasement) et évite
       // de traquer chaque site où une nouvelle carte y est enregistrée.
       mod.pushCardCatalogEntries(onlineRoom.code, cardCatalogRef.current);
     } else {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, cardCatalog:cardCatalogRef.current})); } catch {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, markerShelf, cardCatalog:cardCatalogRef.current})); } catch {}
     }
-  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, isOnline, onlineReady]);
+  }, [players, currentIndex, piles, discardCards, placedTiles, boardItems, monsters, markers, markerShelf, isOnline, onlineReady]);
 
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
@@ -1776,7 +1793,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       players: live.players, piles: live.piles, discardCards: live.discardCards,
       placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
       boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters,
-      markers: live.markers, heldMarker: live.heldMarker
+      markers: live.markers, heldMarker: live.heldMarker, markerShelf: live.markerShelf
     });
     if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
     futureRef.current = [];
@@ -1793,6 +1810,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     if ('monsters' in updates) setMonsters(updates.monsters);
     if ('markers' in updates) setMarkers(updates.markers);
     if ('heldMarker' in updates) setHeldMarker(updates.heldMarker);
+    if ('markerShelf' in updates) setMarkerShelf(updates.markerShelf);
   }
 
   function commitPlayers(next){
@@ -1811,12 +1829,13 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setMonsters(snap.monsters || []);
     setMarkers(snap.markers || []);
     setHeldMarker(snap.heldMarker || null);
+    setMarkerShelf(snap.markerShelf || []);
   }
 
   function currentSnapshot(){
     const live = liveRef.current;
     return { players: live.players, piles: live.piles, discardCards: live.discardCards, placedTiles: live.placedTiles, heldTile: live.heldTile, currentIndex: live.currentIndex,
-      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters, markers: live.markers, heldMarker: live.heldMarker };
+      boardItems: live.boardItems, heldItem: live.heldItem, monsters: live.monsters, markers: live.markers, heldMarker: live.heldMarker, markerShelf: live.markerShelf };
   }
 
   function undo(){
@@ -2026,6 +2045,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedId(null); // only one thing selected at a time
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
     clearTileSelection();
   }
   // See drawFromPileOrCancelSelection's own comment — same "a click here
@@ -2055,6 +2075,52 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     drawMarkerOrCancelSelection(markerType);
   }
 
+  // MARKER SHELF — a free-position resting spot for markers OVER the
+  // header's pile-groups row, "sans contraintes de ligne" (Gus). Reuses the
+  // exact select/move/discard shape already validated for markers on the
+  // board (selectedMarkerId), just against `markerShelf` instead of
+  // `markers`, plus a way to send a shelf marker onto the grid.
+  function pileRowFraction(clientX, clientY){
+    const rect = pileRowRef.current.getBoundingClientRect();
+    const clamp01 = v => Math.max(0, Math.min(1, v));
+    return {x:clamp01((clientX - rect.left) / rect.width), y:clamp01((clientY - rect.top) / rect.height)};
+  }
+  // Background click of the pile-groups row — reached only when the click
+  // didn't land on a pile/défausse/shelf marker (those all stopPropagation
+  // themselves, same convention as the header/footer background elsewhere).
+  // Stops propagation itself so it doesn't ALSO re-trigger the outer
+  // header's own onClick={clearCardSelection} a second time by bubbling.
+  function handlePileRowBackgroundClick(e){
+    e.stopPropagation();
+    const live = liveRef.current;
+    if (live.heldMarker) {
+      const {x, y} = pileRowFraction(e.clientX, e.clientY);
+      commitBoard({markerShelf: [...live.markerShelf, {id:live.heldMarker.cardId, type:live.heldMarker.markerType, x, y}], heldMarker: null});
+      return;
+    }
+    if (live.selectedShelfMarkerId) {
+      const {x, y} = pileRowFraction(e.clientX, e.clientY);
+      commitBoard({markerShelf: live.markerShelf.map(m => m.id === live.selectedShelfMarkerId ? {...m, x, y} : m)});
+      setSelectedShelfMarkerId(null);
+      return;
+    }
+    clearCardSelection();
+  }
+  function selectShelfMarker(e, id){
+    e.stopPropagation();
+    const live = liveRef.current;
+    if (live.heldMarker) return; // resolve the held marker first, same as every other "one card in hand" rule
+    if (live.selectedShelfMarkerId === id) { setSelectedShelfMarkerId(null); return; }
+    clearCardSelection(); // only one thing selected at a time
+    setSelectedShelfMarkerId(id);
+  }
+  function discardShelfMarker(){
+    const live = liveRef.current;
+    if (!live.selectedShelfMarkerId) return;
+    commitBoard({markerShelf: live.markerShelf.filter(m => m.id !== live.selectedShelfMarkerId)});
+    setSelectedShelfMarkerId(null);
+  }
+
   // Clicking a défausse's own top card selects/deselects it (toggle) — it
   // never needs to flip since it's already shown face-up. Fully generic
   // across all 3 défausses (case/sort/énergie): `discardCards` entries carry
@@ -2068,6 +2134,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
   }
 
   // Feeds the currently-selected card (a placed tile, a défausse's top
@@ -2104,6 +2171,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
   }
 
   // Clears whatever card OR entity is selected (a placed tile, a défausse
@@ -2126,6 +2194,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedId(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
   }
 
   // Whether ANYTHING is currently selected — a tile (not in rotate-only
@@ -2136,7 +2205,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // below and clearCardSelection's own comment for why several controls
   // need this check explicitly rather than relying on bubbling alone).
   function hasAnySelection(){
-    return !!(selectedId || selectedMonsterId || selectedMarkerId || (selectedTileId && selectedTileMode !== 'placed')
+    return !!(selectedId || selectedMonsterId || selectedMarkerId || selectedShelfMarkerId || (selectedTileId && selectedTileMode !== 'placed')
       || selectedItemId || selectedDiscardCardId || selectedFooterItem);
   }
   // Wraps a click handler so that, if ANYTHING is selected when it fires,
@@ -2229,6 +2298,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedItemId(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
     // A long-press-driven selection here (see useFooterItemGestures) is
     // still followed by a native trailing 'click' on release, same as the
     // grid's item long-press (see suppressNextClickRef's own comment) —
@@ -2487,6 +2557,20 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       setSelectedMarkerId(null);
       return;
     }
+    // A marker resting on the header's shelf, selected there — tapping the
+    // grid sends it onto the board (Gus: "quand il est sélectionné on peut
+    // aussi le placer sur une case du plateau"), moving it OUT of
+    // markerShelf and into `markers` in the same commit.
+    if (live.selectedShelfMarkerId) {
+      const sm = live.markerShelf.find(m => m.id === live.selectedShelfMarkerId);
+      if (!sm) { setSelectedShelfMarkerId(null); return; }
+      commitBoard({
+        markerShelf: live.markerShelf.filter(m => m.id !== sm.id),
+        markers: [...live.markers, {id:sm.id, type:sm.type, row:r, col:c}]
+      });
+      setSelectedShelfMarkerId(null);
+      return;
+    }
     // Nothing held/selected: a plain tap picks whatever's on this cell —
     // players, monsters AND markers share the same click gesture, so all
     // three are gathered together here. A single match selects it directly;
@@ -2601,6 +2685,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
   }
 
   // Same field-setting as selectTileAt, minus its occupancy check —
@@ -2623,6 +2708,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
     return true;
   }
 
@@ -2725,6 +2811,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
     return true;
   }
 
@@ -2771,6 +2858,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       setSelectedId(null); // only one thing selected at a time
       setSelectedMonsterId(null);
       setSelectedMarkerId(null);
+      setSelectedShelfMarkerId(null);
       clearTileSelection();
       return;
     }
@@ -2794,6 +2882,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedFooterItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
@@ -2978,6 +3067,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       setSelectedDiscardCardId(null);
       setSelectedMonsterId(null);
       setSelectedMarkerId(null);
+      setSelectedShelfMarkerId(null);
     }
     setVisionMode(!visionMode);
   }
@@ -3012,6 +3102,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setEnlargedItem(null);
     setSelectedMonsterId(null);
     setSelectedMarkerId(null);
+    setSelectedShelfMarkerId(null);
     centerView();
     // Bug fixed here: this used to wipe cardCatalogRef.current back to {}
     // before repopulating it — reasonable-looking at the time ("old cards'
@@ -3036,7 +3127,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     commitBoard({
       players: [], piles: splitPiles,
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
-      boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
+      boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null, markerShelf: []
     });
     if (Object.keys(splitInfo).length) setPendingResetSplitAnim(splitInfo);
   }
@@ -3085,6 +3176,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   const selectedItemObj = selectedItemId ? boardItems.find(it => it.id === selectedItemId) : null;
   const selectedMonsterObj = selectedMonsterId ? monsters.find(m => m.id === selectedMonsterId) : null;
   const selectedMarkerObj = selectedMarkerId ? markers.find(m => m.id === selectedMarkerId) : null;
+  const selectedShelfMarkerObj = selectedShelfMarkerId ? markerShelf.find(m => m.id === selectedShelfMarkerId) : null;
   // A tile fresh out of a pile/défausse ('placed' mode, rotate-only) isn't
   // "selected" as far as piles/défausse are concerned — Gus asked for those
   // to be completely inert (not even the Dessus/Dessous insert menu) while
@@ -3268,7 +3360,10 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // headerBoxSize (see its own comment) rather than letting the row
       // overflow off-screen; overflowX stays as a last-resort fallback
       // exactly like the sidebar's own squareSize floor+scroll.
-      h('div', {style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto'}},
+      h('div', {
+        ref:pileRowRef, onClick:handlePileRowBackgroundClick,
+        style:{display:'flex', alignItems:'flex-start', gap:HEADER_GROUP_GAP, padding:'0 16px 12px', overflowX:'auto', position:'relative'}
+      },
         h(PileGroup, {
           type:'case', piles, discardCards, catalog:cardCatalogRef.current, boxSize:headerBoxSize,
           holding:{pileId: heldTile ? heldTile.fromPileId : null, cardId: heldTile ? heldTile.cardId : null, discardId:selectedDiscardCardId},
@@ -3335,7 +3430,39 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
-        (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
+        (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte'),
+
+        // MARKER SHELF — free-position markers OVERLAID on this same row,
+        // "au premier plan par rapport aux items" (Gus): rendered LAST so
+        // they sit visually above the pile groups despite sharing their
+        // container, at whatever fractional (x,y) each one was last dropped
+        // at — never confined to the row's own flex layout. Each token
+        // keeps its own pointer events regardless of anything else in the
+        // row (piles included), so it's always selectable.
+        markerShelf.map(m => h('div', {
+          key:m.id,
+          onClick: e => selectShelfMarker(e, m.id),
+          style:{
+            position:'absolute', left:m.x*100+'%', top:m.y*100+'%', transform:'translate(-50%,-50%)',
+            zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', touchAction:'none',
+            filter: selectedShelfMarkerId===m.id ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 6px #4fa3ff)' : 'none'
+          }
+        }, h(MarkerIcon, {type:m.type, size:22}))),
+        // Cross to discard the selected shelf marker — no eye (same as a
+        // marker on the board: the icon IS its whole appearance, no card
+        // content behind it to enlarge). Nudged up-right of the token
+        // itself via the transform, rather than a 4th direction of
+        // inGridBtnStyle's grid-coordinate math, which doesn't apply here.
+        selectedShelfMarkerObj && h('div', {
+          key:'shelf-marker-discard',
+          onClick: e => { e.stopPropagation(); discardShelfMarker(); },
+          style:{
+            ...inGridBtnStyle, width:20, height:20, fontSize:11,
+            left:selectedShelfMarkerObj.x*100+'%', top:selectedShelfMarkerObj.y*100+'%',
+            transform:'translate(calc(-50% + 16px), calc(-50% - 16px))',
+            color:'#f66', borderColor:'rgba(220,60,40,.5)'
+          }
+        }, '✕')
       ),
 
       // HEADER EXTENSION — collapsed by default behind the small +/− button
