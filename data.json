@@ -469,17 +469,6 @@
       "notes": ""
     },
     {
-      "id": "e679rt2rpz7",
-      "nom": "Nouveau",
-      "element": "Terre",
-      "statut": "Test 3",
-      "cout": "",
-      "limite": "",
-      "effet": "",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s46",
       "nom": "Eh Viens ! Viens !",
       "element": "Terre",
@@ -487,6 +476,17 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Pendant 1 tour global, vous ne pouvez pas être attaqué à distance et +1 au résultat du dé en combat pendant les défenses.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e679rt2rpz7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
       "quantite": 1,
       "notes": ""
     },
