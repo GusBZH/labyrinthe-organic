@@ -2049,11 +2049,110 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
    - Ancienne piste abandonnée : serveur Node.js perso (Colyseus) sur PC/tunnel
      Cloudflare — remplacée par l'approche cloud ci-dessus, plus simple et sans
      contrainte de disponibilité matérielle.
-   - **Étape actuelle** : Gus doit créer le projet Firebase (ou Supabase) lui-même
-     (compte lié à lui, pas quelque chose qu'un agent peut créer à sa place) —
-     voir la réponse de session pour les étapes exactes. Le code côté client
-     (extraction état local/partagé, adaptateur de synchro) peut être préparé en
-     parallèle avant d'avoir les clés de config réelles.
+   - **Firebase choisi (pas Supabase)** — confirmé par Gus via `AskUserQuestion` :
+     Realtime Database colle exactement au besoin ("un document JSON partagé qui
+     se synchronise tout seul"), pas besoin des capacités relationnelles de
+     Supabase/Postgres pour ce cas d'usage.
+   - **Projet Firebase créé par Gus lui-même** (compte Google personnel, pas
+     quelque chose qu'un agent peut créer à sa place) — Realtime Database en
+     région `europe-west1`, mode test au départ (règles d'accès ouvertes,
+     expirent au bout de 30 jours — **à verrouiller avant un vrai usage en
+     ligne**, pas encore fait). SDK ajouté en tant qu'app Web via balise
+     `<script type="module">` (pas npm — le projet n'a toujours aucun bundler,
+     voir plus haut) — config (clés publiques, pas des secrets) dans
+     `src/firebase.js`. Connexion vérifiée avec une page de diagnostic jetable
+     (écrit puis relit une valeur test, supprimée une fois confirmée).
+   - **Import DYNAMIQUE de `multiplayer.js`/`firebase.js`, jamais statique** —
+     piège identifié avant même de commencer : un `import` statique du CDN
+     gstatic.com échouerait au chargement de TOUTE la page si ce CDN est
+     injoignable (bloqueur de pub, pare-feu, panne Google...), cassant même le
+     mode solo/hotseat qui n'a rien à voir avec Firebase. `PlateauPage.js` et
+     `OnlineLobbyPage.js` chargent donc `multiplayer.js` via `await
+     import("../multiplayer.js")` uniquement au moment où on essaie vraiment
+     de créer/rejoindre une partie — un échec (CDN bloqué, etc.) reste localisé
+     à cette action précise (message d'erreur affiché, bouton Retour), sans
+     jamais toucher au reste de l'app.
+   - **`rooms/<code>` (Firebase) — un noeud par partie, deux enfants** :
+     `board` (exactement les clés déjà persistées par `commitBoard` en solo —
+     `players`/`piles`/`discardCards`/`placedTiles`/`heldTile`/`boardItems`/
+     `heldItem`/`monsters`/`markers`/`heldMarker` — SANS `currentIndex`, voir
+     plus bas) et `cardCatalog` (la table id→données du catalogue, voir
+     `cardCatalogRef` — ne grossit jamais que par le haut, un simple merge
+     suffit). `src/multiplayer.js` expose `roomExists`/`createRoom`/
+     `subscribeToRoom`/`pushBoardUpdate`/`pushCardCatalogEntries` — aucune
+     sémantique de jeu, juste lire/écrire/observer ce blob JSON.
+   - **Stratégie de synchro sortante : un seul `useEffect` générique plutôt que
+     d'intercepter chaque site de mutation** — piège évité de justesse en
+     concevant : `commitBoard`/`applySnapshot` ne sont PAS les seuls endroits
+     qui mutent l'état partagé — `drawFromPile` (et son équivalent marqueurs)
+     appelle `setPiles`/`setHeldTile`/`setHeldItem` **directement**, sans
+     passer par `commitBoard`, par choix assumé ("piocher n'est pas undoable
+     en soi"). Intercepter individuellement chaque site aurait été fragile
+     (facile d'en oublier un). Solution retenue : exactement le même principe
+     que l'`useEffect` de persistance `localStorage` déjà existant (qui,
+     lui aussi, se contente d'observer les valeurs d'état, sans se soucier de
+     QUELLE fonction les a changées) — un seul effet avec un tableau de
+     dépendances listant tout l'état partagé (players/piles/discardCards/
+     placedTiles/heldTile/boardItems/heldItem/monsters/markers/heldMarker),
+     qui pousse tout vers Firebase à chaque changement, quelle qu'en soit la
+     source. En ligne, cet effet remplace entièrement l'écriture
+     `localStorage` (qui n'a plus de sens multi-appareils) ; en solo,
+     `localStorage` continue exactement comme avant.
+   - **Piège de course évité : ne jamais pousser avant le premier instantané
+     reçu** — ce même effet se déclenche dès le tout premier rendu, avant même
+     que l'abonnement Firebase n'ait eu le temps de répondre. Sans garde, un
+     joueur qui REJOINT une partie existante écraserait la partie de tout le
+     monde avec un plateau vide dès son premier rendu (`piles:[]` par défaut).
+     Fix : un flag `onlineReady` (posé par le tout premier callback de
+     `subscribeToRoom`, que ce soit en créant ou en rejoignant) bloque cet
+     effet tant qu'il n'est pas vrai — et tant qu'il ne l'est pas, la page
+     entière affiche juste "Connexion à la partie…" (rien n'est encore rendu,
+     donc rien n'est cliquable, double protection).
+   - **`currentIndex` exclu du blob partagé, jamais construit depuis
+     `data.json`/localStorage classique en ligne** — conformément à "le
+     footer doit être indépendant par appareil" : sa propre clé localStorage
+     scopée par code de partie (`labyrinthe_organic_online_currentIndex_
+     <code>`), jamais lu/écrit dans `rooms/<code>/board`. Le reste du
+     mécanisme (flèches ‹/›, undo/redo qui restaure aussi "quel joueur je
+     regardais") continue de passer par `commitBoard`/`applySnapshot`
+     exactement comme en solo — seule la valeur SORTANTE vers Firebase
+     l'exclut.
+   - **Le deck n'est construit qu'une seule fois, par le créateur** — piège
+     identifié dès la conception : `makeInitialPiles`/`shuffle` génèrent des
+     ids et un ordre ALÉATOIRES, donc si chaque appareil appelait sa propre
+     `makeInitialPiles(data)` indépendamment, chaque joueur verrait un deck
+     complètement différent. Le `piles` initial vaut donc toujours `[]` en
+     ligne (créateur inclus) — seul le créateur, dans l'effet de mise en
+     place de la room, construit le deck une fois et le pousse via
+     `createRoom` ; tout le monde (créateur compris) ne reçoit ses piles que
+     par l'abonnement, jamais par une construction locale. Même raisonnement
+     pour `cardCatalogRef` : vide au départ en ligne, rempli uniquement par
+     ce que la room renvoie (`Object.assign` sur les entrées reçues).
+   - **`OnlineLobbyPage.js`** (nouvelle page, accessible depuis un second
+     bouton "🌐 Jouer en ligne" sur la home, à côté du "🎮 Jouer" solo
+     inchangé) : Créer (code choisi librement par le créateur, ex: "GAME" ou
+     "1234" — sanitisé en majuscules sans caractères interdits par Firebase)
+     ou Rejoindre (code existant). Créer sur un code déjà pris affiche un
+     avertissement et demande un second clic explicite pour écraser. Cette
+     page ne fait QUE choisir/valider le code (`roomExists`) et naviguer —
+     toute la construction du deck reste dans `PlateauPage`.
+   - **Undo/redo en ligne — limite connue, pas résolue** : `pastRef`/
+     `futureRef` restent un historique 100% LOCAL à chaque appareil ; annuler
+     restaure un instantané complet (via `applySnapshot`) qui écrase l'état
+     PARTAGÉ actuel, y compris les actions d'autres joueurs survenues entre
+     temps. Accepté comme comportement pour l'instant (cohérent avec "dernière
+     écriture gagne", pas de verrouillage) mais pas encore signalé/confirmé
+     avec Gus — à surveiller au premier test réel.
+   - **Pas encore testé en conditions réelles (multi-client)** : le bac à
+     sable de cet agent bloque les connexions sortantes vers gstatic.com et
+     le domaine Firebase (politique réseau de l'environnement, confirmé via
+     `curl`/le statut du proxy) — impossible de tester la synchro moi-même.
+     Testé indirectement : le mode solo/hotseat n'est pas affecté (suite de
+     tests Playwright existante toujours verte), l'import dynamique ne se
+     déclenche jamais sans clic explicite sur "Jouer en ligne", et l'échec de
+     connexion (attendu dans ce bac à sable) affiche bien un message d'erreur
+     propre au lieu de planter. La vraie synchro multi-appareils reste à
+     confirmer par Gus.
 
 ## Vocabulaire des notes — à retenir (termes donnés par Gus)
 - **Catégorie principale** : un onglet déroulant de la home page (Règles de base, Cases,
