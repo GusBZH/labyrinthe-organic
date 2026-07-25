@@ -874,6 +874,17 @@
       "effet": "+ 2 PV pendant un combat contre un monstre ",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "twf7ozj9kmq",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
