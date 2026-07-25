@@ -1,6 +1,6 @@
 import { h, useState, useEffect, useLayoutEffect, useRef } from "../react.js";
 import { uid, useVisionFlash } from "../utils.js";
-import { EC, LR } from "../config.js";
+import { EC, LR, MONSTER_PV_BONUS } from "../config.js";
 import { EditText } from "../components/EditText.js";
 import { AddBtn } from "../components/AddBtn.js";
 import { Popup } from "../components/Popup.js";
@@ -357,6 +357,30 @@ function makeInitialPiles(catalog){
   ];
 }
 
+// Cuts the sort/énergie/monstre piles of a freshly-built deck into 2 each
+// (mirrors splitPile's own cards.slice logic) — shared by resetBoard AND by
+// starting a brand new online room (Gus: "quand on démarre la première fois
+// une game les pioches doivent se diviser en deux comme quand on reset"),
+// so a new online game starts pre-split just like a solo Reset does. Every
+// deck is already shuffled at build time (buildSortCards/etc all end in
+// shuffle()), so no separate "mélanger" step is needed here — only the
+// 2-way split. Returns `splitInfo` ({sort:{firstId,secondId}, ...}) too,
+// used by resetBoard to play the entrance animation — a new online room has
+// no pre-existing DOM to animate from at that point, so it's just ignored
+// there.
+const SPLITTABLE_DECK_TYPES = ['sort', 'energie', 'monstre'];
+function splitFreshDeckPiles(freshPiles){
+  const splitInfo = {};
+  const piles = freshPiles.flatMap(p => {
+    if (!SPLITTABLE_DECK_TYPES.includes(p.type) || p.cards.length < 2) return [p];
+    const mid = Math.floor(p.cards.length / 2);
+    const secondId = uid();
+    splitInfo[p.type] = {firstId: p.id, secondId};
+    return [{...p, cards: p.cards.slice(0, mid)}, {id: secondId, type: p.type, cards: p.cards.slice(mid)}];
+  });
+  return {piles, splitInfo};
+}
+
 // Every deck-transition site downstream (draw/place/discard/equip) rebuilds
 // a bare {id, type, row, col, ...} object rather than carrying a card's
 // extra catalog fields along — the id is the only thing guaranteed to
@@ -430,7 +454,14 @@ function CardFront({kind, data, size}) {
       h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginTop:pad*1.5}}, data.nom || ''),
       // The LR reward text ("1 sort / -1 au dé") enlarged (Gus) — was the
       // same size as the tiny fallback text, hard to read even at 140px.
-      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:Math.max(6, 10*base), color:'#666', lineHeight:1.25}}, LR[data.lvl] || ''),
+      // "2 PV" (Gus : "rajouter 2 PV pour tous les monstres... écrit à la
+      // ligne... et sans '+'") sur sa propre ligne en dessous, pas concaténé
+      // au texte LR — MONSTER_PV_BONUS est fixe, le même pour tous les
+      // niveaux (voir config.js).
+      h('div', {style:{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:Math.max(6, 10*base), color:'#666', lineHeight:1.25}},
+        h('div', {}, LR[data.lvl] || ''),
+        h('div', {}, MONSTER_PV_BONUS)
+      ),
       h('div', {style:{textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || '')
     );
   }
@@ -1310,8 +1341,13 @@ export function PlateauPage({onBack, data, onlineRoom}) {
         if (onlineRoom.creating) {
           const fresh = makeInitialPiles(data);
           registerDeckCards(fresh, cardCatalogRef.current);
+          // Gus: "quand on démarre la première fois une game les pioches
+          // doivent se diviser en deux comme quand on reset" — same helper
+          // resetBoard uses, splitInfo simply unused here (no pre-existing
+          // DOM to animate a split entrance from at room-creation time).
+          const {piles: splitPiles} = splitFreshDeckPiles(fresh);
           const initialBoard = {
-            players: [], piles: fresh, discardCards: [], placedTiles: [], heldTile: null,
+            players: [], piles: splitPiles, discardCards: [], placedTiles: [], heldTile: null,
             boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
           };
           await mod.createRoom(onlineRoom.code, initialBoard, cardCatalogRef.current);
@@ -1501,12 +1537,21 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // Grid starts centered on (0,0) — the middle of the board, so there's
   // equal room to move in every direction from where players spawn —
   // rather than the native top-left scroll origin.
+  // Bug fixed here (partie en ligne démarrait en haut à gauche, zoom qui
+  // semblait pivoter n'importe où) : en ligne, la grille réelle n'est
+  // montée qu'une fois `onlineReady` vrai (voir le early-return "Connexion
+  // à la partie…" plus haut) — au tout premier rendu (avant ça),
+  // `viewportRef.current` est encore `null`, donc cet effet à dépendances
+  // vides ne faisait rien et ne se redéclenchait jamais une fois la vraie
+  // grille montée. `onlineReady` dans le tableau de dépendances (toujours
+  // `true` dès le départ en solo, donc comportement inchangé là) fait
+  // rejouer ce centrage une fois que la grille existe vraiment pour de bon.
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
     vp.scrollLeft = CENTER_COL*effectiveCell - vp.clientWidth/2;
     vp.scrollTop = CENTER_ROW*effectiveCell - vp.clientHeight/2;
-  }, []);
+  }, [onlineReady]);
 
   // The player sidebar used to be centered on the FULL viewport height
   // (top:'50%') regardless of how tall the header/footer actually are —
@@ -1531,6 +1576,18 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // box — which is exactly "header got taller" or "footer got taller",
   // since the viewport is the flex:1 space left over between them — so it
   // covers every cause uniformly instead of enumerating each one.
+  // Bug fixed here (bouton recentrer disparu / mal placé en partie en
+  // ligne) : même cause que le centrage de la grille plus haut —
+  // `viewportRef.current` est encore `null` au tout premier rendu en ligne
+  // (grille réelle montée seulement une fois `onlineReady` vrai), donc cet
+  // effet à dépendances vides s'arrêtait avant même d'attacher le
+  // ResizeObserver, et ne le retentait jamais une fois la grille montée.
+  // `sidebarBounds` restait alors bloqué à `{top:0, bottom:0}` pour de
+  // bon — le bouton recentrer (ancré sur `sidebarBounds.bottom+8`) se
+  // retrouvait plaqué tout en bas de l'écran, caché derrière le pied de
+  // page. Même fix : `onlineReady` en dépendance pour rejouer cet effet
+  // une fois la grille réellement montée (no-op en solo, où `onlineReady`
+  // est déjà `true` dès le départ).
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
@@ -1549,7 +1606,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       window.removeEventListener('resize', measure);
       if (ro) ro.disconnect();
     };
-  }, []);
+  }, [onlineReady]);
 
   // Applies a pending scroll correction right after React has committed a
   // zoom-triggered re-render — i.e. once the content div's dimensions
@@ -1676,7 +1733,9 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       vp.removeEventListener('gesturechange', prevent);
       vp.removeEventListener('gestureend', prevent);
     };
-  }, []);
+    // onlineReady: même raison que les deux effets juste au-dessus (grille
+    // pas encore montée au premier rendu en ligne).
+  }, [onlineReady]);
 
   // Snapshots the board's full persisted state (players + piles + défausse
   // + placed tiles + whatever's currently held from a pile) as ONE combined
@@ -2924,25 +2983,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     // resets is a non-issue next to Undo silently losing card art/text.
     const freshPiles = makeInitialPiles(data);
     registerDeckCards(freshPiles, cardCatalogRef.current);
-    // Gus: "tu peux mélanger toutes les pioches ? puis diviser en 2 les
-    // pioches sorts, énergie... il faut aussi mélanger puis diviser la
-    // pioche de monstre" — every deck is already shuffled at build time
-    // (see buildSortCards/buildEnergieCards/buildMonstreCards, all end in
-    // shuffle()), so "mélanger" needed no extra step here; only the 2-way
-    // split is new, now for all 3 (sort/énergie/monstre). Cut each in place
-    // (mirrors splitPile's own cards.slice logic) and remember which id
-    // became which half so the layout effect above can play the "slides out
-    // of the first pile" entrance animation for each new second half, right
-    // after Reset — same visual language as a manual split.
-    const SPLITTABLE = ['sort', 'energie', 'monstre'];
-    const splitInfo = {};
-    const splitPiles = freshPiles.flatMap(p => {
-      if (!SPLITTABLE.includes(p.type) || p.cards.length < 2) return [p];
-      const mid = Math.floor(p.cards.length / 2);
-      const secondId = uid();
-      splitInfo[p.type] = {firstId: p.id, secondId};
-      return [{...p, cards: p.cards.slice(0, mid)}, {id: secondId, type: p.type, cards: p.cards.slice(mid)}];
-    });
+    const {piles: splitPiles, splitInfo} = splitFreshDeckPiles(freshPiles);
     commitBoard({
       players: [], piles: splitPiles,
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
@@ -3903,7 +3944,22 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       current && h('div', {
         onClickCapture: e => {
           const live = liveRef.current;
-          if (live.heldItem || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
+          // Bug fixed here (une carte monstre tenue depuis la pioche
+          // devenait une énergie pour de bon si on tapait le pied de page) :
+          // `heldItem` sert aussi aux monstres tenus depuis leur pioche
+          // (`itemType:'monstre'`, voir "Monstres traités comme des
+          // 'joueurs'") — cette condition ne vérifiait pas le type et
+          // équipait n'importe quel `heldItem` comme un sort/une énergie,
+          // `equipHeldOrSelectedItem` retombant alors sur sa branche
+          // `energies` par défaut pour tout ce qui n'est pas `'sort'`. Un
+          // monstre n'est structurellement pas équipable — on ne relaie
+          // vers `equipHeldOrSelectedItem` que pour un `heldItem` de type
+          // sort/énergie ; tenir un monstre ici tombe maintenant dans la
+          // branche générique plus bas (aucune action valide, ne fait rien
+          // — le monstre reste tenu, exactement comme taper n'importe quel
+          // autre endroit sans rapport avec lui).
+          const heldIsEquippable = live.heldItem && (live.heldItem.itemType === 'sort' || live.heldItem.itemType === 'energie');
+          if (heldIsEquippable || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
           // The trailing native click right after a footer long-press
           // selection (see selectFooterItem's own comment) — stopped here
           // entirely (capture-phase stopPropagation halts the event before

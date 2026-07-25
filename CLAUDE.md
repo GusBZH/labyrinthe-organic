@@ -986,6 +986,12 @@ sous le nom `heldCardId`.
   - Monstre : niveau en haut-gauche, nom en haut-centre, **`LR[lvl]`** (config.js, déjà
     utilisé ailleurs pour "1 énergie / -2 au dé" etc. — c'est l'exemple que Gus a donné
     lui-même dans sa demande) centré au milieu, `effet` ("Victoire : ...") en bas.
+    **`MONSTER_PV_BONUS` ("2 PV")** affiché sur sa propre ligne juste en dessous de
+    `LR[lvl]`, identique pour tous les niveaux (Gus : "rajouter '2 PV' pour tous les
+    monstres... écrit à la ligne sur la carte et sans '+'") — une constante séparée
+    dans `config.js` plutôt que concaténée dans le texte `LR` (un essai précédent
+    avait fait `LR[lvl] + " + 2 PV"`, rejeté par Gus car sur la même ligne avec un
+    "+").
   - Toutes les tailles de police sont dérivées de `size` (la taille réelle de la carte à
     l'écran, de 22px sur le plateau à 140px en grand) via un facteur `base = size/140` —
     le texte rétrécit avec la carte mais **ne change jamais ses dimensions** (`overflow:
@@ -1585,6 +1591,21 @@ n'arbitre pas les règles, "genre 3" ne fixe qu'une taille visuelle indicative).
   (qui, lui, ouvrirait la fenêtre agrandie — pas ce qu'on veut ici). Le tout premier
   sort équipé va dans l'emplacement nature ; tous les suivants (et toutes les énergies,
   toujours) s'ajoutent en bout de leur ligne (`equipHeldOrSelectedItem`).
+  - **Bug corrigé (une carte monstre tenue depuis la pioche devenait une énergie pour
+    de bon si on tapait le pied de page)** : Gus — "si de la pioche je tape ensuite
+    dans le footer, la carte monstre devient un item et est considérée comme un item
+    tout le temps (sur le plateau et impossible de la mettre dans la défausse
+    monstre)". Cause : un monstre tenu depuis sa pioche réutilise `heldItem` tel quel
+    (`itemType:'monstre'`, voir "Monstres traités comme des 'joueurs'"), mais la
+    condition qui déclenche `equipHeldOrSelectedItem()` ne vérifiait que
+    `live.heldItem` sans regarder son `itemType` — un monstre tenu déclenchait donc
+    l'équipement, et `equipHeldOrSelectedItem` (qui ne teste que `itemType==='sort'`,
+    tout le reste retombant dans sa branche `energies` par défaut) le rangeait dans
+    `player.energies` comme si c'était une énergie, pour de bon. Fix : la condition ne
+    relaie vers `equipHeldOrSelectedItem` que pour un `heldItem` de type sort/énergie —
+    tenir un monstre ici tombe maintenant dans la branche générique plus bas (aucune
+    action valide dans cette zone), le monstre reste simplement tenu, exactement comme
+    taper n'importe quel autre endroit sans rapport avec lui.
 - **Retirer un item équipé** : `selectedFooterItem` (`{playerId, slot, cardId}`) mirrore
   `selectedDiscardCardId`/`selectedItemId` — reste "en place" (glow) dans le tableau du
   joueur jusqu'à un tap ailleurs (case du plateau, pioche/défausse assortie) qui le
@@ -2153,6 +2174,45 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      connexion (attendu dans ce bac à sable) affiche bien un message d'erreur
      propre au lieu de planter. La vraie synchro multi-appareils reste à
      confirmer par Gus.
+   - **Le stockage Firebase ne s'auto-supprime jamais** — question de Gus
+     ("la partie est supprimée au bout d'un moment ou reste stockée quelque
+     part ?") : une room `rooms/<code>` reste en base indéfiniment tant que
+     personne ne la supprime explicitement (aucun code ne le fait
+     actuellement). Seul le **mode test** des règles d'accès expire au bout
+     de 30 jours (bloque l'accès, ne supprime pas les données) — à
+     verrouiller avant un vrai usage en ligne, voir plus haut.
+   - **Bugs corrigés (grille qui démarre en haut à gauche, bouton recentrer
+     disparu, zoom qui semblait pivoter n'importe où)** — les 3 symptômes
+     avaient la MÊME cause : plusieurs `useEffect`/`useLayoutEffect` à
+     dépendances vides (`[]`) qui lisent `viewportRef.current` s'exécutent
+     UNE SEULE FOIS au montage — mais en ligne, la vraie grille n'est montée
+     qu'une fois `onlineReady` vrai (voir le early-return "Connexion à la
+     partie…" plus haut), donc au tout premier montage `viewportRef.current`
+     valait encore `null` : l'effet de centrage de la vue ne faisait rien et
+     ne se redéclenchait jamais une fois la grille réellement montée (d'où
+     le départ en haut à gauche, et le zoom qui pivotait bizarrement autour
+     de cette position jamais centrée) ; l'effet qui mesure `sidebarBounds`
+     via `ResizeObserver` s'arrêtait pareil avant même d'attacher
+     l'observateur, laissant `sidebarBounds` bloqué à `{top:0, bottom:0}`
+     pour de bon — le bouton recentrer (ancré sur `sidebarBounds.bottom+8`)
+     se retrouvait plaqué tout en bas de l'écran, cachée derrière le pied de
+     page. Fix : `onlineReady` ajouté au tableau de dépendances des 3 effets
+     concernés (centrage de la vue, mesure de `sidebarBounds`, prévention du
+     pinch natif Safari) — les rejoue une fois la grille réellement montée,
+     sans rien changer en solo (`onlineReady` y vaut déjà `true` dès le
+     départ, donc même comportement qu'avant).
+   - **Nouvelle partie en ligne : les pioches se divisent maintenant aussi
+     en 2 dès la création** (Gus : "quand on démarre la première fois une
+     game les pioches doivent se diviser en deux comme quand on reset") —
+     `splitFreshDeckPiles(freshPiles)` (nouvelle fonction, à côté de
+     `makeInitialPiles`) extrait exactement la logique déjà utilisée par
+     `resetBoard`, réutilisée telle quelle par l'effet de création de room :
+     construit le deck, le divise, puis pousse le résultat déjà divisé vers
+     Firebase. `resetBoard` a été mis à jour pour appeler ce même helper
+     plutôt que de dupliquer la logique de découpe en ligne. Pas d'animation
+     de split jouée à la création (pas de DOM préexistant à ce moment-là,
+     contrairement à Reset) — `splitInfo` retourné par le helper est
+     simplement ignoré dans ce cas précis.
 
 ## Vocabulaire des notes — à retenir (termes donnés par Gus)
 - **Catégorie principale** : un onglet déroulant de la home page (Règles de base, Cases,
