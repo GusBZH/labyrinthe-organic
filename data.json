@@ -1263,6 +1263,17 @@
       "notes": ""
     },
     {
+      "id": "8ind2pquk8f",
+      "nom": "Nouvelle énergie",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "e45",
       "nom": "Terrine de porc",
       "element": "Terre",
@@ -1281,17 +1292,6 @@
       "cout": "",
       "limite": "",
       "effet": "Quand vous utilisez 1 sort terre, vous pouvez détruire toutes les cartes tremblement du plateau, les joueurs dessus meurent.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e47",
-      "nom": "On est chez moi ici !",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Vous pouvez faire 1 contrôle de labyrinthe en plus à la fin de votre tour pour chaque sort Terre que vous possédez.",
       "quantite": 1,
       "notes": ""
     },
@@ -1395,13 +1395,13 @@
       "notes": ""
     },
     {
-      "id": "8ind2pquk8f",
-      "nom": "Nouvelle énergie",
+      "id": "e47",
+      "nom": "On est chez moi ici !",
       "element": "Terre",
-      "statut": "Test 3",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
+      "effet": "Vous pouvez faire 1 contrôle de labyrinthe en plus à la fin de votre tour pour chaque sort Terre que vous possédez.",
       "quantite": 1,
       "notes": ""
     }
