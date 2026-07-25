@@ -337,6 +337,17 @@
       "notes": ""
     },
     {
+      "id": "xvekgvqvpks",
+      "nom": "Dropbox",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s31",
       "nom": "Botte du Chasseur",
       "element": "Feu",
@@ -366,17 +377,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Attire 1 joueur en ligne de vue. Si vous déclenchez 1 combat dans le même tour, +1 au résultat pendant 1 tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "xvekgvqvpks",
-      "nom": "Dropbox",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     },
