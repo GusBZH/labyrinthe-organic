@@ -1382,6 +1382,17 @@
       "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "tmttfed7x2o",
+      "nom": "Nouvelle énergie",
+      "element": "Commun",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "monstres": [
