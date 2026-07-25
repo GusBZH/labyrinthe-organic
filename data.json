@@ -285,7 +285,7 @@
       "id": "s27",
       "nom": "Flux Négatif",
       "element": "Eau",
-      "statut": "Test 1",
+      "statut": "Validé",
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
