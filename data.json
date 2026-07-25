@@ -7,6 +7,17 @@
   "materielNotes": "",
   "sorts": [
     {
+      "id": "s34",
+      "nom": "Google drive",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "3x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s1",
       "nom": "Grenade",
       "element": "Feu",
@@ -69,17 +80,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "+1 au résultat du dé pendant les attaques pendant 1 tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s7",
-      "nom": "Lutte Illimitée",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort que vous possédez.",
       "quantite": 1,
       "notes": ""
     },
@@ -293,6 +293,17 @@
       "notes": ""
     },
     {
+      "id": "s7",
+      "nom": "Lutte Illimitée",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort que vous possédez.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s8",
       "nom": "J'ai Soif !",
       "element": "Feu",
@@ -322,17 +333,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Quand vous tuez 1 joueur, piochez 1 sort.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s34",
-      "nom": "Google drive",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "3x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
       "quantite": 1,
       "notes": ""
     },
