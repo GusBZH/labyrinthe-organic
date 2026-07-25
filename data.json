@@ -889,17 +889,6 @@
       "notes": ""
     },
     {
-      "id": "e11",
-      "nom": "Énergie Air 2",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Quand vous utilisez 1 sort air, vous obtenez 1 sprint gratuit pour ce tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "e12",
       "nom": "Éphémère Air 1",
       "element": "Air",
@@ -918,6 +907,17 @@
       "cout": "",
       "limite": "",
       "effet": "Défaussez : replacez où vous voulez tous les portails révélés.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e11",
+      "nom": "Énergie Air 2",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Quand vous utilisez 1 sort air, vous obtenez 1 sprint gratuit pour ce tour.",
       "quantite": 1,
       "notes": ""
     },
