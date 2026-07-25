@@ -1371,6 +1371,17 @@
       "effet": "+3 PA pour chaque sort maudit possédé.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "65mbl3q7lh4",
+      "nom": "Nouvelle énergie",
+      "element": "Commun",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "monstres": [
