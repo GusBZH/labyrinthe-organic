@@ -863,6 +863,17 @@
       "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "p976r9rcy3b",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
