@@ -194,6 +194,17 @@
       "notes": ""
     },
     {
+      "id": "s27",
+      "nom": "Flux Négatif",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s20",
       "nom": "Xelor",
       "element": "Eau",
@@ -223,17 +234,6 @@
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Déplace de 3 cases révélées 1 personnage (peut passer à travers un portail).",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s23",
-      "nom": "Déjà Vu",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -271,13 +271,13 @@
       "notes": ""
     },
     {
-      "id": "s27",
-      "nom": "Flux Négatif",
+      "id": "s23",
+      "nom": "Déjà Vu",
       "element": "Eau",
       "statut": "Validé",
-      "cout": "1 PA",
+      "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
+      "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
