@@ -991,6 +991,61 @@ sous le nom `heldCardId`.
   pour `selectedItemId` (un item déjà posé sur le plateau, défaussé depuis la grille,
   continue d'aller en défausse comme avant).
 
+#### Troisième passage de retouches (même session)
+- **Bug corrigé (100 → 110 cases map, une carte affichait encore le "+" placeholder)** :
+  `buildCaseCards` vérifiait `details.length === 0` (le tableau APRÈS avoir retiré la
+  ligne "Case de Départ") pour décider s'il fallait générer des cartes de repli sans
+  image — mais pour le bloc "Case de Départ" lui-même (dont l'UNIQUE ligne de détails
+  est justement celle-là), ce filtrage laissait `details` vide, donc le code croyait à
+  tort que ce bloc n'avait "aucun détail renseigné" et générait 10 cartes de repli
+  (glyphe "+") en plus dans la pioche normale — d'où 100 vraies + 10 fantômes = 110.
+  Fix : vérifier `allDetails.length === 0` (AVANT le filtrage du départ) pour distinguer
+  "bloc sans aucun détail" (repli légitime) de "bloc dont les détails sont uniquement le
+  départ" (ne doit contribuer aucune carte ici, il alimente `buildDepartCards` à part).
+- **Bug corrigé (options rotation/flip/défausse absentes sur une tuile sélectionnée via
+  le nouveau re-tap)** : les 3 boutons de contrôle de la tuile sélectionnée
+  (`RotateIcon`/`FlipIcon`/✕) étaient gardés par `selectedTileObj && !selectedTileOccupied`
+  — un reliquat de l'ancien monde où une tuile occupée par un joueur ne pouvait
+  structurellement jamais être sélectionnée (`selectTileAt` bloquait ça en amont), donc
+  cette garde ne pouvait jamais se déclencher. Le nouveau geste de re-tap
+  (`selectTileIgnoringOccupancy`) rend cet état désormais courant et légitime — la garde
+  masquait donc les boutons précisément dans ce nouveau cas. Fix : condition supprimée,
+  `selectedTileOccupied` retiré (plus utilisé nulle part ailleurs).
+- **Bug corrigé (fermer la fenêtre agrandie d'un monstre/item par un clic dans le vide ne
+  désélectionnait pas)** : ouvrir `enlargedMonster`/`visionPeekItem` via l'œil d'un
+  monstre/item déjà sélectionné (mode normal) laissait `selectedMonsterId`/
+  `selectedItemId` intacts après la fermeture de la fenêtre — le glow de sélection et les
+  boutons œil/croix restaient visibles derrière. Fix : le `onClick` du fond (clic
+  extérieur) de ces deux fenêtres désélectionne maintenant aussi en plus de fermer la
+  fenêtre — sans effet dans les deux AUTRES façons de les ouvrir (tap direct en mode
+  Vision, sélection via `itemCellPicker`/`cellPicker` en mode Vision), qui ne posent
+  jamais ces ids de sélection normale de toute façon.
+- **Bug corrigé (poser un item déjà sélectionné demandait systématiquement 2 taps)** :
+  Gus, très précis — "le premier tap quand l'item est sélectionné... c'est le tap
+  d'après qui va déplacer l'item". Cause : un appui long qui tient parfaitement immobile
+  pendant 500ms est en pratique presque impossible (main ou doigt réel) — un léger
+  tremblement pendant la tenue dépasse souvent le seuil de 3px du détecteur de
+  glisser-panoramique (`onViewportPointerDown`, complètement séparé du système d'appui
+  long des items) sans dépasser le seuil de 6px qui annulerait l'appui long lui-même —
+  l'appui long réussit donc (l'item se sélectionne bien) mais `wasDraggingRef` se
+  retrouve à `true` en plus. Le clic natif qui suit systématiquement le relâchement d'un
+  appui long était déjà absorbé via `suppressNextClickRef` — mais ce court-circuit
+  `return`ait AVANT d'atteindre la vérification/remise-à-zéro de `wasDraggingRef` juste
+  en dessous, laissant ce drapeau `true` fuiter jusqu'au tap SUIVANT (le vrai tap de
+  pose) qui se faisait alors avaler à sa place, croyant conclure un glisser. Fix :
+  `wasDraggingRef.current` est aussi remis à `false` au moment où `suppressNextClickRef`
+  est consommé.
+- **Noms des monstres/items ajoutés dans les fenêtres de choix multi-entités** (Gus :
+  "essaie d'ajouter les noms des items et des monstres... réduire la taille de la police
+  si trop grand") — colonne monstres de `cellPicker` et les deux colonnes de
+  `itemCellPicker` affichent maintenant le nom (`cardCatalogRef.current[id].nom`) à côté
+  de l'emoji (élément pour les items, 👹 fixe pour les monstres). `pickerNameSize(name)`
+  (nouvelle fonction, à côté de `pickerDims`) réduit la taille de police par palier selon
+  la longueur du nom (14px normal → 12px au-delà de 14 caractères → 10px au-delà de 20)
+  plutôt que de tronquer avec une ellipse, pour garder le nom entier lisible. Les
+  marqueurs restent icône-seule (pas de "nom" à proprement parler pour eux, portée
+  volontairement limitée aux items/monstres comme demandé).
+
 ### Cases de départ + marqueurs + extension du header — implémenté (dernier ajout, "on a fini la version locale !")
 Dernière couche avant la fin de la version locale hotseat : un petit bouton `+`/`−` en
 bas à droite du header (positionné pour ne jamais chevaucher la défausse monstre, qui

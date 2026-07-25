@@ -197,6 +197,18 @@ function pickerDims(counts, columns){
   return {width, height};
 }
 
+// Rough adaptive shrink for a monster/item name in a cellPicker/
+// itemCellPicker row — Gus's own suggestion ("hésite pas à réduire
+// individuellement la taille de la police de certains noms si ils sont
+// trop grands") rather than truncating with an ellipsis, so a long name
+// stays fully readable, just smaller, instead of losing its end.
+function pickerNameSize(name){
+  const len = (name || '').length;
+  if (len > 20) return 10;
+  if (len > 14) return 12;
+  return 14;
+}
+
 function shuffle(arr){
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) {
@@ -234,8 +246,21 @@ function expandByQuantite(items){
 function buildCaseCards(cases){
   const cards = [];
   (cases || []).filter(c => c.statut === 'Validé').forEach(item => {
-    const details = (item.details || []).filter(d => d.fichier !== 'Case_de_Depart.png');
-    if (details.length === 0) {
+    const allDetails = item.details || [];
+    const details = allDetails.filter(d => d.fichier !== 'Case_de_Depart.png');
+    // Bug fixed here: checking the FILTERED `details.length` for the
+    // fallback below wrongly caught "Case de Départ" itself — after
+    // stripping its own départ row (the only row it has), it looked
+    // exactly like a bloc with NO détails at all, so it fell through to
+    // the "generate quantite blank placeholder cards" fallback and dumped
+    // 10 extra "+"-glyph cards into the regular case deck (Gus: "j'ai
+    // l'impression qu'il y a 110 case map... j'ai vu une case map avec le
+    // + comme avant"). Checking `allDetails.length` (BEFORE the départ
+    // filter) instead correctly tells "genuinely no détails filled in yet"
+    // (fallback applies) apart from "had détails, they were just all
+    // départ rows" (contributes zero cards here, as intended — départ
+    // cards go to buildDepartCards instead).
+    if (allDetails.length === 0) {
       // No détails filled in for this bloc yet (or it's an old session
       // predating the feature) — still deal `quantite` physical cards, just
       // without a specific front image (CardFront's generic fallback glyph
@@ -2211,7 +2236,20 @@ export function PlateauPage({onBack, data}) {
   const sameCellStreakRef = useRef(false);
 
   function onContentClick(e){
-    if (suppressNextClickRef.current) { suppressNextClickRef.current = false; return; } // the click that follows a successful item long-press
+    // Bug fixed here: a long-press held via mouse/touch almost always
+    // drifts a few px even when the user means to hold perfectly still —
+    // enough to cross the (separate) pan-drag detector's 3px threshold
+    // (onViewportPointerDown below) without crossing THIS gesture's own
+    // 6px cancel threshold, so the long-press still succeeds but ALSO
+    // leaves wasDraggingRef true behind it. That flag used to only get
+    // read/reset by the `wasDraggingRef` check just below — but the
+    // suppression check above it `return`s FIRST for the long-press's own
+    // trailing click, skipping right over that reset. The stale `true`
+    // then swallowed the user's VERY NEXT tap (their actual "place the
+    // item here" tap) as if IT were a drag-end — Gus: "le premier tap...
+    // rien ne se passe, le tap d'après va déplacer l'item", every time.
+    // Clearing it here too closes that gap.
+    if (suppressNextClickRef.current) { suppressNextClickRef.current = false; wasDraggingRef.current = false; return; } // the click that follows a successful item long-press
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     const clientX = e.clientX, clientY = e.clientY;
     const rect = contentRef.current.getBoundingClientRect();
@@ -2681,7 +2719,6 @@ export function PlateauPage({onBack, data}) {
   });
 
   const selectedTileObj = selectedTileId ? placedTiles.find(t => t.id === selectedTileId) : null;
-  const selectedTileOccupied = selectedTileObj && players.some(p => p.row === selectedTileObj.row && p.col === selectedTileObj.col);
   const selectedItemObj = selectedItemId ? boardItems.find(it => it.id === selectedItemId) : null;
   const selectedMonsterObj = selectedMonsterId ? monsters.find(m => m.id === selectedMonsterId) : null;
   const selectedMarkerObj = selectedMarkerId ? markers.find(m => m.id === selectedMarkerId) : null;
@@ -3152,7 +3189,13 @@ export function PlateauPage({onBack, data}) {
         // and no move-on-tap-elsewhere (see handleSingleClick) — so you can
         // freely orient a freshly placed tile without any risk of a stray
         // tap sending it elsewhere or losing/discarding it by mistake.
-        selectedTileObj && !selectedTileOccupied && [
+        // No longer gated on "not occupied by a player": that used to be
+        // impossible anyway (selectTileAt blocked selecting an occupied
+        // tile in the first place) until the retap-same-cell gesture
+        // started allowing it on purpose (see selectTileIgnoringOccupancy)
+        // — Gus found the controls missing specifically in that new case
+        // ("il manque le 3 petites options de sélection sur la case").
+        selectedTileObj && [
           selectedTileMode !== 'placed' && h('div', {
             key:'flip', onClick: e => { e.stopPropagation(); flipTile(selectedTileObj.id); },
             style:{...inGridBtnStyle, left:selectedTileObj.col*CELL, top:selectedTileObj.row*CELL}
@@ -3277,14 +3320,17 @@ export function PlateauPage({onBack, data}) {
                 })
               ),
               h('div', {style:{display:'flex', flexDirection:'column', gap:6}},
-                cellPicker.monsterIds.map(id => h('div', {
-                  key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
-                  onClick:() => {
-                    if (cellPicker.forVision) setEnlargedMonster({monsterIds:cellPicker.monsterIds, index:cellPicker.monsterIds.indexOf(id)});
-                    else setSelectedMonsterId(id);
-                    setCellPicker(null);
-                  }
-                }, '👹'))
+                cellPicker.monsterIds.map(id => {
+                  const nom = cardCatalogRef.current[id]?.nom;
+                  return h('div', {
+                    key:id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
+                    onClick:() => {
+                      if (cellPicker.forVision) setEnlargedMonster({monsterIds:cellPicker.monsterIds, index:cellPicker.monsterIds.indexOf(id)});
+                      else setSelectedMonsterId(id);
+                      setCellPicker(null);
+                    }
+                  }, '👹', nom && h('span', {style:{fontSize:pickerNameSize(nom)}}, nom));
+                })
               ),
               // Markers never appear here for Vision (forVision is always
               // false whenever markerIds is non-empty — Vision mode never
@@ -3321,8 +3367,11 @@ export function PlateauPage({onBack, data}) {
         style:{left:0, top:0, padding:10},
         children: h('div', {style:{display:'flex', gap:12}},
           ['sort', 'energie'].map(kind => h('div', {key:kind, style:{display:'flex', flexDirection:'column', gap:6}},
-            itemCellPicker.items.filter(it => (it.type === 'energie') === (kind === 'energie')).map(it =>
-              h('div', {
+            itemCellPicker.items.filter(it => (it.type === 'energie') === (kind === 'energie')).map(it => {
+              const data = cardCatalogRef.current[it.id];
+              const nom = data?.nom;
+              const em = data?.element ? (EC[data.element]?.em || '') : (kind === 'energie' ? '🔥' : '🪄');
+              return h('div', {
                 key:it.id, className:'popup-item', style:{padding:'12px 14px', fontSize:15, gap:10, cursor:'pointer'},
                 onClick: () => {
                   if (itemCellPicker.forVision) {
@@ -3336,8 +3385,8 @@ export function PlateauPage({onBack, data}) {
                   }
                   setItemCellPicker(null);
                 }
-              }, kind === 'energie' ? '🔥' : '🪄')
-            )
+              }, em, nom && h('span', {style:{fontSize:pickerNameSize(nom)}}, nom));
+            })
           ))
         )
       })
@@ -3358,7 +3407,14 @@ export function PlateauPage({onBack, data}) {
       const item = visionPeekItem.items[visionPeekItem.index];
       if (!item) return null;
       return h('div', {
-        onClick:()=>setVisionPeekItem(null),
+        // Closing this window (via a click outside) used to leave the item
+        // still selected underneath when it was opened from the eye icon on
+        // an already-selected item — Gus: "si on clique dans le vide pour
+        // quitter la fenêtre, là le monstre ou l'item est encore sélectionné
+        // et il faudrait pas". Clearing selectedItemId here too is a no-op
+        // for the OTHER two ways this window opens (Vision-mode long-press
+        // or itemCellPicker), which never set it in the first place.
+        onClick:()=>{ setVisionPeekItem(null); setSelectedItemId(null); },
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
@@ -3386,7 +3442,10 @@ export function PlateauPage({onBack, data}) {
       const monsterId = enlargedMonster.monsterIds[enlargedMonster.index];
       if (!monsterId) return null;
       return h('div', {
-        onClick:()=>setEnlargedMonster(null),
+        // Same fix as visionPeekItem's own onClick just above — closing via
+        // outside click also clears selectedMonsterId, a no-op unless this
+        // was opened from the eye icon on an already-selected monster.
+        onClick:()=>{ setEnlargedMonster(null); setSelectedMonsterId(null); },
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
