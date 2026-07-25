@@ -480,17 +480,6 @@
       "notes": ""
     },
     {
-      "id": "e679rt2rpz7",
-      "nom": "Nouveau",
-      "element": "Terre",
-      "statut": "Test 3",
-      "cout": "",
-      "limite": "",
-      "effet": "",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s47",
       "nom": "RedBull",
       "element": "Terre",
@@ -509,6 +498,17 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "e679rt2rpz7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
       "quantite": 1,
       "notes": ""
     },
