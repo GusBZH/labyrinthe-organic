@@ -2101,8 +2101,9 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
    - **Projet Firebase créé par Gus lui-même** (compte Google personnel, pas
      quelque chose qu'un agent peut créer à sa place) — Realtime Database en
      région `europe-west1`, mode test au départ (règles d'accès ouvertes,
-     expirent au bout de 30 jours — **à verrouiller avant un vrai usage en
-     ligne**, pas encore fait). SDK ajouté en tant qu'app Web via balise
+     expirent au bout de 30 jours — verrouillé depuis par des règles
+     permanentes, voir "Règles de sécurité Firebase verrouillées" plus bas).
+     SDK ajouté en tant qu'app Web via balise
      `<script type="module">` (pas npm — le projet n'a toujours aucun bundler,
      voir plus haut) — config (clés publiques, pas des secrets) dans
      `src/firebase.js`. Connexion vérifiée avec une page de diagnostic jetable
@@ -2202,9 +2203,10 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      ("la partie est supprimée au bout d'un moment ou reste stockée quelque
      part ?") : une room `rooms/<code>` reste en base indéfiniment tant que
      personne ne la supprime explicitement (aucun code ne le fait
-     actuellement). Seul le **mode test** des règles d'accès expire au bout
-     de 30 jours (bloque l'accès, ne supprime pas les données) — à
-     verrouiller avant un vrai usage en ligne, voir plus haut.
+     actuellement). Seul le **mode test** des règles d'accès expirait au bout
+     de 30 jours (bloquait l'accès, ne supprimait pas les données) —
+     verrouillé depuis par des règles permanentes, voir plus bas ("Règles de
+     sécurité Firebase verrouillées").
    - **Bugs corrigés (grille qui démarre en haut à gauche, bouton recentrer
      disparu, zoom qui semblait pivoter n'importe où)** — les 3 symptômes
      avaient la MÊME cause : plusieurs `useEffect`/`useLayoutEffect` à
@@ -2237,6 +2239,87 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      de split jouée à la création (pas de DOM préexistant à ce moment-là,
      contrairement à Reset) — `splitInfo` retourné par le helper est
      simplement ignoré dans ce cas précis.
+   - **Bug corrigé (révéler une carte d'une pioche empêchait de révéler une
+     carte d'une autre pioche en même temps, en ligne)** — Gus : "Révéler la
+     première carte d'une pioche empêche de révéler une autre carte d'une
+     autre pioche en même temps". Cause : `heldTile`/`heldItem`/`heldMarker`
+     (la carte actuellement "tenue en main", entre le tirage et la pose)
+     faisaient partie du blob `board` PARTAGÉ poussé vers Firebase — un seul
+     emplacement par catégorie (case/depart d'un côté, sort/energie/monstre
+     de l'autre), déjà vrai en solo mais sans conséquence là où il n'y a
+     qu'un seul joueur actif à la fois. En ligne, ça veut dire qu'un SEUL
+     joueur qui pioche/tient une carte bloque TOUS les autres joueurs de la
+     même catégorie jusqu'à ce qu'il la pose ou l'annule — deux joueurs ne
+     pouvaient jamais avoir chacun une carte en main simultanément. Fix : ces
+     trois clés sont maintenant LOCALES à chaque appareil, jamais
+     synchronisées — même traitement que `currentIndex`, déjà exclu du blob
+     partagé pour la même raison de fond ("propre à cet appareil, pas à la
+     partie"). Concrètement : la callback de `subscribeToRoom` n'appelle plus
+     `setHeldTile`/`setHeldItem`/`setHeldMarker` depuis les données reçues (un
+     autre joueur ne peut donc plus écraser ce que CET appareil tient), et
+     l'effet de synchro sortante ne les inclut plus dans l'objet passé à
+     `pushBoardUpdate`. Reste correct malgré ça : la pile elle-même (déjà
+     privée de sa carte du dessus au moment du tirage) reste synchronisée,
+     donc "voir que la pioche a diminué / que la défausse a une nouvelle
+     carte" reste bien visible de tous les joueurs — seule la carte
+     TRANSITOIREMENT tenue en main cesse d'être un état de partie partagé.
+     Sans impact en solo (l'historique undo/redo local capturait déjà
+     `heldTile`/`heldItem` séparément de ce qui part vers Firebase/
+     localStorage, voir `commitBoard`).
+   - **Item en cours d'investigation, non résolu (Gus a demandé une nouvelle
+     piste)** : Gus signale un tap qui "ne fait rien" en déplaçant un item
+     déjà posé sur le plateau (le item est sélectionné via appui long, un
+     premier tap sur la case de destination ne fait visiblement rien, le tap
+     suivant déplace enfin l'item) — bug déjà signalé plusieurs fois cette
+     session, jamais reproduit malgré de nombreux essais Playwright (souris),
+     hypothèse du tremblement du doigt explicitement écartée deux fois par
+     Gus lui-même. Nouvelle piste suggérée par Gus cette fois : un des
+     "blocages" (`hasAnySelection()`/`guardedBySelection`/`disabled` sur les
+     pioches-défausses/`onClickCapture` du pied de page) ajoutés cette
+     session serait-il responsable ? Réaudité ligne par ligne : ces 4
+     mécanismes ne sont câblés QUE sur les contrôles du header/pied de page/
+     pioches/défausses/zone d'équipement — jamais sur `onContentClick`/
+     `handleSingleClick` (le tap sur la grille elle-même), qui ne les
+     consulte à aucun moment. Hypothèse donc écartée avec certitude pour ce
+     chemin précis. Pas de cause alternative confirmée à ce stade — piste la
+     plus plausible restante (non vérifiée, nécessiterait un vrai appareil
+     Android comme les bugs iPhone déjà documentés) : une interaction entre
+     le timer d'appui long de 500ms (`itemPressTimerRef`) et la façon dont
+     Chrome Android gère un tap qui suit immédiatement un appui long sur une
+     surface nativement "pannable" (`touchAction:'pan-x pan-y'` sur le
+     viewport de la grille) — pourrait faire que le `click` natif attendu
+     après ce tap-là soit retardé/perdu par le navigateur lui-même, en dehors
+     du contrôle du code JS. Pas de correctif appliqué cette fois — un
+     changement à ce niveau toucherait le système de gestes clic/double-clic/
+     appui long déjà fragile documenté plus haut, sans pouvoir le vérifier
+     dans ce bac à sable (aucun appareil Android réel disponible). À
+     reprendre avec Gus si des détails de reproduction supplémentaires
+     deviennent disponibles.
+   - **Règles de sécurité Firebase verrouillées avant l'expiration du mode
+     test à 30 jours** (Gus : "on peut faire le truc pour le serveur test qui
+     ferme dans 30 jours comme ça c'est fait ?") — remplace les règles de
+     mode test (ouvertes, expirent au bout de 30 jours) par des règles
+     explicites, permanentes : accès refusé à la racine par défaut, lecture/
+     écriture ouvertes uniquement sous `rooms/<code>` (le code de la partie
+     reste le seul "secret" de contrôle d'accès, conforme au design déjà
+     confirmé par Gus — pas de couche d'authentification supplémentaire).
+     Ne peut pas être fait depuis cet environnement (aucun accès à la console
+     Firebase de Gus) — livré comme un snippet JSON à coller soi-même dans
+     Firebase Console → Realtime Database → onglet Rules → Publier :
+     ```json
+     {
+       "rules": {
+         ".read": false,
+         ".write": false,
+         "rooms": {
+           "$roomCode": {
+             ".read": true,
+             ".write": true
+           }
+         }
+       }
+     }
+     ```
 
 ## Vocabulaire des notes — à retenir (termes donnés par Gus)
 - **Catégorie principale** : un onglet déroulant de la home page (Règles de base, Cases,
