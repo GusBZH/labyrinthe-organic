@@ -711,6 +711,17 @@
       "notes": ""
     },
     {
+      "id": "s68",
+      "nom": "Stockage",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "3x tour",
+      "effet": "Poser 1 compteur sur ce sort. Pendant votre tour, vous pouvez utiliser 1 compteur pour gagner 1 PA.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s65",
       "nom": "RH",
       "element": "Eau",
@@ -740,17 +751,6 @@
       "cout": "0 PA",
       "limite": "4x tour",
       "effet": "Si vous êtes sur une case fontaine, vous pouvez vous téléporter sur une autre fontaine comme si c'était des portails.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s68",
-      "nom": "Stockage",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "3x tour",
-      "effet": "Poser 1 compteur sur ce sort. Pendant votre tour, vous pouvez utiliser 1 compteur pour gagner 1 PA.",
       "quantite": 1,
       "notes": ""
     },
