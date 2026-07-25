@@ -205,6 +205,17 @@
       "notes": ""
     },
     {
+      "id": "s70",
+      "nom": "Le Grand Détournement",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "2x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s20",
       "nom": "Xelor",
       "element": "Eau",
@@ -223,17 +234,6 @@
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Utilisez gratuitement l'effet d'1 sort ou d'1 énergie qui ne vous appartient pas.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s22",
-      "nom": "Voudoo",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Déplace de 3 cases révélées 1 personnage (peut passer à travers un portail).",
       "quantite": 1,
       "notes": ""
     },
@@ -271,13 +271,13 @@
       "notes": ""
     },
     {
-      "id": "s23",
-      "nom": "Déjà Vu",
+      "id": "s22",
+      "nom": "Voudoo",
       "element": "Eau",
       "statut": "Validé",
-      "cout": "0 PA",
+      "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
+      "effet": "Déplace de 3 cases révélées 1 personnage (peut passer à travers un portail).",
       "quantite": 1,
       "notes": ""
     },
@@ -656,6 +656,17 @@
       "notes": ""
     },
     {
+      "id": "s23",
+      "nom": "Déjà Vu",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s61",
       "nom": "Cain",
       "element": "Eau",
@@ -674,17 +685,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Pendant 1 tour, quand tu entres sur 1 case, place une carte map sur chacun de ses couloirs ouverts.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s70",
-      "nom": "Le Grand Détournement",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "2x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
       "quantite": 1,
       "notes": ""
     },
