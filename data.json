@@ -1286,7 +1286,7 @@
     },
     {
       "id": "e47",
-      "nom": "Énergie Terre 4",
+      "nom": "On est chez moi ici !",
       "element": "Terre",
       "statut": "Validé",
       "cout": "",
@@ -1391,6 +1391,17 @@
       "cout": "",
       "limite": "",
       "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "8ind2pquk8f",
+      "nom": "Nouvelle énergie",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
       "quantite": 1,
       "notes": ""
     }
