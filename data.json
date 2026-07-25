@@ -841,6 +841,17 @@
       "effet": "Glissez ce sort en bas de la pioche et rejouez 1 tour complet.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "xvekgvqvpks",
+      "nom": "Nouveau",
+      "element": "Feu",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
