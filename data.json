@@ -282,13 +282,13 @@
       "notes": ""
     },
     {
-      "id": "s50",
-      "nom": "Marque du Voyageur",
+      "id": "s57",
+      "nom": "Ah Nan Nan Nan",
       "element": "Air",
       "statut": "Validé",
-      "cout": "0 PA",
+      "cout": "3 PA",
       "limite": "1x tour",
-      "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
+      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
     },
@@ -524,6 +524,17 @@
       "notes": ""
     },
     {
+      "id": "s50",
+      "nom": "Marque du Voyageur",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s51",
       "nom": "Parachute",
       "element": "Air",
@@ -542,17 +553,6 @@
       "cout": "0 PA",
       "limite": "3x tour",
       "effet": "À la place d'attaquer 1 joueur, vous pouvez le pousser de 3 cases dans 1 direction. La cible ne peut pas vous attaquer avant pour contrer.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s57",
-      "nom": "Ah Nan Nan Nan",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "3 PA",
-      "limite": "1x tour",
-      "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
     },
