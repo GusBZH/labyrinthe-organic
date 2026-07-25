@@ -19,11 +19,18 @@ export const EC = {
 export const SC = {"Validé":"#4caf50","Test 1":"#ffeb3b","Test 2":"#ff9800","Test 3":"#f44336","Archivé":"#555"};
 
 export const LR = {
-  "Lvl 1":"1 énergie / -2 au dé + 2 PV",
-  "Lvl 2":"1 sort / -1 au dé + 2 PV",
-  "Lvl 3":"1 sort + 1 énergie + 2 PV",
-  "Lvl 4":"2 sorts / +2 dés monstre + 2 PV",
+  "Lvl 1":"1 énergie / -2 au dé",
+  "Lvl 2":"1 sort / -1 au dé",
+  "Lvl 3":"1 sort + 1 énergie",
+  "Lvl 4":"2 sorts / +2 dés monstre",
 };
+
+// Bonus PV fixe pour TOUS les niveaux de monstre (Gus : "rajouter '2 PV'
+// pour tous les monstres... écrit à la ligne sur la carte et sans '+'") —
+// une constante à part plutôt que concaténée dans LR, puisque rendue sur sa
+// propre ligne sur la carte plateau (PlateauPage.js CardFront), pas comme un
+// simple suffixe de texte.
+export const MONSTER_PV_BONUS = "2 PV";
 
 export const VISUEL_CATS = [
   {key:'general',label:'💡 Idée générale'},{key:'boite',label:'📦 Boîte'},
