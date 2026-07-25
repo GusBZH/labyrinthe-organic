@@ -933,6 +933,17 @@
       "notes": ""
     },
     {
+      "id": "e30",
+      "nom": "Énergie Multi 4",
+      "element": "Multi",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Pour chaque sort d'élément différent, augmentez de 1 le chiffre sur 1 item pendant 1 tour global.",
+      "quantite": 5,
+      "notes": ""
+    },
+    {
       "id": "e15",
       "nom": "Multitâche ",
       "element": "Multi",
@@ -940,17 +951,6 @@
       "cout": "",
       "limite": "",
       "effet": "+1 PA pour chaque sort d'élément différent possédé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e16",
-      "nom": "Exodia",
-      "element": "Multi",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Si vous possédez un item feu, terre, air et eau, +5 au résultat de tous vos lancers de dé.",
       "quantite": 1,
       "notes": ""
     },
@@ -1087,6 +1087,17 @@
       "notes": ""
     },
     {
+      "id": "e16",
+      "nom": "Exodia",
+      "element": "Multi",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Si vous possédez un item feu, terre, air et eau, +5 au résultat de tous vos lancers de dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "e29",
       "nom": "Poubelle de recyclage ",
       "element": "Multi",
@@ -1095,17 +1106,6 @@
       "limite": "",
       "effet": "Vous pouvez utiliser 1 fois de plus 1 sort pour chaque sort d'élément différent.",
       "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "e30",
-      "nom": "Énergie Multi 4",
-      "element": "Multi",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Pour chaque sort d'élément différent, augmentez de 1 le chiffre sur 1 item pendant 1 tour global.",
-      "quantite": 5,
       "notes": ""
     },
     {
