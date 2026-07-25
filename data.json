@@ -722,6 +722,17 @@
       "notes": ""
     },
     {
+      "id": "s70",
+      "nom": "Le Grand Détournement",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "2x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s67",
       "nom": "Water Cooling",
       "element": "Eau",
@@ -751,17 +762,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Regarde les 3 prochaines cartes d'1 pioche, mets-en 1 au-dessus de la pioche et les autres en dessous.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s70",
-      "nom": "Le Grand Détournement",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "2x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
       "quantite": 1,
       "notes": ""
     },
