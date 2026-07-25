@@ -18,17 +18,6 @@
       "notes": ""
     },
     {
-      "id": "s1",
-      "nom": "Grenade",
-      "element": "Feu",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Attaque en sélectionnant 1 case en ligne de vue. L'attaque touche la case sélectionnée et toutes les cases à 1 de distance en ligne de vue.",
-      "quantite": 1,
-      "notes": "Test"
-    },
-    {
       "id": "xvekgvqvpks",
       "nom": "Dropbox",
       "element": "Feu",
@@ -38,6 +27,17 @@
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "s1",
+      "nom": "Grenade",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Attaque en sélectionnant 1 case en ligne de vue. L'attaque touche la case sélectionnée et toutes les cases à 1 de distance en ligne de vue.",
+      "quantite": 1,
+      "notes": "Test"
     },
     {
       "id": "s2",
