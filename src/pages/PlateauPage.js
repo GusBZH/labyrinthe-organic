@@ -2272,6 +2272,15 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     const r = Math.floor((clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
+    // Cancels any cellPicker still pending from a PREVIOUS crowded-cell tap
+    // (see scheduleCellPicker) — this tap is either a genuine double-click
+    // continuation on that same cell (already handled by
+    // onContentDoubleClick, but doesn't hurt to also clear it here) or an
+    // unrelated tap elsewhere, in which case that old picker should never
+    // pop up disconnected from whatever the user is doing now. Re-armed a
+    // few lines down if THIS tap also lands on a crowded cell.
+    if (cellPickerTimerRef.current) { clearTimeout(cellPickerTimerRef.current); cellPickerTimerRef.current = null; }
+
     // Reads everything through liveRef (always current) rather than the
     // closure variables directly — no longer strictly required now that
     // onContentClick calls this synchronously with no setTimeout delay (see
@@ -2300,7 +2309,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       {
         const dims = pickerDims([herePlayers.length, hereMonsters.length], hereMonsters.length > 0 ? 2 : 1);
         const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
-        setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:[], forVision:true});
+        scheduleCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:[], forVision:true});
       }
       return;
     }
@@ -2480,7 +2489,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       const columns = hereMarkers.length > 0 ? 3 : (hereMonsters.length > 0 ? 2 : 1);
       const dims = pickerDims([herePlayers.length, hereMonsters.length, hereMarkers.length], columns);
       const pos = clampPopupPos(clientX, clientY, dims.width, dims.height);
-      setCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:hereMarkers.map(m=>m.id), forVision:false});
+      scheduleCellPicker({clientX:pos.left, clientY:pos.top, playerIds:herePlayers.map(p=>p.id), monsterIds:hereMonsters.map(m=>m.id), markerIds:hereMarkers.map(m=>m.id), forVision:false});
     }
   }
 
@@ -2517,6 +2526,25 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // above and still needed exactly as before.
   const lastClickCellRef = useRef(null);
   const sameCellStreakRef = useRef(false);
+  // Bug fixed here (impossible de double-tap une case pour sélectionner la
+  // tuile quand plusieurs joueurs/monstres/marqueurs la partagent) : Gus —
+  // "one tape ouvre instantanément la fenêtre de sélection... impossible de
+  // double taper pour sélectionner la case". Le premier tap d'un vrai
+  // double-clic déclenche déjà `onContentClick`/`handleSingleClick` (aucun
+  // délai depuis la refonte "désambiguïsation par état" plus haut) — sur
+  // une case à plusieurs entités, ça ouvrait `cellPicker` immédiatement,
+  // et cette fenêtre (son propre listener `pointerdown` sur `document`,
+  // voir Popup.js) interceptait le second tap avant que le navigateur
+  // n'ait la moindre chance de reconnaître un vrai `dblclick` natif sur la
+  // grille. Fix ciblé : SEULE l'ouverture de `cellPicker` (pas le reste de
+  // `handleSingleClick`, qui garde son exécution immédiate voulue par Gus)
+  // passe par un court délai — le temps qu'un double-clic, s'il arrive,
+  // puisse annuler cette ouverture avant qu'elle ne se produise.
+  const cellPickerTimerRef = useRef(null);
+  function scheduleCellPicker(args){
+    if (cellPickerTimerRef.current) clearTimeout(cellPickerTimerRef.current);
+    cellPickerTimerRef.current = setTimeout(() => { cellPickerTimerRef.current = null; setCellPicker(args); }, 300);
+  }
 
   function onContentClick(e){
     // Bug fixed here: a long-press held via mouse/touch almost always
@@ -2586,6 +2614,11 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
     if (!sameCellStreakRef.current) return; // spurious native dblclick: the two clicks weren't actually on the same cell
     if (visionMode) return; // inspect-only: no new tile selection while Vision is active
+    // A real double-click just got confirmed — cancel any cellPicker that
+    // the first of these two clicks may have scheduled (see
+    // scheduleCellPicker's own comment), so it never pops up a moment later
+    // out of nowhere once tile-selection has already taken over.
+    if (cellPickerTimerRef.current) { clearTimeout(cellPickerTimerRef.current); cellPickerTimerRef.current = null; }
     const rect = contentRef.current.getBoundingClientRect();
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
