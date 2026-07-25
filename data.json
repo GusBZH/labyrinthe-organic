@@ -1401,7 +1401,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "Défausser: Choisissez un carré de 3 x 3 cases,",
+      "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
       "quantite": 1,
       "notes": ""
     }
