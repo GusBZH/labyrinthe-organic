@@ -459,10 +459,39 @@ function CardFace({showBack, size, kind='case', data}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected}) {
+function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, spawnFromRect, onSpawnAnimDone}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
+
+  // "Split" entrance animation (Gus: "une mini animation du paquet qui se
+  // déplace vers sa nouvelle position quand on le divise") — a small FLIP
+  // (First-Last-Invert-Play): splitPile (in PlateauPage) measures the
+  // ORIGINAL pile's on-screen rect right before committing the split, and
+  // hands it down here as `spawnFromRect` for the newly-created second
+  // pile specifically. On mount, this pile is already laid out at its real
+  // (destination) grid slot by CSS — snap it back to the origin rect with
+  // transitions off (so that jump is invisible), force a reflow, then
+  // re-enable transitions and clear the offset so it visibly slides+grows
+  // from the old pile's position into its own slot.
+  useLayoutEffect(() => {
+    if (!spawnFromRect || !anchorRef.current) return;
+    const el = anchorRef.current;
+    const toRect = el.getBoundingClientRect();
+    const dx = spawnFromRect.left - toRect.left;
+    const dy = spawnFromRect.top - toRect.top;
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(0.85)`;
+    el.style.opacity = '0.5';
+    el.getBoundingClientRect(); // force reflow so the snap above isn't itself animated
+    const raf = requestAnimationFrame(() => {
+      el.style.transition = 'transform .35s ease-out, opacity .35s ease-out';
+      el.style.transform = 'translate(0,0) scale(1)';
+      el.style.opacity = '1';
+    });
+    const timer = setTimeout(() => { onSpawnAnimDone && onSpawnAnimDone(pile.id); }, 400);
+    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
+  }, [spawnFromRect]);
   const pendingArmedRef = useRef(null);
   const [showSplitMenu, setShowSplitMenu] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
@@ -516,7 +545,7 @@ function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, has
     onDisarm();
   }
 
-  return h('div', {ref:anchorRef, style:{position:'relative', flexShrink:0}},
+  return h('div', {ref:anchorRef, 'data-pile-id':pile.id, style:{position:'relative', flexShrink:0}},
     h('div', {
       onPointerDown, onPointerUp:cancelPress, onPointerLeave:cancelPress, onPointerCancel:cancelPress,
       onClick:handleClick,
@@ -683,7 +712,7 @@ function DiscardSlot({cards, type='case', catalog, selectedId, armedId, armedIdR
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect}) {
+function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, splitAnim, onSpawnAnimDone}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
   // `allowPileDraw` (case piles only, see its own comment where it's
@@ -711,7 +740,8 @@ function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedI
           groupPiles.map(p => h(PileStack, {
             key:p.id, pile:p, boxSize, holding: holding.pileId === p.id, heldCardId:holding.cardId, catalog,
             armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:pileArmBlocked,
-            onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected
+            onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected,
+            spawnFromRect: (splitAnim && splitAnim.find(a => a.pileId === p.id) || {}).fromRect || null, onSpawnAnimDone
           }))
         )
       : h('div', {style:{width:boxSize, height:boxSize}}),
@@ -1125,6 +1155,35 @@ export function PlateauPage({onBack, data}) {
   const [heldMarker, setHeldMarker] = useState(null); // {cardId, markerType}
   const [heldTile, setHeldTile] = useState(null);
   const [armedPileId, setArmedPileId] = useState(null);
+  // Array of {pileId, fromRect} — one entry per pile currently playing its
+  // "split" entrance animation (see splitPile and PileStack's own
+  // spawnFromRect handling). Usually 0-1 entries (a manual pile split), but
+  // Reset can seed 2 at once (sort + énergie auto-split, see resetBoard) —
+  // null/empty the rest of the time. Purely presentational, never
+  // persisted/undoable.
+  const [splitAnim, setSplitAnim] = useState(null);
+  // Set by resetBoard right after committing an auto-split (sort/énergie),
+  // to {sort:{firstId,secondId}, energie:{firstId,secondId}} — a fresh
+  // object each time so identity change alone re-triggers the effect below,
+  // even on back-to-back resets. Reset has no pre-existing DOM to measure a
+  // FLIP origin rect from (unlike a manual pile split, which measures the
+  // pile BEFORE it splits) — instead this fires once the freshly-split
+  // piles have already mounted, measures where the FIRST half landed, and
+  // uses that as the SECOND half's spawn origin, all inside a layout effect
+  // (runs after DOM update, before paint) so there's no visible flash.
+  const [pendingResetSplitAnim, setPendingResetSplitAnim] = useState(null);
+  useLayoutEffect(() => {
+    if (!pendingResetSplitAnim) return;
+    const entries = [];
+    ['sort', 'energie'].forEach(type => {
+      const group = pendingResetSplitAnim[type];
+      if (!group) return;
+      const el = document.querySelector(`[data-pile-id="${group.firstId}"]`);
+      if (el) entries.push({pileId: group.secondId, fromRect: (({left, top}) => ({left, top}))(el.getBoundingClientRect())});
+    });
+    if (entries.length) setSplitAnim(entries);
+    setPendingResetSplitAnim(null);
+  }, [pendingResetSplitAnim]);
   const [selectedTileId, setSelectedTileId] = useState(null);
   // 'placed' (right after placing a fresh tile) only allows rotating it —
   // no flip/discard buttons, and tapping elsewhere just deselects instead
@@ -2465,16 +2524,32 @@ export function PlateauPage({onBack, data}) {
   }
 
   // Cuts the pile into two, in place, no shuffle — the point is to be able
-  // to deal from either half separately, not to re-randomize.
+  // to deal from either half separately, not to re-randomize. Measures the
+  // ORIGINAL pile's on-screen position (via its data-pile-id, before the
+  // split changes the grid layout) so the newly-created second pile can
+  // play a "slid in from there" entrance animation — see PileStack's own
+  // spawnFromRect handling for the actual FLIP.
   function splitPile(pileId){
     const live = liveRef.current;
     const pile = live.piles.find(p => p.id === pileId);
     if (!pile || pile.cards.length < 2) return;
     const mid = Math.floor(pile.cards.length/2);
+    const newPileId = uid();
+    const el = document.querySelector(`[data-pile-id="${pileId}"]`);
+    const fromRect = el ? el.getBoundingClientRect() : null;
     commitBoard({piles: live.piles.flatMap(p => p.id === pileId
-      ? [{...p, cards:p.cards.slice(0, mid)}, {id:uid(), type:p.type, cards:p.cards.slice(mid)}]
+      ? [{...p, cards:p.cards.slice(0, mid)}, {id:newPileId, type:p.type, cards:p.cards.slice(mid)}]
       : [p]
     )});
+    if (fromRect) setSplitAnim(prev => [...(prev||[]), {pileId:newPileId, fromRect:{left:fromRect.left, top:fromRect.top}}]);
+  }
+
+  // Called by PileStack once its own spawn animation has finished playing —
+  // drops just that pile's entry (splitAnim is a small array since Reset can
+  // now animate several piles — sort + énergie — spawning at once, see
+  // resetBoard).
+  function onSpawnAnimDone(pileId){
+    setSplitAnim(prev => prev ? prev.filter(a => a.pileId !== pileId) : prev);
   }
 
   function shufflePile(pileId){
@@ -2671,11 +2746,29 @@ export function PlateauPage({onBack, data}) {
     const freshPiles = makeInitialPiles(data);
     cardCatalogRef.current = {};
     registerDeckCards(freshPiles, cardCatalogRef.current);
+    // Gus: "tu peux mélanger toutes les pioches ? puis diviser en 2 les
+    // pioches sorts, énergie" — every deck is already shuffled at build
+    // time (see buildSortCards/buildEnergieCards, both end in shuffle()),
+    // so "mélanger" needed no extra step here; only the 2-way split is new.
+    // Cut sort/énergie in place (mirrors splitPile's own cards.slice logic)
+    // and remember which id became which half so the layout effect above
+    // can play the "slides out of the first pile" entrance animation for
+    // each new second half, right after Reset — same visual language as a
+    // manual split.
+    const splitInfo = {};
+    const splitPiles = freshPiles.flatMap(p => {
+      if ((p.type !== 'sort' && p.type !== 'energie') || p.cards.length < 2) return [p];
+      const mid = Math.floor(p.cards.length / 2);
+      const secondId = uid();
+      splitInfo[p.type] = {firstId: p.id, secondId};
+      return [{...p, cards: p.cards.slice(0, mid)}, {id: secondId, type: p.type, cards: p.cards.slice(mid)}];
+    });
     commitBoard({
-      players: [], piles: freshPiles,
+      players: [], piles: splitPiles,
       discardCards: [], placedTiles: [], heldTile: null, currentIndex: 0,
       boardItems: [], heldItem: null, monsters: [], markers: [], heldMarker: null
     });
+    if (Object.keys(splitInfo).length) setPendingResetSplitAnim(splitInfo);
   }
 
   const current = players[currentIndex] || null;
@@ -2907,7 +3000,8 @@ export function PlateauPage({onBack, data}) {
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
@@ -2919,7 +3013,8 @@ export function PlateauPage({onBack, data}) {
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h(PileGroup, {
@@ -2931,7 +3026,8 @@ export function PlateauPage({onBack, data}) {
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         // Monstres — 4ème groupe, à droite des énergies. Piocher/déplacer/
@@ -2949,7 +3045,8 @@ export function PlateauPage({onBack, data}) {
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+          onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          splitAnim, onSpawnAnimDone
         }),
         (heldTile || heldItem || heldMarker) && h('div', {style:{fontSize:11, color:'#9cf', alignSelf:'center'}}, 'Clique une case pour poser la carte')
       ),
@@ -2983,7 +3080,8 @@ export function PlateauPage({onBack, data}) {
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
           onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection
+          onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
         h('div', {style:{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', paddingTop:Math.max(0, (headerBoxSize-36)/2)}},

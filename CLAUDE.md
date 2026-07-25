@@ -750,6 +750,39 @@ d'abord résoudre — poser, défausser, ou annuler — celle qu'on tient).
   Diviser/Mélanger. Diviser coupe le paquet en deux **sans mélanger** (juste couper en
   deux piles, pas de rebrassage — corrige une version antérieure de cette note qui
   disait l'inverse). Mélanger rebrasse la pile sur place.
+- **Mini-animation quand un paquet se divise** (Gus : "si tu peux faire une mini
+  animation du paquet qui se déplace vers sa nouvelle position quand on le divise c'est
+  cool") — un petit FLIP (First-Last-Invert-Play) : `splitPile` mesure le rectangle
+  écran du paquet ORIGINAL (via un attribut `data-pile-id` posé sur la racine de chaque
+  `PileStack`, seul moyen pour cette fonction — qui n'a accès à aucune ref de composant
+  individuel — de retrouver son DOM) juste **avant** de committer la coupe, puis passe ce
+  rectangle au nouveau paquet (2ème moitié) via une prop `spawnFromRect`. Ce nouveau
+  paquet, une fois monté à sa vraie position CSS grid (destination), se "replaque"
+  instantanément sur le rectangle d'origine (`transition:'none'`, `transform:translate(dx,
+  dy) scale(.85)`, `opacity:.5`), force un reflow, puis réactive les transitions et
+  efface le décalage — le navigateur anime alors visuellement le glissement+grossissement
+  de l'ancienne position vers la nouvelle. `splitAnim` (state de `PlateauPage`) est un
+  **tableau** de `{pileId, fromRect}` plutôt qu'un objet unique — Reset (voir plus bas)
+  peut faire naître 2 paquets à la fois (sorts + énergies), chacun doit pouvoir jouer son
+  animation indépendamment ; chaque `PileStack` retire sa propre entrée via
+  `onSpawnAnimDone(pile.id)` une fois son animation terminée (~400ms).
+- **Reset mélange déjà toutes les pioches (rien à faire) et divise maintenant sorts +
+  énergies en 2 chacune, avec la même animation** (Gus : "quand on reset une partie tu
+  peux mélanger toutes les pioches ? puis diviser en 2 les pioches sorts, énergie...
+  et si quand on reset on peut voir l'animation des paquets qui se divise juste après
+  c'est top") — chaque deck frais est déjà rebrassé à sa construction (`buildSortCards`/
+  `buildEnergieCards`/etc. finissent tous par `shuffle()`), donc "mélanger" ne demandait
+  aucun code nouveau. `resetBoard` coupe en plus les paquets `sort`/`energie` fraîchement
+  construits en deux (même logique que `splitPile`) avant de committer. Contrairement à
+  une division manuelle, Reset n'a **aucun DOM préexistant** à mesurer pour une origine
+  FLIP classique (l'ancien paquet n'existe déjà plus) — solution : un state dédié
+  `pendingResetSplitAnim` (`{sort:{firstId,secondId}, energie:{firstId,secondId}}`),
+  posé juste après le `commitBoard` du reset, déclenche un `useLayoutEffect` séparé qui
+  mesure la position de la PREMIÈRE moitié (déjà montée à sa position naturelle par le
+  rendu qui vient de se produire) et l'utilise comme origine `fromRect` pour la SECONDE —
+  exécuté dans un layout effect (donc avant la peinture écran), aucun flash visible même
+  si la 2ème moitié est techniquement déjà affichée à sa position finale une fraction de
+  rendu plus tôt.
 - Au lieu d'utiliser le menu, cliquer une **autre** pioche (ou la défausse) pendant
   qu'une pioche est armée fusionne celle-ci dans la cible — et là ça **rebrasse** le
   résultat (contrairement à Diviser). C'est comme ça qu'on peut diviser une pioche en
