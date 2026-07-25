@@ -150,17 +150,6 @@
       "notes": ""
     },
     {
-      "id": "s15",
-      "nom": "Échange de Place",
-      "element": "Air",
-      "statut": "Test 1",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Choisis 1 joueur et échange de position avec lui.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s16",
       "nom": "Grappin",
       "element": "Air",
@@ -190,6 +179,17 @@
       "cout": "1 PA",
       "limite": "",
       "effet": "Échange ce sort avec celui d'un autre joueur.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s49",
+      "nom": "2 pour 1",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
       "quantite": 1,
       "notes": ""
     },
@@ -282,13 +282,13 @@
       "notes": ""
     },
     {
-      "id": "s28",
-      "nom": "Cape d'Invisibilité",
+      "id": "s50",
+      "nom": "Marque du Voyageur",
       "element": "Air",
-      "statut": "Test 1",
+      "statut": "Validé",
       "cout": "0 PA",
       "limite": "1x tour",
-      "effet": "Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",
+      "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
       "quantite": 1,
       "notes": ""
     },
@@ -524,28 +524,6 @@
       "notes": ""
     },
     {
-      "id": "s49",
-      "nom": "2 pour 1",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s50",
-      "nom": "Marque du Voyageur",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s51",
       "nom": "Parachute",
       "element": "Air",
@@ -564,6 +542,17 @@
       "cout": "0 PA",
       "limite": "3x tour",
       "effet": "À la place d'attaquer 1 joueur, vous pouvez le pousser de 3 cases dans 1 direction. La cible ne peut pas vous attaquer avant pour contrer.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s56",
+      "nom": "Nan J'crois Pas",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
     },
@@ -601,17 +590,6 @@
       "notes": ""
     },
     {
-      "id": "s56",
-      "nom": "Nan J'crois Pas",
-      "element": "Air",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "1x tour",
-      "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
       "id": "s57",
       "nom": "Ah Nan Nan Nan",
       "element": "Air",
@@ -619,6 +597,39 @@
       "cout": "3 PA",
       "limite": "1x tour",
       "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s19",
+      "nom": "Éliotrope",
+      "element": "Air",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "4x tour",
+      "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s15",
+      "nom": "Échange de Place",
+      "element": "Air",
+      "statut": "Test 1",
+      "cout": "1 PA",
+      "limite": "1x tour",
+      "effet": "Choisis 1 joueur et échange de position avec lui.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s28",
+      "nom": "Cape d'Invisibilité",
+      "element": "Air",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",
       "quantite": 1,
       "notes": ""
     },
@@ -641,17 +652,6 @@
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "Déplace-toi vers une carte de départ.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s60",
-      "nom": "Bon Réflexe",
-      "element": "Air",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "À la fin de votre tour vous avez 1 sprint gratuit.",
       "quantite": 1,
       "notes": ""
     },
@@ -843,13 +843,13 @@
       "notes": ""
     },
     {
-      "id": "s19",
-      "nom": "Éliotrope",
+      "id": "s60",
+      "nom": "Bon Réflexe",
       "element": "Air",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "4x tour",
-      "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "À la fin de votre tour vous avez 1 sprint gratuit.",
       "quantite": 1,
       "notes": ""
     }
