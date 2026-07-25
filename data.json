@@ -678,6 +678,17 @@
       "notes": ""
     },
     {
+      "id": "s70",
+      "nom": "Le Grand Détournement",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "2x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s63",
       "nom": "Chaman",
       "element": "Eau",
@@ -718,17 +729,6 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Au moment de piocher, peut choisir de prendre n'importe quelle carte dans la défausse correspondante.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s70",
-      "nom": "Le Grand Détournement",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "2x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
       "quantite": 1,
       "notes": ""
     },
