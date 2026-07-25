@@ -882,7 +882,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Lorsqu'une case séisme est défausser pendant votre tour, replacer là où vous voulez.",
       "quantite": 1,
       "notes": ""
     }
