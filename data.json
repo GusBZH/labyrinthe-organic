@@ -596,7 +596,7 @@
       "statut": "Validé",
       "cout": "1 PA",
       "limite": "1x tour",
-      "effet": "Lancez 1 dé et déplacez-vous jusqu'à ce nombre sur des cases révélées ou non, mais si vous tombez sur 1 monstre vous êtes obligé de l'affronter.",
+      "effet": "Lancez 1 dé et déplacez-vous jusqu'à ce nombre sur des cases révélées ou non, mais si vous tombez sur 1 monstre vous êtes obligé de l'affronter entièrement.",
       "quantite": 1,
       "notes": ""
     },
