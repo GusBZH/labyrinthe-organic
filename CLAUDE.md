@@ -1979,18 +1979,67 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
      par Gus, back par élément/niveau, face texte-composité) : implémentés, voir "Pioches
      dynamiques depuis le catalogue". Reste, non-bloquant : le contenu détaillé du mode
      Vision pour les cases/tuiles (Couche 4, jamais commencé).
-2. **Version en ligne entre amis** — choix arrêté : **boardgame.io** (librairie
-   JS open source pour jeux de plateau tour par tour, intégrée directement dans
-   l'app, pas un service externe) pour la gestion des tours et la synchronisation
-   d'état entre joueurs, combinée à **Firebase Realtime Database ou Supabase**
-   (gratuit en usage léger) pour l'hébergement temps réel.
+2. **Version en ligne entre amis** — nouveau choix d'archi (remplace boardgame.io,
+   voir ci-dessous pourquoi), discuté et validé avec Gus : synchronisation directe
+   via **Firebase Realtime Database** (ou Supabase Realtime), sans librairie de
+   jeu tour par tour — juste un document JSON partagé, synchronisé en live entre
+   les clients connectés à la même partie.
+   - **boardgame.io abandonné** (Gus : "au final les joueurs sont 100% responsable,
+     pas besoin de principe de tour etc..") — boardgame.io existe pour arbitrer un
+     jeu (tours, phases, validation de coups), exactement ce que cette app refuse
+     de faire depuis le début ("aide visuelle de confort, jamais un arbitre de
+     règles", voir "Système de jeu" plus haut). L'intégrer aurait soit forcé un
+     modèle de tours qu'on ne veut pas, soit demandé de le contourner entièrement
+     pour rien. Un simple document partagé (piles/placedTiles/boardItems/players/
+     monsters/markers — exactement les clés déjà persistées par `commitBoard` en
+     solo) synchronisé par Firebase/Supabase suffit largement.
    - Avantage décisif par rapport à un serveur perso : tourne dans le cloud,
      aucun appareil (PC ou téléphone) de Gus à garder allumé pendant la partie.
+   - **Séparation état partagé (synchronisé) / état local (jamais synchronisé)** —
+     règle de confidentialité de Gus ("je sélectionne un truc, les autres ne
+     voient pas ma sélection, ils voient uniquement le changement sur le
+     plateau : déplacer un personnage, récupérer, supprimer une carte, afficher
+     la première carte d'une pioche...") :
+     - **Partagé** : exactement les clés déjà persistées par `commitBoard` en
+       solo (`players`, `piles`, `discardCards`, `placedTiles`, `boardItems`,
+       `monsters`, `markers`) — piocher retire déjà la carte de `pile.cards`
+       dans le code actuel, donc "révéler le dessus d'une pioche" est déjà une
+       vraie mutation de plateau, pas une sélection, et rentre naturellement
+       dans la règle de Gus sans changement de logique.
+     - **Local uniquement** (jamais écrit dans la base partagée) : tout ce qui
+       est déjà un state React séparé des clés persistées —
+       `selectedId`/`selectedTileId`/`selectedItemId`/`selectedMonsterId`/
+       `selectedMarkerId`/`selectedDiscardCardId`, `cellPicker`/
+       `itemCellPicker`, `armedPileId`, et toute fenêtre/popup (infos joueur,
+       menu Diviser/Mélanger, Vision peek, carte agrandie).
+   - **Joueur courant (`currentIndex`, pied de page) devient local par appareil**
+     (Gus : "il faut que le footer du joueur en bas soit indépendant aussi...
+     que le joueur 1 puisse se mettre sur joueur 1 etc") — chaque appareil
+     retient localement (son propre `localStorage`) quel joueur il regarde/
+     contrôle, complètement découplé de l'état de partie partagé — même
+     principe que la séparation ci-dessus, juste appliqué à `currentIndex`.
+   - **Conflits simultanés (2 joueurs sur la même tuile)** — discuté avec Gus,
+     conclusion : pas de verrouillage/résolution de conflit à construire.
+     Comme la sélection reste locale et que chaque action résout **par id
+     contre l'état live actuel** (jamais une position figée au moment de la
+     sélection — déjà vrai dans le code solo), le cas normal se règle tout
+     seul : si le joueur 2 a sélectionné une tuile que le joueur 1 vient de
+     déplacer, la synchro met à jour la position affichée chez le joueur 2,
+     et son prochain tap agit sur la position À JOUR (pas une position
+     périmée). Seul le cas de vraie simultanéité (deux écritures avant que
+     l'un ou l'autre ait reçu la mise à jour de l'autre) reste un vrai
+     conflit : on accepte simplement "dernière écriture gagne" (la BDD
+     tranche par ordre d'arrivée), sans mécanisme de verrouillage — cohérent
+     avec la philosophie "l'app n'arbitre rien", comme deux joueurs qui
+     attrapent la même carte IRL. Amélioration possible plus tard (pas
+     bloquante) : si la tuile sélectionnée bouge sous vos yeux suite à
+     l'action d'un autre joueur, désélectionner automatiquement plutôt que
+     garder un glow périmé.
    - Chaque action d'un joueur sur le plateau (déplacement, pose de tuile, etc.)
      est propagée en live à tous les autres joueurs connectés à la même partie.
-   - Contrôle total conservé : ce n'est pas un site `.io` externe auquel on
-     adapte le jeu, c'est une brique technique intégrée à l'app existante
-     (même repo, même design, même data.json).
+   - Contrôle total conservé : ce n'est pas un site externe auquel on adapte le
+     jeu, c'est une brique technique intégrée à l'app existante (même repo,
+     même design, même data.json).
    - Modifications de `data.json` (cartes, règles) : s'appliquent immédiatement
      à toutes les *nouvelles* parties lancées après la modif. Pas besoin de
      figer les règles par partie en cours — Gus a confirmé qu'il ne changera
@@ -2000,6 +2049,11 @@ premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du de
    - Ancienne piste abandonnée : serveur Node.js perso (Colyseus) sur PC/tunnel
      Cloudflare — remplacée par l'approche cloud ci-dessus, plus simple et sans
      contrainte de disponibilité matérielle.
+   - **Étape actuelle** : Gus doit créer le projet Firebase (ou Supabase) lui-même
+     (compte lié à lui, pas quelque chose qu'un agent peut créer à sa place) —
+     voir la réponse de session pour les étapes exactes. Le code côté client
+     (extraction état local/partagé, adaptateur de synchro) peut être préparé en
+     parallèle avant d'avoir les clés de config réelles.
 
 ## Vocabulaire des notes — à retenir (termes donnés par Gus)
 - **Catégorie principale** : un onglet déroulant de la home page (Règles de base, Cases,
