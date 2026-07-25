@@ -878,13 +878,13 @@
       "notes": ""
     },
     {
-      "id": "e9",
-      "nom": "Terrine de campagne ",
+      "id": "8ind2pquk8f",
+      "nom": "Nouvelle énergie",
       "element": "Terre",
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "+1 au résultat du dé en combat pour 1 lancé pour chaque sort de cet élément.",
+      "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
       "quantite": 1,
       "notes": ""
     },
@@ -1263,13 +1263,13 @@
       "notes": ""
     },
     {
-      "id": "8ind2pquk8f",
-      "nom": "Nouvelle énergie",
+      "id": "e9",
+      "nom": "Terrine de campagne ",
       "element": "Terre",
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
+      "effet": "+1 au résultat du dé en combat pour 1 lancé pour chaque sort de cet élément.",
       "quantite": 1,
       "notes": ""
     },
