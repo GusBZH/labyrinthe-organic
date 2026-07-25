@@ -873,7 +873,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Défaussez : téléportez-vous strictement à 3 cases d'un autre joueur.",
+      "effet": "Défaussez : téléportez-vous sur la case d'un autre joueur et volez lui 3 PA",
       "quantite": 1,
       "notes": ""
     },
