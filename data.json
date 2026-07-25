@@ -326,6 +326,17 @@
       "notes": ""
     },
     {
+      "id": "s34",
+      "nom": "Google drive",
+      "element": "Feu",
+      "statut": "Validé",
+      "cout": "1 PA",
+      "limite": "3x tour",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s31",
       "nom": "Botte du Chasseur",
       "element": "Feu",
@@ -333,17 +344,6 @@
       "cout": "0 PA",
       "limite": "1x tour",
       "effet": "Lance 1 dé de plus en combat contre les monstres pendant 1 tour.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s32",
-      "nom": "Couteau du Chasseur",
-      "element": "Feu",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "+1 au résultat du dé en combat contre les monstres pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -370,24 +370,24 @@
       "notes": ""
     },
     {
-      "id": "s34",
-      "nom": "Google drive",
+      "id": "xvekgvqvpks",
+      "nom": "Dropbox",
       "element": "Feu",
       "statut": "Validé",
-      "cout": "1 PA",
-      "limite": "3x tour",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
+      "cout": "",
+      "limite": "",
+      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
       "quantite": 1,
       "notes": ""
     },
     {
-      "id": "s36",
-      "nom": "Bâton de Brume",
+      "id": "s32",
+      "nom": "Couteau du Chasseur",
       "element": "Feu",
       "statut": "Test 1",
-      "cout": "",
-      "limite": "",
-      "effet": "Passif — Si tu gagnes un combat, tu peux immédiatement te téléporter vers un portail visible.",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "+1 au résultat du dé en combat contre les monstres pendant 1 tour.",
       "quantite": 1,
       "notes": ""
     },
@@ -832,13 +832,13 @@
       "notes": ""
     },
     {
-      "id": "xvekgvqvpks",
-      "nom": "Dropbox",
+      "id": "s36",
+      "nom": "Bâton de Brume",
       "element": "Feu",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "",
       "limite": "",
-      "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
+      "effet": "Passif — Si tu gagnes un combat, tu peux immédiatement te téléporter vers un portail visible.",
       "quantite": 1,
       "notes": ""
     },
