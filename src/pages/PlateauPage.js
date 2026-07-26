@@ -448,9 +448,16 @@ function CardFront({kind, data, size}) {
     );
   }
   if (kind === 'energie') {
+    // Gus: "ajouter nom énergie sur carte, un peu comme les sorts, en haut
+    // au milieu un peu en dessous de l'image de l'élément" — same `nom` row
+    // sorts already have, right under the corner element emoji, same
+    // centered body layout below it (replaces the old flex-start+paddingTop
+    // spacing, which was only there to leave room under the emoji — the
+    // name row now does that job).
     return h('div', {style:wrapStyle},
       elEm && h('div', {style:cornerStyle}, elEm),
-      h('div', {style:{flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:size*0.2, textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
+      h('div', {style:{fontWeight:700, fontSize:nameSize, textAlign:'center', lineHeight:1.15, marginTop:pad*1.5, marginBottom:pad*0.5}}, data.nom || ''),
+      h('div', {style:{flex:1, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || ''),
       h('div', {style:{textAlign:'center', fontSize:Math.max(8, 13*base), fontWeight:700, color:'#175'}}, ENERGY_BONUS[data.element] || '')
     );
   }
@@ -827,6 +834,26 @@ function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedI
   // overlap anyway, entering Vision always clears any tile selection).
   const pileClickDisabled = visionMode ? true : (disabled && !allowPileDraw);
   const pileArmBlocked = visionMode || disabled;
+  // Cases de départ skip the défausse entirely (Gus: "pas besoin de
+  // défausse pour les cases de départ") — discarding one just deletes it
+  // outright instead (see discardTile's own comment). Everything else
+  // about the deck (draw/place/rotate/flip/Dessus-Dessous) stays generic.
+  const discardEl = !hideDiscard && h(DiscardSlot, {
+    cards:groupDiscard, type, catalog, boxSize, selectedId:holding.discardId,
+    armedId, armedIdRef, hasSelectedTile, disabled, visionMode,
+    onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect,
+    onOpenVisionPeek: () => onOpenDiscardPeek(type)
+  });
+  // Gus: "quand il y a 3 pioches... ce serait bien si la défausse soit juste
+  // à droite de la 3ème pioche (ça éviterait de créer une nouvelle ligne de
+  // header)" — the 2-column grid's last row leaves exactly one empty cell
+  // whenever the pile count is odd and at least 3 (3, 5, 7...): 1 pile uses
+  // a 1-column grid (see the comment on that below, no 2nd column to exploit
+  // at all), 2/4/6... fill every row exactly, leaving no empty cell to place
+  // anything into. Only this specific "odd leftover" case gets the défausse
+  // folded into the grid itself, as its own last item — every other count
+  // keeps it centered BELOW the grid, unchanged from before.
+  const discardFitsInGrid = groupPiles.length >= 2 && groupPiles.length % 2 === 1;
   return h('div', {style:{display:'flex', flexDirection:'column', alignItems:'center', gap:5}},
     groupPiles.length
       // CSS grid reserves the FULL declared column count regardless of how
@@ -842,19 +869,11 @@ function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedI
             armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:pileArmBlocked,
             onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected,
             spawnFromRect: (splitAnim && splitAnim.find(a => a.pileId === p.id) || {}).fromRect || null, onSpawnAnimDone
-          }))
+          })),
+          discardFitsInGrid && discardEl
         )
       : h('div', {style:{width:boxSize, height:boxSize}}),
-    // Cases de départ skip the défausse entirely (Gus: "pas besoin de
-    // défausse pour les cases de départ") — discarding one just deletes it
-    // outright instead (see discardTile's own comment). Everything else
-    // about the deck (draw/place/rotate/flip/Dessus-Dessous) stays generic.
-    !hideDiscard && h(DiscardSlot, {
-      cards:groupDiscard, type, catalog, boxSize, selectedId:holding.discardId,
-      armedId, armedIdRef, hasSelectedTile, disabled, visionMode,
-      onArm, onDisarm, onMergeInto, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect,
-      onOpenVisionPeek: () => onOpenDiscardPeek(type)
-    })
+    !discardFitsInGrid && discardEl
   );
 }
 
@@ -3611,14 +3630,20 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             ...VISION_GRID_BG
           }
         }),
+        // Gus: "que visuellement les côtés des cases se touchent" — filling
+        // the full CELL (no more 2px inset each side) instead of CELL-4
+        // makes adjacent tiles' straight edges flush against each other;
+        // CardFace's own borderRadius:6 still rounds the corners exactly
+        // like before, so only the corners keep a tiny visual gap, never
+        // the sides.
         placedTiles.map(t => h('div', {
           key:t.id,
           style:{
-            position:'absolute', left:t.col*CELL+2, top:t.row*CELL+2, borderRadius:6,
+            position:'absolute', left:t.col*CELL, top:t.row*CELL, borderRadius:6,
             transform:`rotate(${t.rotation}deg)`, pointerEvents:'none',
             boxShadow: selectedTileId === t.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : 'none'
           }
-        }, h(CardFace, {showBack:t.flipped, size:CELL-4, kind:t.type || 'case', data:cardCatalogRef.current[t.id]}))),
+        }, h(CardFace, {showBack:t.flipped, size:CELL, kind:t.type || 'case', data:cardCatalogRef.current[t.id]}))),
         // Items render ABOVE tiles, BELOW players — plain DOM order (no
         // z-index needed) already gives that: this block sits between the
         // placedTiles block above and the player-tokens block below.
@@ -4060,7 +4085,13 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             children: h('div', {},
               h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14}},
                 h('div', {style:{display:'flex', alignItems:'center', gap:10, minWidth:0}},
-                  h('div', {style:{fontSize:16, fontWeight:700, color:'#eee', wordBreak:'break-word'}}, p.nom),
+                  // Gus: "pouvoir modifier le nom d'un joueur en double
+                  // cliquant sur le nom dans la fenêtre d'info des joueurs"
+                  // — même convention double-tap que partout ailleurs
+                  // (PlayerSquare de la sidebar, notamment).
+                  h('div', {style:{fontSize:16, fontWeight:700, color:'#eee', wordBreak:'break-word'}},
+                    h(EditText, {value:p.nom, onChange:v=>renamePlayer(p.id, v), editMode:true})
+                  ),
                   h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
                     h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
@@ -4073,7 +4104,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                     display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14}
                 }, '✕')
               ),
-              h('div', {style:{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}},
+              h('div', {style:{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', position:'relative'}},
                   h('div', {style:{width:VISION_ROW_HEIGHT, height:VISION_ROW_HEIGHT, flexShrink:0, boxSizing:'border-box',
                     display:'flex', justifyContent:'center', alignItems:'center',
                     border:'1px dashed #444', borderRadius:6, padding:FOOTER_SLOT_PAD}},
@@ -4099,18 +4130,30 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                         onReorder:()=>{}, onSelectForMove:()=>{}, onOpenEnlarge:it=>openEnlargeFor(p.id, 'energie', it.id)
                       })
                     )
-                  )
+                  ),
+                  // Marqueurs de ce joueur — purement consultatif ici (pas de
+                  // sélection/déplacement, cette fenêtre peut afficher
+                  // N'IMPORTE QUEL joueur, pas seulement le courant) : Gus,
+                  // "si j'affiche les infos d'un joueur les marqueurs
+                  // s'affichent aussi", puis "pas bien visible... ce serait
+                  // bien que les marqueurs soient positionnés de la même
+                  // manière que le footer" — remplace un premier essai en
+                  // simple rangée `flexWrap` par le MÊME positionnement libre
+                  // en fractions x/y que l'étagère du pied de page (le
+                  // conteneur ci-dessus est déjà `position:'relative'` pour
+                  // ça), rendu par-dessus les mêmes zones nature/sorts/
+                  // énergies — cohérent visuellement avec l'endroit d'où ces
+                  // marqueurs viennent réellement. Taille normale (22px, pas
+                  // la demi-taille du footer — voir MARKER_SHELF_ICON_SIZE,
+                  // qui ne s'applique qu'à la zone d'équipement elle-même).
+                  (p.markerShelf || []).map(m => h('div', {
+                    key:m.id,
+                    style:{
+                      position:'absolute', left:m.x*100+'%', top:m.y*100+'%', transform:'translate(-50%,-50%)',
+                      zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none'
+                    }
+                  }, h(MarkerIcon, {type:m.type, size:22})))
                 ),
-              // Marqueurs de ce joueur — purement consultatif ici (pas de
-              // sélection/déplacement, cette fenêtre peut afficher N'IMPORTE
-              // QUEL joueur, pas seulement le courant) : Gus, "si j'affiche
-              // les infos d'un joueur les marqueurs s'affichent aussi".
-              // Mêmes icônes qu'ailleurs, à leur taille normale (pas la
-              // demi-taille du footer, qui ne s'applique qu'à CETTE zone
-              // précise — voir MARKER_SHELF_ICON_SIZE).
-              (p.markerShelf || []).length > 0 && h('div', {style:{display:'flex', gap:10, flexWrap:'wrap', marginTop:10}},
-                (p.markerShelf || []).map(m => h(MarkerIcon, {key:m.id, type:m.type, size:22}))
-              ),
               visionPlayerCycleIds && visionPlayerCycleIds.length > 1 && h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:18}},
                 h('button', {onClick:()=>shiftVisionPlayer(-1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '‹'),
                 h('button', {onClick:()=>shiftVisionPlayer(1), style:{background:'rgba(255,255,255,.06)', border:'1px solid #444', borderRadius:8, color:'#eee', width:34, height:34, fontSize:20}}, '›')
@@ -4130,6 +4173,16 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s',
       WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}},
+
+      // CURRENT PLAYER NAME — Gus: "marquer en haut à gauche du footer le
+      // nom du joueur sur qui on est et si on double tap dessus on peut
+      // edit le nom". `onClick:e=>e.stopPropagation()` keeps a double-tap
+      // here from also bubbling to the footer's own onClick={clearCardSelection}
+      // (same guard already used for ModeCard's difficulte/joueurs spans).
+      current && h('div', {
+        onClick:e=>e.stopPropagation(),
+        style:{padding:'8px 14px 0', fontSize:12, fontWeight:600, color: visionMode ? '#9cf' : '#aaa'}
+      }, h(EditText, {value:current.nom, onChange:v=>renamePlayer(current.id, v), editMode:true})),
 
       // EQUIPPED ITEMS — "sort de nature" (single fixed-size slot, left)
       // beside two long fixed-size row slots (sorts, then énergies below) —
@@ -4175,6 +4228,29 @@ export function PlateauPage({onBack, data, onlineRoom}) {
               : p
             )});
             setSelectedShelfMarkerId(null);
+            return;
+          }
+          // A marker already placed on the BOARD, selected there — moves it
+          // INTO the current player's shelf instead (Gus: "les marqueurs ne
+          // peuvent pas aller du plateau à notre footer et il faudrait que
+          // ce soit le cas") — mirrors the shelf→grid flow in
+          // `handleSingleClick` (its own `selectedShelfMarkerId` branch), in
+          // reverse: out of the board-wide `markers`, into this player's
+          // own `markerShelf`, at the fractional position tapped.
+          if (live.selectedMarkerId) {
+            e.stopPropagation();
+            const mk = live.markers.find(m => m.id === live.selectedMarkerId);
+            if (!mk) { setSelectedMarkerId(null); return; }
+            const {x, y} = markerShelfFraction(e.clientX, e.clientY);
+            const cur = live.players[live.currentIndex];
+            commitBoard({
+              markers: live.markers.filter(m => m.id !== mk.id),
+              players: live.players.map(p => p.id === cur.id
+                ? {...p, markerShelf: [...(p.markerShelf || []), {id:mk.id, type:mk.type, x, y}]}
+                : p
+              )
+            });
+            setSelectedMarkerId(null);
             return;
           }
           // Bug fixed here (une carte monstre tenue depuis la pioche

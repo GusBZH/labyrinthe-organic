@@ -1858,6 +1858,90 @@ agrandie, elle, n'a pas besoin de garde (son ancre contient déjà correctement 
 propres `‹`/`›`/✕). Un clic dans le vide ferme donc maintenant la fenêtre du DESSUS en
 premier, comme attendu, et les flèches ne ferment plus jamais la fenêtre du dessous.
 
+### Sixième passage de retouches (retours après plusieurs parties test complètes)
+Gus, après avoir enfin pu tester plusieurs parties de bout en bout : "c'est parfait ! j'ai
+pu tester plusieurs parties et ça fonctionne très bien !", suivi d'une liste de 7 points.
+- **Nom de l'énergie ajouté sur la carte, comme les sorts** (Gus : "un peu comme les
+  sorts, en haut au milieu un peu en dessous de l'image de l'élément") — la branche
+  `énergie` de `CardFront` n'affichait jusqu'ici que l'élément (coin), l'effet et le bonus
+  naturel, sans jamais le `nom` du catalogue. Ajoute la même ligne `data.nom` que la
+  branche `sort` (même taille/position, juste sous l'emoji élément), et simplifie au
+  passage l'alignement du bloc `effet` en dessous pour reprendre le même layout centré
+  que les sorts (l'ancien `paddingTop` compensait l'absence de cette ligne de nom, devenu
+  inutile une fois la ligne ajoutée).
+- **Cases map jointives visuellement, coins toujours arrondis** (Gus : "que les côtés des
+  cases se touchent... garder les bords arrondis c'est très bien") — les tuiles posées sur
+  la grille étaient rendues à `CELL-4` avec un décalage de `+2px` de chaque côté (pensé à
+  l'origine pour laisser les lignes de la grille visibles autour de chaque tuile), ce qui
+  laissait un espace visible entre deux tuiles adjacentes. Passé à `size:CELL` et
+  `left/top:` sans décalage — les tuiles remplissent maintenant toute la case, leurs côtés
+  droits se touchent exactement ; `CardFace` garde son `borderRadius:6` interne inchangé,
+  donc seuls les coins gardent un tout petit espace (l'arrondi), jamais les côtés. Vérifié
+  en Playwright : deux tuiles posées sur des cases adjacentes, le bord droit de la
+  première (`left+width`) correspond exactement au bord gauche de la seconde.
+- **Défausse repliée à côté de la pioche "en trop" plutôt qu'en dessous** (Gus : "quand il
+  y a 3 pioches parce qu'on a divisé une fois... ce serait bien si la défausse soit juste
+  à droite de la 3ème pioche, ça éviterait de créer une nouvelle ligne de header") — la
+  grille CSS 2 colonnes de `PileGroup` laisse une case vide dans sa dernière ligne dès que
+  le nombre de pioches est impair et ≥ 3 (3, 5, 7...) : `discardFitsInGrid` détecte
+  exactement ce cas (`groupPiles.length >= 2 && groupPiles.length % 2 === 1` — 1 pioche
+  utilise déjà une grille à 1 seule colonne, donc rien à exploiter ; 2/4/6 remplissent
+  chaque ligne pile, donc rien de vide non plus) et glisse la défausse comme DERNIER
+  élément de cette même grille au lieu de la centrer en dessous — tout autre cas garde le
+  comportement d'origine (défausse sous la grille), inchangé. Vérifié en Playwright :
+  diviser une pioche 2 fois de suite (3 pioches au total), la grille de la pioche cases
+  contient bien 4 éléments (3 piles + défausse), la défausse alignée exactement à côté de
+  la 3ème pioche, aucune ligne supplémentaire créée.
+- **Nom du joueur courant affiché en haut à gauche du pied de page, éditable par
+  double-tap** (Gus : "marquer en haut à gauche du footer le nom du joueur sur qui on est
+  et si on double tap dessus on peut edit le nom") — nouvelle ligne tout en haut du pied
+  de page (avant même la zone d'équipement), visible seulement s'il y a un joueur courant,
+  `h(EditText, {value:current.nom, onChange:v=>renamePlayer(current.id, v), editMode:true})`
+  — même convention double-tap déjà utilisée partout ailleurs (`PlayerSquare` de la
+  sidebar, notamment). `onClick:e=>e.stopPropagation()` sur son conteneur pour ne pas
+  laisser le double-tap remonter jusqu'au `onClick={clearCardSelection}` du pied de page.
+  **Même retouche pour la fenêtre d'infos joueur** (Gus : "pouvoir modifier le nom d'un
+  joueur en double cliquant sur le nom dans la fenêtre d'info des joueurs") — le nom, qui
+  n'était qu'un `<div>` texte simple dans `visionPlayerId`, est enveloppé dans le même
+  `EditText` (`onChange:v=>renamePlayer(p.id, v)`) — `p` pouvant être N'IMPORTE QUEL
+  joueur affiché dans cette fenêtre, pas seulement le courant, contrairement au footer.
+- **Marqueurs de la fenêtre d'infos joueur repositionnés comme dans le pied de page**
+  (Gus : "pas bien visible... ce serait bien que les marqueurs soient positionnés de la
+  même manière que le footer") — remplace la simple rangée `flexWrap` d'icônes ajoutée au
+  passage précédent par le MÊME positionnement libre en fractions `x`/`y` que l'étagère du
+  pied de page, rendu par-dessus les mêmes zones nature/sorts/énergies (déjà
+  `position:'relative'`) — cohérent visuellement avec l'endroit d'où ces marqueurs
+  viennent réellement, et bien plus visible qu'une rangée compacte en bas de fenêtre.
+  Purement consultatif ici (aucun geste de sélection/déplacement), comme avant.
+- **Marqueurs : le plateau vers le pied de page, implémenté** (Gus : "les marqueurs ne
+  peuvent pas aller du plateau à notre footer et il faudrait que ce soit le cas") — seul
+  le sens étagère→plateau existait jusqu'ici. Nouvelle branche dans l'`onClickCapture` de
+  la zone d'équipement, juste après celle qui gère `selectedShelfMarkerId` : si un
+  marqueur du PLATEAU est sélectionné (`selectedMarkerId`) et qu'on tape la zone
+  d'équipement, il est retiré de `markers` (le tableau partagé du plateau) et ajouté à
+  `markerShelf` du joueur courant, à la fraction `x`/`y` tapée — miroir exact du sens
+  inverse déjà en place. Sans cette branche, taper la zone pendant qu'un marqueur du
+  plateau était sélectionné retombait sur la règle générique `hasAnySelection()` plus bas
+  (annule juste la sélection, ne bougeait jamais rien) — exactement le symptôme signalé.
+  Testé en Playwright : marqueur posé sur une case libre → sélectionné → tap sur la zone
+  d'équipement → disparaît de `markers`, réapparaît dans `markerShelf` du joueur courant à
+  la bonne position.
+- **Item non résolu, en attente de précisions (Gus a explicitement demandé de signaler un
+  doute plutôt que de deviner)** : "Révéler la première carte d'une pioche empêche de
+  révéler une autre carte d'une autre pioche en même temps (ça fonctionne partout sauf
+  pour les cases map)". Réaudité en détail : `heldTile` (cases/départ) et `heldItem`
+  (sorts/énergies/monstres) sont TOUS LES DEUX exclus symétriquement du blob partagé
+  Firebase et jamais réécrits depuis l'abonnement (voir "Cartes tenues en main : locales,
+  jamais synchronisées" plus haut) — aucune différence de traitement trouvée entre les
+  deux catégories dans le code actuel qui expliquerait que l'une fonctionne et l'autre
+  non. Hypothèse la plus probable (non confirmée) : le test réel comparait des pioches de
+  TYPES différents (ex: sort vs énergie, jamais en conflit de toute façon puisque
+  différents types) plutôt que deux pioches CASES entre elles (issues d'une division du
+  même deck, qui elles partagent bien le même `heldTile` par appareil — un comportement
+  voulu, identique à deux pioches sorts/énergies/monstres entre elles). À reprendre avec
+  Gus si le scénario exact de reproduction (2 pioches du MÊME type, sur 2 appareils
+  différents, quel type précisément) peut être précisé.
+
 ### Pan et zoom
 - **Bouton recentrer** (`centerView()`, cible SVG discrète `TargetIcon`) : en bas à
   gauche, `position:fixed` ancré sur `sidebarBounds.bottom` (déjà mesuré pour la
