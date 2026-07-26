@@ -890,10 +890,10 @@
       "id": "jih6xrs2rv7",
       "nom": "Glissement de terrain 0 PA 3xTour",
       "element": "Terre",
-      "statut": "Test 3",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
       "quantite": 1,
       "notes": ""
     }
