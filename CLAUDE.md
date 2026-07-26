@@ -1941,6 +1941,14 @@ pu tester plusieurs parties et ça fonctionne très bien !", suivi d'une liste d
   voulu, identique à deux pioches sorts/énergies/monstres entre elles). À reprendre avec
   Gus si le scénario exact de reproduction (2 pioches du MÊME type, sur 2 appareils
   différents, quel type précisément) peut être précisé.
+  **Piste probable trouvée depuis (voir "Bug corrigé (gros crash..." dans "Version en
+  ligne entre amis")** : la boucle d'écho locale infinie entre la synchro sortante et
+  l'abonnement Firebase repoussait en continu un instantané de `piles` potentiellement
+  périmé — deux tirages rapprochés sur des pioches du même type pouvaient donc voir
+  l'un écraser l'autre au gré de la course entre l'écho et l'action réelle, un symptôme
+  cohérent avec "ça fonctionne parfois, pas toujours, spécifiquement sous charge". Pas
+  reconfirmé avec ce scénario exact, mais probablement résolu par le même fix
+  (`applyingRemoteRef`) plutôt qu'un bug séparé propre aux pioches de cases.
 
 ### Pan et zoom
 - **Bouton recentrer** (`centerView()`, cible SVG discrète `TargetIcon`) : en bas à
@@ -2472,6 +2480,65 @@ pu tester plusieurs parties et ça fonctionne très bien !", suivi d'une liste d
      Sans impact en solo (l'historique undo/redo local capturait déjà
      `heldTile`/`heldItem` séparément de ce qui part vers Firebase/
      localStorage, voir `commitBoard`).
+   - **Bug corrigé (gros crash "écran noir", room qui devient inaccessible/
+     vide — boucle d'écho locale infinie entre synchro sortante et
+     abonnement Firebase)** : Gus (et son ami, aussi développeur) a signalé
+     un crash reproductible "quand n'importe quelle pile arrive à zéro ou
+     proche de zéro", pire avec plusieurs joueurs connectés, laissant la
+     room inaccessible/vide ensuite ; l'ami a suggéré "un souci d'attribut
+     ou variable qui passe à -1" côté dernière carte d'un paquet. Vidage
+     exhaustif d'une pioche (10 cartes de départ) jusqu'à 0 en solo dans ce
+     bac à sable : **aucun crash reproduit** — piste "index/-1 sur la
+     dernière carte" écartée pour le code de pioche lui-même (déjà bien
+     gardé : `pile.cards.length===0` vérifié avant toute lecture dans
+     `drawFromPile`/`PileStack`/`DiscardSlot`). Cause réelle trouvée en
+     auditant la synchro EN LIGNE plutôt que la mécanique de pioche : l'effet
+     de synchro SORTANTE (`pushBoardUpdate`, déclenché par un `useEffect` sur
+     `[players, piles, discardCards, placedTiles, boardItems, monsters,
+     markers, ...]`) et le callback de `subscribeToRoom` (qui appelle
+     `setPlayers`/`setPiles`/etc. à chaque changement REÇU de Firebase)
+     partagent exactement les mêmes clés d'état — et Firebase répercute
+     l'écriture d'un client vers CE MÊME client (écho local "optimiste"),
+     pas seulement vers les autres. Résultat : recevoir un instantané (donc
+     de nouveaux tableaux désérialisés, nouvelles références même à contenu
+     identique) redéclenchait l'effet de synchro sortante, qui le repoussait
+     aussitôt vers Firebase, dont l'écho redéclenchait le callback, qui
+     rappelait les mêmes setState... un aller-retour qui s'auto-entretient
+     indéfiniment, amplifié par chaque client connecté en plus (chacun
+     relance la boucle des autres). Vérifié empiriquement dans ce bac à
+     sable avec un faux module `multiplayer.js` (simule l'écho local d'une
+     vraie base Firebase, sans réseau) : **avant fix, une seule action
+     (ajouter un joueur) déclenchait déjà 763 pushes en 3 secondes et
+     continuait de grimper sans jamais se stabiliser** ; après fix, la même
+     action ne déclenche qu'un seul push, stable. Vider entièrement la
+     pioche de départ (10 tirages + poses) en ligne avec le fix : 22 pushes
+     au total (proportionnel aux 22 actions réelles), aucune erreur, aucun
+     crash. Ce défaut structurel touchait N'IMPORTE QUELLE mutation en
+     ligne, pas spécifiquement les pioches vides — la coïncidence avec "la
+     dernière carte d'une pioche" vient probablement du fait que vider une
+     pioche déclenche une salve de changements rapprochés (tirage + pose +
+     répétition), rendant la boucle assez massive pour devenir visible/
+     bloquante, alors qu'elle tournait déjà en sourdine à chaque action
+     depuis le début de la partie en ligne. Explique aussi pourquoi
+     `ErrorBoundary` (voir plus bas) n'attrapait pas le crash pour Gus alors
+     qu'il fonctionnait pour son ami sur un autre appareil : un tourbillon
+     de re-renders/écritures réseau qui rame/gèle l'onglet n'est pas une
+     exception JS à proprement parler (rien ne "throw"), donc rien à
+     attraper pour un Error Boundary React — seule une vraie erreur de rendu
+     qui en résulterait chez un AUTRE client (ex: recevant un état
+     entre-temps devenu incohérent à cause de deux clients qui s'écrasent
+     mutuellement avec des données déjà périmées) serait, elle, catchable.
+     Fix : `applyingRemoteRef` (`PlateauPage.js`), posé à `true` juste avant
+     que le callback de `subscribeToRoom` n'appelle ses `setPlayers`/
+     `setPiles`/etc., et consommé une seule fois par l'effet de synchro
+     sortante (qui saute alors son propre push et réarme le flag à `false`)
+     — une mise à jour REÇUE de Firebase ne repart donc plus jamais vers
+     Firebase ; seule une mutation VRAIMENT locale (qui ne pose jamais ce
+     flag) continue de déclencher un push normalement. Pas de risque de
+     rater un push légitime : la fenêtre de course où une action locale
+     interviendrait exactement entre la pose du flag et sa consommation par
+     l'effet (tous deux synchrones dans le même commit React) est
+     structurellement impossible en JS single-thread.
    - **Item en cours d'investigation, non résolu (Gus a demandé une nouvelle
      piste)** : Gus signale un tap qui "ne fait rien" en déplaçant un item
      déjà posé sur le plateau (le item est sélectionné via appui long, un
@@ -2742,6 +2809,46 @@ inattendue, plus surprenant à mesure que la partie avance, d'où l'impression f
   `version.json`, présent quand on les désaccorde volontairement ; `ErrorBoundary`
   affiche bien l'écran de récupération face à un composant qui lève une exception
   volontairement, sans laisser fuiter d'erreur non interceptée au niveau de la page.
+- **Hypothèse "onglet resté ouvert sur une vieille version" INVALIDÉE par Gus, cause
+  réelle trouvée ailleurs** : Gus a signalé ensuite que les deux problèmes persistaient
+  malgré `VersionBanner`/`ErrorBoundary`, avec un détail qui écarte directement
+  l'hypothèse ci-dessus — "il avait jamais chargé une version du jeu ancienne donc c'est
+  pas ça" (l'ami en question testait sur un appareil neuf, jamais ouvert avant ce
+  déploiement) — et un second détail clé : "le message d'erreur en cas de crash à
+  fonctionné sur le téléphone d'un ami... mais pas sur le mien", suggérant que le crash
+  de Gus lui-même ne passe pas par une exception de rendu React (seule chose
+  qu'`ErrorBoundary` peut attraper). Deux causes réelles distinctes trouvées :
+  - **"Version incomplète" = `INIT` (`src/data/initialData.js`), pas un cache
+    navigateur.** Ce fichier est un instantané figé de `data.json` créé tôt dans le
+    projet et jamais remis à jour depuis (vérifié : 39 sorts, ~25 énergies, 11 monstres
+    contre 28 aujourd'hui, et surtout ses 9 entrées `cases` n'ont AUCUNE ligne
+    `details`/`fichier` — `buildCaseCards` retombe alors sur son repli "aucun détail
+    renseigné" pour chacune, generant des cartes génériques sans image de face ; le
+    total de leurs `quantite` fait 108, quasi pile "plus de 100 cartes maps" signalé).
+    Seul point d'usage : le bouton "Continuer sans token (mode local)" (`App.js`) —
+    n'importe quel ami SANS token GitHub personnel qui crée/rejoint une partie en ligne
+    construit donc son deck depuis ce catalogue périmé, complètement différent de celui
+    des joueurs qui ONT un token (qui lisent le vrai `data.json` via `ghGet`). Rien à
+    voir avec un onglet resté ouvert : un appareil flambant neuf tombe pile dans ce cas
+    dès son tout premier chargement. Fix : `fetchPublicData()` (nouvelle fonction dans
+    `src/github.js`) va chercher `data.json` en direct par un simple `fetch('data.json',
+    {cache:'no-store'})` — même origine, aucune authentification nécessaire pour lire un
+    fichier d'un dépôt public (contrairement à l'API GitHub contents/ qu'utilise `ghGet`,
+    qui elle exige un token) ; `data.json` est de toute façon déjà servi tel quel à côté
+    d'`index.html` sur GitHub Pages. Le bouton "Continuer sans token" l'appelle
+    maintenant en premier, ne retombant sur `INIT` qu'en tout dernier recours (réseau
+    vraiment indisponible) — même message d'erreur "Mode local — GitHub non disponible"
+    déjà utilisé pour ce cas de repli ailleurs. Vérifié en Playwright (serveur de test
+    local servant le vrai `data.json`) : le deck construit par ce bouton contient bien
+    100 cartes cases et 28 cartes monstres (au lieu des ~108/11 de l'ancien `INIT`).
+  - **Le "crash à la dernière carte", et pourquoi `ErrorBoundary` ne l'attrapait pas
+    chez Gus** : voir "Bug corrigé (gros crash... boucle d'écho locale infinie...)" dans
+    "Version en ligne entre amis" plus bas pour la cause réelle (rien à voir avec un
+    index négatif sur la dernière carte, malgré l'hypothèse de l'ami de Gus) — une
+    boucle de re-renders/écritures Firebase qui s'auto-entretient sans jamais lever
+    d'exception JS, ce qui explique précisément pourquoi `ErrorBoundary` (qui n'attrape
+    QUE les erreurs de rendu React) ne réagissait pas de façon cohérente d'un appareil à
+    l'autre — un crash sans "throw" n'a simplement rien à attraper.
 - **Rooms Firebase de test déjà créées, pas supprimées** (Gus : "on a testé en créant
   plusieurs room donc tu peux supprimer les rooms existante ?") — impossible depuis cet
   environnement (aucun accès à la console Firebase de Gus, voir plus haut). Pas

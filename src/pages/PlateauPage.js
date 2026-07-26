@@ -1392,6 +1392,39 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // l'effet de persistance plus bas pour pousser chaque mutation.
   const multiplayerModRef = useRef(null);
   const [onlineError, setOnlineError] = useState(null);
+  // Bug de crash corrigé (Gus + son ami développeur : "révéler la dernière
+  // carte d'une pioche fait crasher le jeu, room qui devient inaccessible/
+  // vide" — pas reproductible en solo malgré un test exhaustif vidant une
+  // pioche jusqu'à 0 carte, donc spécifique au mode en ligne) : l'effet de
+  // synchro SORTANTE (plus bas) est déclenché par les MÊMES clés d'état que
+  // celles écrites par le callback de `subscribeToRoom` ci-dessous — chaque
+  // mise à jour REÇUE de Firebase (via `setPiles`/`setPlayers`/etc., de
+  // nouveaux tableaux désérialisés du JSON reçu, donc de nouvelles
+  // références même à contenu identique) redéclenchait cet effet, qui la
+  // repoussait aussitôt vers Firebase, dont l'écho (onValue se déclenche
+  // aussi pour l'écriture du client lui-même, avant même l'accusé de
+  // réception serveur) redéclenchait le callback, qui rappelait `setPiles`
+  // avec encore un nouveau tableau... un aller-retour local qui s'auto-
+  // entretient indéfiniment, d'autant plus vite qu'il y a de clients
+  // connectés (chacun amplifie la boucle des autres) — explique le "ça
+  // crash surtout avec les autres", l'absence d'exception JS à proprement
+  // parler (donc `ErrorBoundary` ne l'attrape pas toujours : un tourbillon
+  // de re-renders/écritures réseau fait juste ramer/geler l'onglet plutôt
+  // que de lever une erreur), et une room qui finit par contenir un état
+  // incohérent (deux clients emballés dans leur propre boucle écrasent
+  // alternativement les données de l'autre avec une version déjà périmée
+  // au moment où elle part). Coïncidence probable avec "la dernière carte
+  // d'une pioche" : vider une pioche déclenche une salve de changements
+  // d'état rapprochés (pioche + pose + défausse), assez pour rendre la
+  // boucle visible/audible, mais le défaut structurel touche N'IMPORTE
+  // QUELLE mutation en ligne, pas spécifiquement les pioches vides.
+  // Fix : `applyingRemoteRef`, posé juste avant d'appliquer un instantané
+  // REÇU (voir le callback plus bas) et consommé une seule fois par l'effet
+  // de synchro sortante (qui saute alors son push et réarme le flag à
+  // `false`) — une mise à jour qui vient de Firebase ne repart donc plus
+  // vers Firebase ; seule une mutation VRAIMENT locale (qui ne passe jamais
+  // par ce flag) continue de déclencher un push.
+  const applyingRemoteRef = useRef(false);
 
   // Mise en place + abonnement de la partie en ligne — une seule fois au
   // montage (onlineRoom ne change jamais pendant la vie de cette page : un
@@ -1431,6 +1464,13 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           if (roomVal.cardCatalog) Object.assign(cardCatalogRef.current, roomVal.cardCatalog);
           const b = roomVal.board;
           if (b) {
+            // Marque cet instantané comme "reçu de Firebase", pas une
+            // mutation locale — voir applyingRemoteRef, posé juste avant ce
+            // bloc de setState pour que l'effet de synchro sortante (plus
+            // bas, redéclenché par CES MÊMES setState) sache qu'il doit
+            // sauter son propre push au lieu de renvoyer immédiatement ce
+            // qu'on vient de recevoir (la boucle d'écho qui causait le crash).
+            applyingRemoteRef.current = true;
             // Array.isArray, pas juste `|| []` : un client resté sur une
             // vieille version du JS (voir VersionBanner) pourrait pousser
             // une forme différente pour l'une de ces clés — un objet
@@ -1606,6 +1646,17 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // répondre. Idem si le module n'a pas fini de se charger (ou a
       // échoué, voir onlineError).
       if (!onlineReady || !multiplayerModRef.current) return;
+      // Cette même exécution d'effet a été déclenchée par un instantané
+      // REÇU de Firebase (voir applyingRemoteRef, posé par le callback de
+      // subscribeToRoom juste avant son setPlayers/setPiles/etc.) — le
+      // repousser tel quel créerait une boucle d'écho locale infinie
+      // (reçu → repoussé → réécho → reçu → ...), le vrai bug derrière le
+      // crash "pile qui arrive à zéro" (voir le commentaire détaillé sur
+      // applyingRemoteRef). On consomme le flag une seule fois ici et on
+      // saute ce push précis ; toute mutation VRAIMENT locale qui suit
+      // (celle-ci ne passe jamais par ce flag) redéclenche l'effet
+      // normalement au prochain changement d'état.
+      if (applyingRemoteRef.current) { applyingRemoteRef.current = false; return; }
       const mod = multiplayerModRef.current;
       // heldTile/heldItem/heldMarker sont volontairement EXCLUS de ce qui est
       // poussé — voir "Cartes tenues en main : locales, jamais synchronisées".

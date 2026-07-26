@@ -1,5 +1,5 @@
 import { h, useState, useEffect, useRef, useCallback } from "./react.js";
-import { ghGet, ghPut } from "./github.js";
+import { ghGet, ghPut, fetchPublicData } from "./github.js";
 import { INIT } from "./data/initialData.js";
 import { SoireePage } from "./pages/SoireePage.js";
 import { IdeeVracPage } from "./pages/IdeeVracPage.js";
@@ -139,7 +139,24 @@ export function App() {
           style:{width:'100%', background:'#222', border:'1px solid #444', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14, marginBottom:8}
         }, 'Connexion GitHub'),
         h('button', {
-          onClick:()=>{setData(withMigrations(INIT)); resetHistory();},
+          // Va chercher data.json en direct (lecture seule, pas besoin de
+          // token pour un dépôt public) plutôt que de retomber sur INIT —
+          // un instantané figé bien trop ancien pour un mode "sans token"
+          // qui doit pouvoir rejoindre une partie en ligne avec les autres
+          // (voir fetchPublicData, dans github.js, pour le détail du bug).
+          // INIT ne sert plus qu'en tout dernier recours (réseau indisponible).
+          onClick: async ()=>{
+            setLoading(true);
+            try {
+              const d = await fetchPublicData();
+              setData(withMigrations(d));
+            } catch {
+              setData(withMigrations(INIT));
+              setSaveErr('Mode local — GitHub non disponible');
+            }
+            setLoading(false);
+            resetHistory();
+          },
           style:{width:'100%', background:'none', border:'1px solid #2a2a2a', borderRadius:8, color:'#666', padding:'8px 14px', fontSize:12}
         }, 'Continuer sans token (mode local)')
       )
