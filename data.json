@@ -901,7 +901,7 @@
       "id": "489y0e5z6ed",
       "nom": "Flemme d'Udun  0PA 1x tour",
       "element": "Feu",
-      "statut": "Test 3",
+      "statut": "Validé",
       "cout": "",
       "limite": "",
       "effet": "Lorsque vous attaquez un joueur, donnez lui 3 marqueurs.\nÀ chaque début de tour de ce joueur, il retire un marqueur et perd 1 PV.",
