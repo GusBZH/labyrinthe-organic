@@ -904,7 +904,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Lorsque vous attaquez un joueur, donnez lui 3 marqueurs.\nÀ chaque début de tour de ce joueur, il retire un marqueur et perd 1 PV.",
       "quantite": 1,
       "notes": ""
     }
