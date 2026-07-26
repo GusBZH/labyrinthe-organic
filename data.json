@@ -76,7 +76,7 @@
       "id": "s5",
       "nom": "Chacal",
       "element": "Feu",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "1 PA",
       "limite": "1x tour",
       "effet": "(Vous avez un jeton mort et deux jetons neutres.) Pose 1 jeton face cachée sur une case vide. Quand un joueur arrive sur un jeton, il le retourne, il meurt uniquement si c'est le jeton mort puis le jeton revient dans votre main. Les cases où les pièges sont posés deviennent indestructibles.",
