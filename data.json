@@ -106,13 +106,13 @@
       "notes": ""
     },
     {
-      "id": "s10",
-      "nom": "Chaussures qui Court Loin",
+      "id": "jih6xrs2rv7",
+      "nom": "Glissement de terrain 0 PA 3xTour",
       "element": "Terre",
       "statut": "Validé",
-      "cout": "0 PA",
+      "cout": "",
       "limite": "",
-      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé et tu déplaces ton personnage sur n'importe quel portail.",
+      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
       "quantite": 1,
       "notes": ""
     },
@@ -370,13 +370,13 @@
       "notes": ""
     },
     {
-      "id": "jih6xrs2rv7",
-      "nom": "Glissement de terrain 0 PA 3xTour",
+      "id": "s10",
+      "nom": "Chaussures qui Court Loin",
       "element": "Terre",
       "statut": "Validé",
-      "cout": "",
+      "cout": "0 PA",
       "limite": "",
-      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
+      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé et tu déplaces ton personnage sur n'importe quel portail.",
       "quantite": 1,
       "notes": ""
     },
