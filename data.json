@@ -112,7 +112,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
+      "effet": "Lorsque vous arrivez sur une case instable vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
       "quantite": 1,
       "notes": ""
     },
