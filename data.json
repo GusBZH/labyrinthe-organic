@@ -1368,7 +1368,7 @@
       "statut": "Validé",
       "cout": "",
       "limite": "",
-      "effet": "Au début de votre tour, vous pouvez échanger cette énergie avec celle d'un autre joueur.",
+      "effet": "Quand vous utilisez un sort air, vous pouvez échanger cette énergie avec celle d'un autre joueur.",
       "quantite": 1,
       "notes": ""
     },
