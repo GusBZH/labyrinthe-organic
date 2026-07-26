@@ -1912,7 +1912,7 @@
       "nom": "Combat",
       "statut": "Validé",
       "effet": "Si au moins 2 joueurs ou monstre partagent la même case, l'un d'eux peut déclencher un combat. \nChacun lance un dé. \nLe plus petit résultats perd 1 PV.\nSi plusieurs résultats sont les plus petits, ceux qui ont lancé ces dés relancent.\nSi un joueur lance plusieurs dés, il garde le meilleur résultat.",
-      "notes": ""
+      "notes": "Déclancher des attaques quand c'est pas notre tour ça pourrait pas être juste pour un lancé?"
     },
     {
       "id": "r7",
@@ -2240,7 +2240,7 @@
       "id": "p7oa4t7k5rh",
       "date": "26/07/2026",
       "meta": "Moi et moi chez moi ",
-      "notes": "1v1 Capture de drapeau: \n All in d'un côté. Les énergies qui donnent PA font trop la différence. Si un à 6pa et l'autre 3 c'est pas jouable \n• enlever bonus énergie ?\n• déconseiller en 1v1 ?"
+      "notes": "1v1 Capture de drapeau: \n All in d'un côté. Les énergies qui donnent PA font trop la différence. Si un à 6pa et l'autre 3 c'est pas jouable \n• enlever bonus énergie ?\n• déconseiller en 1v1 ?\n\nLaboratoire :\nÉnergies multi et ombre devrait pas donner de bonus.\nSituation avec 2 gentils et un méchant sur une case, le méchant transforme un en gentil, est-ce que l'autre gentil peut attaquer directement ? Je pense que non mais faut clarifier "
     }
   ],
   "ideeEnVrac": "Quand j'aurai mis les cartes sur l'App, tester si je peux bien déplacer les items du header entre eux \n\nDans certains mode on pourrait ajouter les carte de départ dans la pioche et on peut respawn dessus, indéplaçable etc ...\n\nAjouter mécanique poison ",
@@ -2346,5 +2346,5 @@
   "energiesNotes": "Énergies maudite et multi donnent un bonus ?\n\nDepuis qu'on divise en 2 les pioches, on pourrait laisser face caché les items sur le sol, parce qu'on se rappelle pas forcément de l'item mais on peut voir l'élément qui nous intéresse !",
   "applicationNotes": "",
   "applicationJeuNotes": "Ajouter les éléments en PNG pour côté face item \n\nAjouter la clé dans les marqueurs \n\nMarquer en haut à gauche du footer le nom du joueur sur qui on est \n\nAjouter une option sur les pioches quand on maintient le tap, pour récupérer dans cette pioche toutes les cartes présente sur le plateau, dans la défausse et sur les footer (en gros reset la pioche)\n\nLes marqueurs ne peuvent pas aller du plateau à notre footer\n\nQuand plusieurs joueurs (ou monstre, marqueurs), sont sur la même case, je peux plus sélectionner cette case map en double tap\n\nQuand il y a 3 pioches parce qu'on a divisé une fois pendant la partie. Ce serait bien si la défausse soit juste à droite de la 3eme pioche (ça éviterais de créer une nouvelle ligne de header)\n\nFaire en sorte sur le plateau que les cases map soient collés entre elles \n\nCe serait bien de pouvoir modifier le nom d'un joueur en double cliquant sur le nom dans la fenêtre d'info des joueurs \n (Easter egg avec un nom spécial, notre personnage devient multicolore genre passe de rouge à jaune à vert...)\n\nAjouter nom énergie sur carte \n\nMarqueurs sorts, pas bien visible mode info joueur \n\nRévéler la première carte d'une pioche empêche de révéler une autre carte d'une autre pioche en même temps \n\nIphone :\nZoom toujours buggé\n\nBug quand déplacer les items sur le plateau, il y a une tape qui fait rien (pas à cause d'un des blocages qu'on a fait ?)\n\nFaire attention aux trucs du serveur test qui se détruit dans 30jours",
-  "applicationNoteNotes": "Notes des 2 sous catégories de application doivent être visible sans le mode edition\n\nPouvoir modifier la ligne à côté des niveaux du monstre \n\nFaire en sorte que l'appli compte le nombre de case T, virage, tout droit, cul de sac\n\nToujours pas ouf pour changer le nombre des cartes \n\nPas possible de rajouter les pa xtour sur les items"
+  "applicationNoteNotes": "Soirée proto n'a pas le système divider double entrée \n\nNotes des 2 sous catégories de application doivent être visible sans le mode edition\n\nPouvoir modifier la ligne à côté des niveaux du monstre \n\nFaire en sorte que l'appli compte le nombre de case T, virage, tout droit, cul de sac\n\nToujours pas ouf pour changer le nombre des cartes \n\nPas possible de rajouter les pa xtour sur les items"
 }
