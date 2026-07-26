@@ -2685,6 +2685,73 @@ sur `main` après chaque modif validée — pas besoin de demander confirmation
 avant chaque mise en ligne, Gus veut voir les changements en direct. Toujours
 tester (navigateur headless local) avant de pousser.
 
+**IMPORTANT — bump obligatoire à chaque déploiement** : incrémenter `APP_VERSION`
+dans `src/config.js` ET la valeur `version` dans `version.json` (racine du repo),
+ensemble, à chaque commit poussé sur `main` — voir "Vérification de version"
+ci-dessous pour pourquoi. Un format simple `AAAA-MM-JJ.N` (N = quantième déploiement
+du jour) suffit, aucune signification particulière n'est attendue au-delà de
+"différent du précédent".
+
+### Vérification de version (bug corrigé : un onglet resté ouvert tournait une
+vieille version du jeu, cassant les parties en ligne)
+Gus a signalé un crash grave en ligne (écran noir, room bloquée) accompagné de deux
+symptômes très parlants : "si quelqu'un d'autre crée une partie ils ont une vieille
+version du jeu, avec plus de 100 cartes maps, pas tous les monstres" (exactement ce
+que produisait l'ancien deck placeholder, avant "Pioches dynamiques depuis le
+catalogue") et "les cases map de face n'ont plus l'image dans assets" côté les autres
+joueurs, jamais côté Gus. Cause quasi certaine : ce projet n'a ni build ni cache-busting
+sur ses balises `<script>`/imports ES — un onglet ouvert avant un déploiement continue
+de faire tourner indéfiniment le JS chargé à ce moment-là, sans jamais savoir qu'une
+version plus récente existe, tant qu'il n'est pas rechargé. Un joueur sur un onglet
+ancien qui crée/rejoint une partie pousse alors vers Firebase une forme de données
+(deck, `cardCatalog`, structure des joueurs...) incompatible avec ce que les clients à
+jour attendent — d'où les images de cases manquantes chez "les autres" uniquement, et
+très probablement la cause du crash lui-même (une pile/un joueur dans une forme
+inattendue, plus surprenant à mesure que la partie avance, d'où l'impression fausse que
+ça arrive "quand une pile arrive à zéro").
+- **`VersionBanner`** (`src/components/VersionBanner.js`) : au montage puis toutes les
+  5 minutes, va chercher `version.json` avec `cache:'no-store'` + un paramètre `?t=`
+  (cette requête précise ignore tout cache, contrairement aux modules JS déjà chargés)
+  et compare au `APP_VERSION` importé de `config.js` — celui-ci, lui, fait partie du JS
+  potentiellement PÉRIMÉ de cet onglet, donc une différence signifie que CET onglet
+  tourne une vieille version. Affiche un simple bandeau bleu fixe en haut de l'écran
+  ("Une nouvelle version est disponible" + bouton Recharger) sans jamais recharger
+  automatiquement (un reload forcé en pleine partie serait pire qu'un onglet obsolète
+  laissé tel quel). Monté en frère de `<App/>` dans `main.js` (pas à l'intérieur), pour
+  ne toucher à aucune branche de retour existante d'`App()`.
+  **Limite connue** : ne protège qu'à partir de CE déploiement — un onglet déjà ouvert
+  AVANT que cette fonctionnalité n'existe ne peut évidemment pas exécuter le code qui la
+  détecterait ; un premier rechargement manuel de tout le monde reste nécessaire une
+  bonne fois pour que le mécanisme prenne le relais ensuite.
+- **`ErrorBoundary`** (`src/components/ErrorBoundary.js`, classe React `Component`
+  minimale — `Component` ajouté aux exports de `react.js`) : enveloppe `<App/>` dans
+  `main.js`, capture n'importe quel crash de rendu en dessous et affiche un écran de
+  récupération ("Un problème est survenu" + bouton Recharger) au lieu d'un écran noir
+  irrécupérable — répond directement à "ça crash vraiment, c'est écran noir et on peut
+  plus revenir dans la room". Recharger suffit à s'en sortir même dans ce cas précis :
+  ni `page` ni `onlineRoom` (App.js) ne survivent à un rechargement, donc on retombe
+  toujours sur l'accueil plutôt que de retenter automatiquement de rejoindre la MÊME
+  room cassée en boucle.
+- **`Array.isArray` au lieu de `|| []` sur les données reçues d'une room Firebase**
+  (`subscribeToRoom`, dans `PlateauPage.js`) : un `|| []` protège contre `undefined`/
+  `null` mais pas contre une clé qui serait un objet au lieu d'un tableau (une vieille
+  version pourrait théoriquement écrire une forme différente) — `Array.isArray(x) ? x
+  : []` protège aussi contre ce cas, pour `players`/`piles`/`discardCards`/
+  `placedTiles`/`boardItems`/`monsters`/`markers`.
+- Vérifié en Playwright : bandeau absent quand la version locale correspond à
+  `version.json`, présent quand on les désaccorde volontairement ; `ErrorBoundary`
+  affiche bien l'écran de récupération face à un composant qui lève une exception
+  volontairement, sans laisser fuiter d'erreur non interceptée au niveau de la page.
+- **Rooms Firebase de test déjà créées, pas supprimées** (Gus : "on a testé en créant
+  plusieurs room donc tu peux supprimer les rooms existante ?") — impossible depuis cet
+  environnement (aucun accès à la console Firebase de Gus, voir plus haut). Pas
+  bloquant : une room orpheline ne coûte rien et n'interfère avec aucune autre (chaque
+  code de partie est un chemin Firebase indépendant, voir "Plusieurs parties en ligne en
+  même temps possible") — le plus simple est de choisir un NOUVEAU code à chaque partie
+  de test plutôt que de chercher à nettoyer les anciennes. Si Gus veut quand même les
+  supprimer, ça se fait à la main dans Firebase Console → Realtime Database → clic droit
+  sur le noeud `rooms/<code>` → Supprimer.
+
 ## Comment travailler avec Gus
 - Communique de façon directe et itérative, apprécie les avis honnnêtes sur les
   choix de design.

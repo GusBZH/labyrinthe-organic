@@ -1431,13 +1431,19 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           if (roomVal.cardCatalog) Object.assign(cardCatalogRef.current, roomVal.cardCatalog);
           const b = roomVal.board;
           if (b) {
-            setPlayers(b.players || []);
-            setPiles(b.piles || []);
-            setDiscardCards(b.discardCards || []);
-            setPlacedTiles(b.placedTiles || []);
-            setBoardItems(b.boardItems || []);
-            setMonsters(b.monsters || []);
-            setMarkers(b.markers || []);
+            // Array.isArray, pas juste `|| []` : un client resté sur une
+            // vieille version du JS (voir VersionBanner) pourrait pousser
+            // une forme différente pour l'une de ces clés — un objet
+            // au lieu d'un tableau planterait silencieusement tout appel
+            // .map/.filter en aval sinon (voir ErrorBoundary pour le filet
+            // de sécurité si ça arrive quand même ailleurs).
+            setPlayers(Array.isArray(b.players) ? b.players : []);
+            setPiles(Array.isArray(b.piles) ? b.piles : []);
+            setDiscardCards(Array.isArray(b.discardCards) ? b.discardCards : []);
+            setPlacedTiles(Array.isArray(b.placedTiles) ? b.placedTiles : []);
+            setBoardItems(Array.isArray(b.boardItems) ? b.boardItems : []);
+            setMonsters(Array.isArray(b.monsters) ? b.monsters : []);
+            setMarkers(Array.isArray(b.markers) ? b.markers : []);
             // markerShelf n'existe plus comme clé séparée — il vit sur
             // chaque joueur (`player.markerShelf`), donc déjà couvert par
             // setPlayers(b.players || []) ci-dessus.

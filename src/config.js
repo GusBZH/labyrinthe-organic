@@ -2,6 +2,15 @@ export const GH_USER = "GusBZH";
 export const GH_REPO = "labyrinthe-organic";
 export const GH_FILE = "data.json";
 
+// Bumped à chaque déploiement (voir "Vérification de version" dans
+// CLAUDE.md) — comparé au contenu de version.json (récupéré sans cache) par
+// App.js pour détecter un onglet resté ouvert sur une vieille version du
+// JS et proposer un rechargement, plutôt que de laisser un client obsolète
+// pousser une forme de données incompatible dans une partie en ligne
+// partagée (Gus : "si quelqu'un d'autre crée une partie ils ont une vieille
+// version du jeu, avec plus de 100 cartes maps, pas tous les monstres").
+export const APP_VERSION = "2026-07-26.1";
+
 export const ELEMENTS = ["Feu","Eau","Terre","Air","Ombre","Multi"];
 export const STATUTS  = ["Validé","Test 1","Test 2","Test 3","Archivé"];
 export const LVLS     = ["Lvl 1","Lvl 2","Lvl 3","Lvl 4"];
