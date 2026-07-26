@@ -469,6 +469,17 @@
       "notes": ""
     },
     {
+      "id": "jih6xrs2rv7",
+      "nom": "Glissement de terrain 0 PA 3xTour",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s47",
       "nom": "RedBull",
       "element": "Terre",
@@ -480,24 +491,13 @@
       "notes": ""
     },
     {
-      "id": "s9",
-      "nom": "Non",
+      "id": "p976r9rcy3b",
+      "nom": "Delicious & Dungeon  0PA 1x tour",
       "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
+      "statut": "Validé",
+      "cout": "",
       "limite": "",
-      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "s37",
-      "nom": "Poing Mexicain",
-      "element": "Terre",
-      "statut": "Test 1",
-      "cout": "0 PA",
-      "limite": "1x tour",
-      "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+      "effet": "+ 2 PV pendant un combat contre un monstre ",
       "quantite": 1,
       "notes": ""
     },
@@ -832,6 +832,50 @@
       "notes": ""
     },
     {
+      "id": "twf7ozj9kmq",
+      "nom": "Reconstitution 0 PA 5xTour",
+      "element": "Terre",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Lorsqu'une case séisme est défausser pendant votre tour, replacer là où vous voulez.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s9",
+      "nom": "Non",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "",
+      "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "427kyr43c62",
+      "nom": "L'appel de la boisson 1 PA 1xTour",
+      "element": "Eau",
+      "statut": "Validé",
+      "cout": "",
+      "limite": "",
+      "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
+      "id": "s37",
+      "nom": "Poing Mexicain",
+      "element": "Terre",
+      "statut": "Test 1",
+      "cout": "0 PA",
+      "limite": "1x tour",
+      "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+      "quantite": 1,
+      "notes": ""
+    },
+    {
       "id": "s38",
       "nom": "Gourdeux",
       "element": "Terre",
@@ -850,50 +894,6 @@
       "cout": "0 PA",
       "limite": "",
       "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "427kyr43c62",
-      "nom": "L'appel de la boisson 1 PA 1xTour",
-      "element": "Eau",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "p976r9rcy3b",
-      "nom": "Delicious & Dungeon  0PA 1x tour",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "+ 2 PV pendant un combat contre un monstre ",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "twf7ozj9kmq",
-      "nom": "Reconstitution 0 PA 5xTour",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Lorsqu'une case séisme est défausser pendant votre tour, replacer là où vous voulez.",
-      "quantite": 1,
-      "notes": ""
-    },
-    {
-      "id": "jih6xrs2rv7",
-      "nom": "Glissement de terrain 0 PA 3xTour",
-      "element": "Terre",
-      "statut": "Validé",
-      "cout": "",
-      "limite": "",
-      "effet": "Lorsque vous arrivez sur une case tremblement vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
       "quantite": 1,
       "notes": ""
     }
