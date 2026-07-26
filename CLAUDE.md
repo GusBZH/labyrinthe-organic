@@ -1392,13 +1392,15 @@ déplacée vers cette zone, avec deux règles supplémentaires précisées par G
 sélectionner les items (pour pouvoir les poser par-dessus comme ils sont affichés devant
 les items) et en sélectionnant le marqueur je peux sélectionner la pioche d'où il vient
 pour défausser."
-- **Même état partagé `markerShelf`** (tableau de `{id, type, x, y}`, fractions 0..1 —
-  ici de la boîte de la zone d'équipement plutôt que de la rangée de pioches) et
-  `selectedShelfMarkerId` local — aucun changement de forme de données, seulement de
-  l'ancrage (`markerShelfRef` pointe maintenant sur le conteneur de la zone d'équipement,
-  visible seulement s'il y a un joueur courant — `current && h('div', {...})` — donc
-  l'étagère n'existe que quand cette zone existe elle-même, cohérent avec "là où il y a
-  les sorts et énergie").
+- **`markerShelf` (tableau de `{id, type, x, y}`, fractions 0..1 de la boîte de la zone
+  d'équipement) — vit maintenant SUR le joueur courant** (`player.markerShelf`, à côté de
+  `natureSort`/`sorts`/`energies`), voir la retouche "lié au footer du joueur" plus bas
+  pour le détail complet — d'abord implémenté comme un état global unique, changé après
+  coup. `selectedShelfMarkerId` reste local, un simple id (l'étagère n'affiche jamais que
+  le joueur courant, pas d'ambiguïté possible). `markerShelfRef` pointe sur le conteneur
+  de la zone d'équipement, visible seulement s'il y a un joueur courant — `current &&
+  h('div', {...})` — donc l'étagère n'existe que quand cette zone existe elle-même,
+  cohérent avec "là où il y a les sorts et énergie".
 - **Rendu par-dessus la zone d'équipement, "devant les items"** : les jetons de
   l'étagère sont rendus en DERNIER (après le slot nature et les 2 lignes sorts/énergies),
   donc visuellement au-dessus malgré le même conteneur (`position:'relative'` ajouté à ce
@@ -1444,6 +1446,35 @@ pour défausser."
   CE site de rendu précis — `MarkerButton` et le rendu sur la grille (`cellGroups`)
   gardent leurs propres tailles (22px/18px) inchangées. Vérifié en Playwright
   (`fontSize` calculé du glyphe : 11px dans l'étagère, 22px sur le bouton d'origine).
+- **Étagère liée au joueur, pas globale** (Gus : "il faut que les marqueurs soient liés
+  au footer du joueur, si je change de joueurs via le footer les marqueurs change aussi,
+  et si j'affiche les infos d'un joueur sur une fenêtre les marqueurs s'affichent aussi")
+  — un premier passage gardait `markerShelf` comme UN SEUL état global partagé : changer
+  de joueur courant (‹/›) n'affectait jamais ce qui s'affichait dans l'étagère, et la
+  fenêtre d'infos joueur ne montrait aucun marqueur du tout. Fix : `markerShelf` migre
+  de `useState` global vers un champ `player.markerShelf`, exactement comme `natureSort`/
+  `sorts`/`energies` le sont déjà. Conséquences en cascade :
+  - `markerShelf`/`setMarkerShelf` retirés partout où l'ancien état global était plombé
+    (`liveRef`, `commitBoard`/`applySnapshot`/`currentSnapshot`, l'effet de synchro
+    localStorage/Firebase, `initialBoard` à la création de room, `resetBoard`) — sans
+    RIEN perdre : `players` était déjà suivi à tous ces endroits, donc `markerShelf`
+    imbriqué dedans en hérite gratuitement (undo/redo, persistance, synchro en ligne).
+  - Toutes les fonctions de l'étagère (`selectShelfMarker` inchangée, `discardShelfMarker`,
+    le drop/déplacement dans l'`onClickCapture` du pied de page, l'envoi vers la grille
+    dans `handleSingleClick`, le fast-discard dans `markerButtonClick`) lisent/écrivent
+    maintenant `(current ou cur ou p).markerShelf` via `players.map(p => p.id===cur.id ?
+    {...p, markerShelf:...} : p)` enveloppé dans `commitBoard({players:...})`, plutôt
+    qu'un `commitBoard({markerShelf:...})` direct.
+  - **Affichage dans la fenêtre d'infos joueur** (`visionPlayerId`, purement consultatif
+    — cette fenêtre peut montrer N'IMPORTE QUEL joueur, pas seulement le courant) : une
+    simple rangée d'icônes `MarkerIcon` (taille normale 22px, pas la demi-taille du
+    footer — voir `MARKER_SHELF_ICON_SIZE`, qui ne s'applique qu'à la zone d'équipement
+    du pied de page) ajoutée sous les sorts/énergies de `p`, affichée seulement si
+    `p.markerShelf` a au moins une entrée.
+  - Testé en Playwright : 2 joueurs, marqueur déposé pour le joueur courant (joueur 1) →
+    visible dans l'étagère (1 jeton) → passage au joueur 2 via `›` → étagère vide (0
+    jeton) → retour au joueur 1 via `‹` → jeton réapparaît → ouverture de la fenêtre
+    d'infos du joueur 1 (carré de la sidebar) → l'icône du marqueur y apparaît aussi.
 
 ### Undo/redo global — implémenté pour tout l'état persisté du plateau, y compris Reset
 Boutons retour/avancer (composant `UndoRedo` déjà utilisé pour le mode édition,
