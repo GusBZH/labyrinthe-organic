@@ -885,6 +885,17 @@
       "effet": "Lorsqu'une case séisme est défausser pendant votre tour, replacer là où vous voulez.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "jih6xrs2rv7",
+      "nom": "Nouveau",
+      "element": "Terre",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
