@@ -2539,6 +2539,53 @@ pu tester plusieurs parties et ça fonctionne très bien !", suivi d'une liste d
      interviendrait exactement entre la pose du flag et sa consommation par
      l'effet (tous deux synchrones dans le même commit React) est
      structurellement impossible en JS single-thread.
+   - **Bug de crash RÉEL trouvé et corrigé (le fix ci-dessus n'était pas la
+     bonne cause pour CE crash précis — Gus a confirmé après déploiement que
+     ça persistait)** : une fois `applyingRemoteRef` déployé et confirmé en
+     ligne (`version.json` vérifié par Gus), le crash "quand il reste une
+     carte dans n'importe quelle pioche et que je clique dessus" persistait
+     à l'identique, ErrorBoundary affichant bien "Un problème est survenu" —
+     et Gus a confirmé que **lui tout seul, en ligne, sur un seul appareil**
+     suffit à le déclencher (pas besoin d'un second joueur, contrairement à
+     l'hypothèse "boucle d'écho" ci-dessus, qui elle ne levait jamais de
+     vraie exception). Cause réelle, différente : **Firebase Realtime
+     Database ne stocke jamais un tableau ou objet VIDE** — un noeud dont
+     tous les enfants disparaissent est supprimé du document, pas laissé à
+     `[]`/`{}`. Piocher la DERNIÈRE carte d'une pioche produit localement
+     `cards:[]` (`pile.cards.slice(0,-1)` sur un tableau à 1 élément) ; une
+     fois poussé vers Firebase puis reçu en écho (même en solo — la synchro
+     sortante pousse quand même vers Firebase et re-reçoit sa propre
+     écriture, voir le bug d'écho ci-dessus, désormais sans boucle mais
+     l'aller-retour simple reste normal et voulu), ce `cards:[]` revient
+     comme `cards` ABSENT (`undefined`), jamais `cards:[]`. Or `pile.cards`
+     est lu directement (`.length`, `[...]`, `.slice`, `.forEach`, `.map`)
+     à une quinzaine d'endroits dans `PlateauPage.js` (`drawFromPile`,
+     `PileStack`, `splitPile`, `mergeArmedInto`, `registerDeckCards`...)
+     sans aucun filet — le tout premier re-rendu qui lit `pile.cards.length`
+     sur cette pioche plante avec "Cannot read properties of undefined",
+     une vraie exception de RENDU React, cette fois bien catchable par
+     `ErrorBoundary` (contrairement à la boucle d'écho, qui ne "throw"
+     jamais) — cohérent avec le message exact que Gus a vu. **Reproduit
+     empiriquement dans ce bac à sable** avec un faux module `multiplayer.js`
+     qui simule fidèlement ce comportement Firebase précis (tableaux/objets
+     vides récursivement supprimés lors de l'écho, pas juste un
+     `JSON.parse(JSON.stringify(...))` qui ne le reproduit PAS) : vider une
+     pioche de 10 cartes jusqu'à 1 puis interagir avec elle (armer le menu
+     Diviser/Mélanger par appui long) déclenche exactement
+     `TypeError: Cannot read properties of undefined (reading 'length') at
+     PileStack`, capturé par `ErrorBoundary` — confirmé absent une fois le
+     fix appliqué, dans le même scénario exact. Fix : le callback de
+     `subscribeToRoom` normalise maintenant chaque pile reçue
+     (`b.piles.map(p => ({...p, cards: Array.isArray(p.cards) ? p.cards :
+     []}))`) avant `setPiles` — le `Array.isArray(b.piles) ? b.piles : []`
+     déjà en place protégeait le tableau `piles` LUI-MÊME, mais pas les
+     `cards` NICHÉS dans chaque pile qu'il contient. Vérifié qu'aucune autre
+     structure imbriquée synchronisée n'a le même trou : `player.sorts`/
+     `energies`/`markerShelf` (aussi susceptibles de devenir `[]` puis
+     disparaître) sont déjà lus partout avec un filet `(p.sorts||[])` etc.
+     (`playerCardList`, tous les sites `markerShelf`) — seule `pile.cards`
+     manquait ce filet, câblé directement à ~15 endroits sans jamais passer
+     par un helper commun.
    - **Item en cours d'investigation, non résolu (Gus a demandé une nouvelle
      piste)** : Gus signale un tap qui "ne fait rien" en déplaçant un item
      déjà posé sur le plateau (le item est sélectionné via appui long, un

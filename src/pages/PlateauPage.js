@@ -1478,7 +1478,31 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             // .map/.filter en aval sinon (voir ErrorBoundary pour le filet
             // de sécurité si ça arrive quand même ailleurs).
             setPlayers(Array.isArray(b.players) ? b.players : []);
-            setPiles(Array.isArray(b.piles) ? b.piles : []);
+            // Bug de crash trouvé (Gus, repro précise : solo suffit, "quand il
+            // reste une carte dans n'importe quelle pioche et que je clique
+            // dessus" — message "Un problème est survenu", donc une vraie
+            // exception de RENDU, contrairement au bug d'écho ci-dessus qui ne
+            // levait jamais d'exception). Cause : Firebase Realtime Database ne
+            // stocke pas les tableaux/objets VIDES — un noeud dont tous les
+            // enfants disparaissent est supprimé, pas laissé à `[]`. Piocher la
+            // DERNIÈRE carte d'une pioche produit localement `cards:[]`
+            // (`p.cards.slice(0,-1)` sur un tableau à 1 élément) ; une fois
+            // poussé vers Firebase puis reçu en écho (même en solo — un seul
+            // appareil suffit, pas besoin d'un second joueur), ce `cards:[]`
+            // revient comme `cards` ABSENT (`undefined`), pas `cards:[]`. Or
+            // `pile.cards` est lu directement (`.length`, `[...]`, `.slice`,
+            // `.forEach`, `.map`) à une quinzaine d'endroits dans ce fichier
+            // (drawFromPile, PileStack, splitPile, mergeArmedInto,
+            // registerDeckCards...) sans aucun filet — le tout premier re-rendu
+            // qui lit `pile.cards.length` sur cette pioche plante avec
+            // "Cannot read properties of undefined", une vraie exception de
+            // rendu React que l'ErrorBoundary attrape (d'où le message "Un
+            // problème est survenu" au lieu d'un simple gel, contrairement à la
+            // boucle d'écho ci-dessus). `Array.isArray(b.piles) ? b.piles : []`
+            // protégeait déjà le tableau `piles` LUI-MÊME, mais pas les `cards`
+            // NICHÉS dans chaque pile — fix : normaliser chaque pile reçue pour
+            // que son `cards` soit toujours un tableau, jamais `undefined`.
+            setPiles(Array.isArray(b.piles) ? b.piles.map(p => ({...p, cards: Array.isArray(p.cards) ? p.cards : []})) : []);
             setDiscardCards(Array.isArray(b.discardCards) ? b.discardCards : []);
             setPlacedTiles(Array.isArray(b.placedTiles) ? b.placedTiles : []);
             setBoardItems(Array.isArray(b.boardItems) ? b.boardItems : []);
