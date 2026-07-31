@@ -9,7 +9,7 @@ export const GH_FILE = "data.json";
 // pousser une forme de données incompatible dans une partie en ligne
 // partagée (Gus : "si quelqu'un d'autre crée une partie ils ont une vieille
 // version du jeu, avec plus de 100 cartes maps, pas tous les monstres").
-export const APP_VERSION = "2026-07-26.4";
+export const APP_VERSION = "2026-07-26.5";
 
 export const ELEMENTS = ["Feu","Eau","Terre","Air","Ombre","Multi"];
 export const STATUTS  = ["Validé","Test 1","Test 2","Test 3","Archivé"];

@@ -2049,6 +2049,66 @@ avec 6 nouvelles demandes.
   scénario mais en cliquant la pioche correspondante → menu Dessus/Dessous, "⬆️" remet
   bien la carte dans la pioche — Vision reste actif du début à la fin des deux scénarios.
 
+### Huitième passage de retouches
+Gus, content du rendu ("très cool !"), a enchaîné avec 4 demandes plus courtes.
+- **Carrés des joueurs (barre latérale) réduits une nouvelle fois** — même facteur ×0.8
+  que la réduction précédente (`SIDEBAR_DEFAULT_SIZE` 51→41, `SIDEBAR_MIN_SIZE` 40→32).
+  Aucun autre changement : `PlayerSquare` dérive déjà toutes ses tailles internes
+  proportionnellement (`scale = size/64`), donc rien à retoucher côté composant.
+- **"1x tour" → "1/tour" partout dans data.json** (Gus a explicitement autorisé à modifier
+  data.json directement pour cette demande) — remplacement texte brut sur l'intégralité du
+  fichier (52 occurrences, y compris dans une note de brainstorm d'Idée en vrac qui
+  mentionnait elle-même cette tâche à faire — laissée telle quelle, effet secondaire
+  attendu et sans conséquence d'un remplacement "partout" pris au pied de la lettre).
+- **Léger contour blanc sur les cœurs de PV** — nouvelle constante `HEART_OUTLINE`
+  (`text-shadow` à 4 décalages cardinaux de 1px, blanc) appliquée aux 3 endroits où un
+  cœur ❤️ affiche des PV : `PlayerSquare` (barre latérale), la fenêtre d'infos joueur, et
+  la ligne dé/PV du pied de page. `-webkit-text-stroke` n'a pas d'effet fiable sur un
+  glyphe emoji couleur (bitmap/vecteur déjà coloré, le navigateur ignore le trait) —
+  `text-shadow`, lui, se dessine bien derrière n'importe quel glyphe.
+- **Mise en page "tel à l'horizontale"** (Gus : "avoir la map sur la moitié de droite de
+  notre écran et sur la moitié de gauche, le header en haut et le footer en bas") —
+  implémentée en CSS pur, sans changement de structure DOM : le conteneur racine du
+  Plateau (`className:'plateau-root'`, déjà en `display:flex; flex-direction:column` par
+  défaut — desktop/portrait inchangés) bascule en `display:grid` uniquement sous
+  `@media (orientation:landscape) and (max-height:500px)` (`index.html`) — la limite de
+  hauteur cible spécifiquement un téléphone tourné sur le côté, pas une tablette ni une
+  fenêtre desktop large-mais-haute. `grid-template-areas` répète le nom de zone
+  `"viewport"` sur ses 3 lignes (`"header viewport" ". viewport" "footer viewport"`) pour
+  que la grille du jeu (`className:'plateau-viewport'`) s'étende sur toute la hauteur de
+  sa colonne (moitié droite), pendant que header/footer (`className:'plateau-header'`/
+  `'plateau-footer'`) s'empilent dans l'autre colonne — le nom de zone via `className` est
+  sans effet en `display:flex` (mode normal), donc ajouté sans condition, seule la racine
+  bascule réellement de mode. Popups/panneau joueurs restent `position:fixed`, donc
+  insensibles à ce `display:grid` de leur parent (leur bloc de référence reste le viewport
+  du navigateur, pas ce conteneur — `display:grid` seul ne crée pas de nouveau bloc de
+  référence pour `position:fixed`).
+  - **Bouton recentrer, seul élément à corriger** : ancré sur `left:8` (fixe), il
+    supposait implicitement que le coin bas-gauche de la grille correspond à celui de
+    l'écran — vrai en portrait (grille pleine largeur) mais plus en paysage tel (grille
+    = moitié droite seulement). `sidebarBounds` (déjà mesuré via `ResizeObserver` sur
+    `viewportRef` pour `top`/`bottom`) gagne un 3ème champ `left` ; le bouton utilise
+    `sidebarBounds.left+8` au lieu du `8` fixe.
+  - **Largeur du header ajustée en paysage tel** : `availHeaderWidth` (qui pilote le
+    rétrécissement des pioches pour ne jamais avoir besoin de scroll horizontal) se
+    basait sur `window.innerWidth` PLEIN écran — en paysage tel, le header n'occupe plus
+    que la moitié gauche, donc sans correctif il n'aurait pas assez rétréci et aurait
+    débordé dans son `overflowX:'auto'` (filet de sécurité existant, mais pas le résultat
+    voulu). `isLandscapePhone` (même condition exacte que la media query CSS, via
+    `window.matchMedia`) divise cette largeur disponible par 2 dans ce cas précis.
+  - Le reste s'adapte automatiquement sans code dédié : la colonne des joueurs
+    (`squareSize`, dérivée de `sidebarBounds.top`/`.bottom`) hérite déjà de la vraie
+    hauteur mesurée de la grille (pleine hauteur en paysage, puisque `viewport` s'étend
+    sur les 3 lignes) ; le panneau lui-même reste ancré `right:8` (bord droit de l'écran =
+    bord droit de la grille dans les deux modes, rien à changer).
+  - Vérifié en Playwright avec un vrai viewport paysage court (667×375, simulant un
+    téléphone courant tourné) : `getComputedStyle` confirme `display:grid` activé, la
+    grille occupe exactement la moitié droite sur toute la hauteur (333.5–667px × 0–375px),
+    header/footer empilés dans la moitié gauche, bouton recentrer positionné au bon
+    endroit (coin bas-gauche de la grille, pas de l'écran) ; tirer/poser une tuile
+    fonctionne normalement dans ce mode. Contrôle de non-régression en portrait
+    (400×800) : `display:flex` toujours actif, disposition identique à avant.
+
 ### Pan et zoom
 - **Bouton recentrer** (`centerView()`, cible SVG discrète `TargetIcon`) : en bas à
   gauche, `position:fixed` ancré sur `sidebarBounds.bottom` (déjà mesuré pour la

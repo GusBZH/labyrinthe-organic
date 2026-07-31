@@ -24,6 +24,13 @@ const CENTER_ROW = Math.floor(ROWS/2), CENTER_COL = Math.floor(COLS/2);
 const MIN_ZOOM = 0.4, MAX_ZOOM = 2.5;
 const MAX_HISTORY = 50;
 const DEFAULT_PV = 3;
+// Léger contour blanc sur les cœurs de PV (Gus) — un `text-shadow` plutôt
+// qu'un `-webkit-text-stroke` : ce dernier n'a pas d'effet fiable sur un
+// glyphe emoji couleur (le navigateur ignore le trait sur un bitmap/vecteur
+// déjà coloré), alors qu'un `text-shadow` se dessine bien derrière n'importe
+// quel glyphe, emoji couleur inclus — 4 décalages cardinaux de 1px créent un
+// contour fin plutôt qu'un simple flou.
+const HEART_OUTLINE = {textShadow:'1px 0 0 #fff, -1px 0 0 #fff, 0 1px 0 #fff, 0 -1px 0 #fff'};
 // Sorts/énergies are smaller than a tile card everywhere they appear —
 // ITEM_BOX is the base size used to derive the footer's own (doubled) card
 // size below, and on the board (ITEM_BOARD_SIZE vs. the tile's CELL-4 card
@@ -1115,7 +1122,7 @@ function PlayerSquare({player, isCurrent, size=64, onRemove, onRename, onOpenInf
         style:{position:'absolute', top:2, left:2, width:15*scale, height:15*scale, borderRadius:'50%', background:'rgba(0,0,0,.55)',
           color:'#ccc', fontSize:9*scale, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer'}
       }, '✕'),
-      h('div', {style:{position:'absolute', top:-2, right:-4, fontSize:22*scale}}, '❤️'),
+      h('div', {style:{position:'absolute', top:-2, right:-4, fontSize:22*scale, ...HEART_OUTLINE}}, '❤️'),
       h('div', {style:{position:'absolute', top:2, right:2, fontSize:10*scale, fontWeight:700, color:'#fff', minWidth:14*scale, textAlign:'center'}}, player.pv),
       h('div', {style:{position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,.6)', padding:'2px 4px'}},
         h('div', {style:{fontSize:9*scale, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}},
@@ -1762,7 +1769,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // sits in exactly the space between header and footer already, so its
   // own bounding rect gives us that space for free — no separate header/
   // footer refs needed.
-  const [sidebarBounds, setSidebarBounds] = useState({top:0, bottom:0});
+  const [sidebarBounds, setSidebarBounds] = useState({top:0, bottom:0, left:0});
   // Bug fixed here: only re-measuring on the window's own 'resize' event
   // missed every case where the HEADER or FOOTER changed height on their
   // own without the window itself resizing — splitting a pile enough to
@@ -1793,7 +1800,11 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     if (!vp) return;
     function measure(){
       const rect = vp.getBoundingClientRect();
-      setSidebarBounds({top:rect.top, bottom: window.innerHeight - rect.bottom});
+      // `left` ajouté pour le bouton recentrer (voir son propre commentaire)
+      // — en mode paysage tel (voir index.html), la grille n'occupe plus
+      // toute la largeur de l'écran, donc "coin bas-gauche de la grille"
+      // n'est plus la même chose que "coin bas-gauche de l'écran".
+      setSidebarBounds({top:rect.top, bottom: window.innerHeight - rect.bottom, left:rect.left});
     }
     measure();
     window.addEventListener('resize', measure);
@@ -3523,7 +3534,9 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   // derives proportionally from whatever size it's given, so every
   // internal element (fonts, badges, border-radius) shrinks along with it
   // automatically, nothing to touch there.
-  const SIDEBAR_GAP = 8, SIDEBAR_DEFAULT_SIZE = 51, SIDEBAR_MIN_SIZE = 40;
+  // Réduits encore une fois (Gus : "réduire encore la taille des carrés des
+  // personnages"), même facteur ×0.8 que la réduction précédente.
+  const SIDEBAR_GAP = 8, SIDEBAR_DEFAULT_SIZE = 41, SIDEBAR_MIN_SIZE = 32;
   const sidebarAvailH = Math.max(0, (typeof window !== 'undefined' ? window.innerHeight : 800) - sidebarBounds.top - sidebarBounds.bottom - SIDEBAR_GAP*2);
   const sidebarItemCount = players.length + 1; // +1 for the "add player" button
   const sidebarDesiredH = sidebarItemCount*SIDEBAR_DEFAULT_SIZE + (sidebarItemCount-1)*SIDEBAR_GAP;
@@ -3571,7 +3584,16 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     + groupNaturalWidth(sortCount, HEADER_ITEM_BOX)
     + groupNaturalWidth(energieCount, HEADER_ITEM_BOX)
     + groupNaturalWidth(monstreCount, HEADER_ITEM_BOX);
-  const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - HEADER_PAD);
+  // En mode paysage tel (voir la media query dans index.html, .plateau-root),
+  // le header n'occupe plus que la moitié gauche de l'écran — sans ça,
+  // cette estimation resterait basée sur `window.innerWidth` PLEINE largeur
+  // et le header ne rétrécirait pas assez, débordant dans son
+  // `overflowX:'auto'` (filet de sécurité déjà là, mais pas le résultat
+  // recherché). Même condition exacte que la media query CSS, pour rester
+  // synchronisé avec elle.
+  const isLandscapePhone = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+  const availHeaderWidth = Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) * (isLandscapePhone ? 0.5 : 1) - HEADER_PAD);
   const headerScale = naturalHeaderWidth <= availHeaderWidth ? 1 : Math.max(HEADER_MIN_SCALE, availHeaderWidth / naturalHeaderWidth);
   const headerBoxSize = Math.round(HEADER_ITEM_BOX * headerScale);
 
@@ -3589,7 +3611,9 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     );
   }
 
-  return h('div', {style:{
+  return h('div', {
+    className:'plateau-root',
+    style:{
       height:'100dvh', display:'flex', flexDirection:'column', overflow:'hidden', color:'#eee',
       fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif', background:'#111'
     }},
@@ -3603,7 +3627,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     // stacking-context-creating) grid content. Clicking the header's own
     // background (not a button/pile, which stop propagation) clears any
     // selected card, same "click elsewhere deselects" rule as the grid.
-    h('div', {onClick:clearCardSelection, style:{flexShrink:0, position:'relative',
+    h('div', {className:'plateau-header', onClick:clearCardSelection, style:{flexShrink:0, position:'relative',
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderBottom:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s',
       // Scoped here (long-press pile/défausse targets live in the header)
@@ -3808,13 +3832,17 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     // `position:fixed` like the header/footer themselves, not part of the
     // pannable/zoomable grid content — clicking it just calls the same
     // centerView() Reset already used, without touching anything else.
-    // Anchored off `sidebarBounds.bottom` (already measured for the
-    // sidebar) so it always sits exactly at the grid/footer boundary.
+    // Anchored off `sidebarBounds.bottom`/`.left` (already measured for the
+    // sidebar) so it always sits exactly at the grid's own bottom-left
+    // corner — `left` (not a hardcoded `8`) matters specifically in mode
+    // paysage tel (voir index.html) où la grille n'occupe que la moitié
+    // droite de l'écran : son coin bas-gauche n'est alors plus celui de
+    // l'écran.
     h('button', {
       onClick:centerView,
       title:'Recentrer la vue',
       style:{
-        position:'fixed', left:8, bottom:sidebarBounds.bottom+8, zIndex:15,
+        position:'fixed', left:sidebarBounds.left+8, bottom:sidebarBounds.bottom+8, zIndex:15,
         width:30, height:30, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
         background:'rgba(255,255,255,.05)', border:`1px solid ${borderColor(visionMode,'#333')}`, color:'#777'
       }
@@ -3823,6 +3851,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     // GRID VIEWPORT (scrollable / pannable / zoomable)
     h('div', {
       ref:viewportRef,
+      className:'plateau-viewport',
       onPointerDown:onViewportPointerDown,
       onPointerMove:onViewportPointerMove,
       onPointerUp:onViewportPointerUp,
@@ -4327,7 +4356,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                     h(EditText, {value:p.nom, onChange:v=>renamePlayer(p.id, v), editMode:true})
                   ),
                   h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
-                    h('div', {style:{position:'absolute', fontSize:36}}, '❤️'),
+                    h('div', {style:{position:'absolute', fontSize:36, ...HEART_OUTLINE}}, '❤️'),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
                   )
                 ),
@@ -4403,7 +4432,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     // original dice/PV row, which keeps its own layout/behavior untouched.
     // Clicking the footer's own background clears any selected card, same
     // as the header.
-    h('div', {onClick:clearCardSelection, style:{flexShrink:0, display:'flex', flexDirection:'column',
+    h('div', {className:'plateau-footer', onClick:clearCardSelection, style:{flexShrink:0, display:'flex', flexDirection:'column',
       background: visionMode ? 'rgba(15,25,35,.97)' : 'rgba(20,20,20,.97)',
       borderTop:`1px solid ${borderColor(visionMode,'rgba(255,255,255,.08)')}`, zIndex:20, transition:'background .3s, border-color .3s',
       WebkitTouchCallout:'none', WebkitUserSelect:'none', userSelect:'none'}},
@@ -4629,7 +4658,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
         current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
           h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
           h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-            h('div', {style:{position:'absolute', fontSize:30}}, '❤️'),
+            h('div', {style:{position:'absolute', fontSize:30, ...HEART_OUTLINE}}, '❤️'),
             h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
           ),
           h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
