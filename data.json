@@ -34,7 +34,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attaque en sélectionnant 1 case en ligne de vue. L'attaque touche la case sélectionnée et toutes les cases à 1 de distance en ligne de vue.",
       "quantite": 1,
       "notes": "Test"
@@ -45,7 +45,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attaque tous les joueurs possibles sur 1 ligne droite en ligne de vue.",
       "quantite": 1,
       "notes": ""
@@ -56,7 +56,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attaque 1 joueur situé en ligne de vue.",
       "quantite": 1,
       "notes": ""
@@ -67,7 +67,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Après avoir gagné 1 combat, votre tour s'arrête, vous ne faites pas de contrôle de labyrinthe mais rejouez immédiatement 1 tour entier.",
       "quantite": 1,
       "notes": ""
@@ -78,7 +78,7 @@
       "element": "Feu",
       "statut": "Test 1",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "(Vous avez un jeton mort et deux jetons neutres.) Pose 1 jeton face cachée sur une case vide. Quand un joueur arrive sur un jeton, il le retourne, il meurt uniquement si c'est le jeton mort puis le jeton revient dans votre main. Les cases où les pièges sont posés deviennent indestructibles.",
       "quantite": 1,
       "notes": ""
@@ -89,7 +89,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
       "quantite": 1,
       "notes": ""
@@ -122,7 +122,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
@@ -133,7 +133,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "3 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
       "quantite": 1,
       "notes": ""
@@ -144,7 +144,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Déplace-toi de 1 case à travers les murs.",
       "quantite": 1,
       "notes": ""
@@ -155,7 +155,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Téléporte-toi instantanément à n'importe quel portail visible sur la carte.",
       "quantite": 1,
       "notes": ""
@@ -177,7 +177,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "À la fin de ton tour, tu peux choisir de revenir sur la case où tu as commencé ton tour.",
       "quantite": 1,
       "notes": ""
@@ -210,7 +210,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Vole 1 PA à 1 joueur.",
       "quantite": 1,
       "notes": ""
@@ -254,7 +254,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Utilisez gratuitement l'effet d'1 sort ou d'1 énergie qui ne vous appartient pas.",
       "quantite": 1,
       "notes": ""
@@ -276,7 +276,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "+1 au résultat du dé pendant les attaques pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -287,7 +287,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort que vous possédez.",
       "quantite": 1,
       "notes": ""
@@ -309,7 +309,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attaquez 1 joueur depuis une carte adjacente (ignore les murs).",
       "quantite": 1,
       "notes": ""
@@ -320,7 +320,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Quand vous tuez 1 joueur, piochez 1 sort.",
       "quantite": 1,
       "notes": ""
@@ -331,7 +331,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Lance 1 dé de plus en combat contre les monstres pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -342,7 +342,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attaque 1 joueur en ligne de vue et crée une réaction en chaîne. Chaque joueur touché propage l'attaque à tous les joueurs à 4 cases de lui sans ligne de vue jusqu'à épuisement. Chaque propagation réduit le résultat du dé de 1.",
       "quantite": 1,
       "notes": ""
@@ -353,7 +353,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Attire 1 joueur en ligne de vue. Si vous déclenchez 1 combat dans le même tour, +1 au résultat pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -364,7 +364,7 @@
       "element": "Feu",
       "statut": "Test 1",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "+1 au résultat du dé en combat contre les monstres pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -397,7 +397,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Sélectionnez 1 carré de 3 tuiles de côté et supprimez toutes les tuiles contrôlables sans joueur dessus ",
       "quantite": 1,
       "notes": "Doublon avec énergie "
@@ -408,7 +408,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Les monstres ont -1 au résultat du dé pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -452,7 +452,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Retourne 1 case map contrôlable. La case ne peut plus être traversée ni détruite.",
       "quantite": 1,
       "notes": ""
@@ -463,7 +463,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pendant 1 tour global, vous ne pouvez pas être ciblé par les sorts des autres joueurs et +1 au résultat du dé en combat pendant les défenses.",
       "quantite": 1,
       "notes": "Passer le coût à 1pa ?"
@@ -474,7 +474,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pendant 1 tour global, vous ne pouvez pas être attaqué à distance et +1 au résultat du dé en combat pendant les défenses.",
       "quantite": 1,
       "notes": ""
@@ -485,14 +485,14 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pendant 1 tour global, lancez 1 dé de plus en combat pendant les défenses pour chaque énergie que vous possédez.",
       "quantite": 1,
       "notes": ""
     },
     {
       "id": "p976r9rcy3b",
-      "nom": "Delicious & Dungeon  0PA 1x tour",
+      "nom": "Delicious & Dungeon  0PA 1/tour",
       "element": "Terre",
       "statut": "Validé",
       "cout": "",
@@ -507,7 +507,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
       "quantite": 1,
       "notes": ""
@@ -518,7 +518,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
       "quantite": 1,
       "notes": ""
@@ -562,7 +562,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "L'action d'explorer coûte 0 PA si elle ne révèle pas une nouvelle case pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -573,7 +573,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Lancez 1 dé et déplacez-vous jusqu'à ce nombre sur des cases révélées ou non, mais si vous tombez sur 1 monstre vous êtes obligé de l'affronter entièrement.",
       "quantite": 1,
       "notes": ""
@@ -595,7 +595,7 @@
       "element": "Air",
       "statut": "Test 1",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Choisis 1 joueur et échange de position avec lui.",
       "quantite": 1,
       "notes": ""
@@ -606,7 +606,7 @@
       "element": "Air",
       "statut": "Test 1",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",
       "quantite": 1,
       "notes": ""
@@ -628,7 +628,7 @@
       "element": "Air",
       "statut": "Test 1",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Déplace-toi vers une carte de départ.",
       "quantite": 1,
       "notes": ""
@@ -639,7 +639,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Déplace de 3 cases révélées 1 personnage (peut passer à travers un portail).",
       "quantite": 1,
       "notes": ""
@@ -650,7 +650,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
       "quantite": 1,
       "notes": ""
@@ -661,7 +661,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Regarde les 5 prochaines cartes d'1 pioche et place-les dans l'ordre de ton choix.",
       "quantite": 1,
       "notes": ""
@@ -672,7 +672,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pendant 1 tour, quand tu entres sur 1 case, place une carte map sur chacun de ses couloirs ouverts.",
       "quantite": 1,
       "notes": ""
@@ -683,7 +683,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Pose votre artefact unique n'importe où, toutes les cases à effet et les items sont désactivés sur cette case. (Sauf porte et clé ?)",
       "quantite": 1,
       "notes": ""
@@ -738,7 +738,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Regarde les 3 prochaines cartes d'1 pioche, mets-en 1 au-dessus de la pioche et les autres en dessous.",
       "quantite": 1,
       "notes": ""
@@ -826,7 +826,7 @@
       "element": "Air",
       "statut": "Test 1",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "À la fin de votre tour vous avez 1 sprint gratuit.",
       "quantite": 1,
       "notes": ""
@@ -870,7 +870,7 @@
       "element": "Terre",
       "statut": "Test 1",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
       "quantite": 1,
       "notes": ""
@@ -881,7 +881,7 @@
       "element": "Terre",
       "statut": "Test 1",
       "cout": "0 PA",
-      "limite": "1x tour",
+      "limite": "1/tour",
       "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
       "quantite": 1,
       "notes": ""
@@ -899,7 +899,7 @@
     },
     {
       "id": "489y0e5z6ed",
-      "nom": "Flemme d'Udun  0PA 1x tour",
+      "nom": "Flemme d'Udun  0PA 1/tour",
       "element": "Feu",
       "statut": "Validé",
       "cout": "",
@@ -1798,7 +1798,7 @@
       "id": "c7",
       "nom": "Case Monstre",
       "statut": "Validé",
-      "effet": "1x tour, affrontez le monstre présent sur la case ou piochez en un et posez le sur la case si elle est vide.\nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
+      "effet": "1/tour, affrontez le monstre présent sur la case ou piochez en un et posez le sur la case si elle est vide.\nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
       "quantite": 10,
       "notes": "",
       "details": [
@@ -1813,7 +1813,7 @@
       "id": "c4",
       "nom": "Case Énergie",
       "statut": "Validé",
-      "effet": "Piochez une énergie dans la pile de son choix. 1x tour",
+      "effet": "Piochez une énergie dans la pile de son choix. 1/tour",
       "quantite": 10,
       "notes": "",
       "details": [
@@ -1828,7 +1828,7 @@
       "id": "c8",
       "nom": "Case Bonus PA",
       "statut": "Validé",
-      "effet": "Vous gagnez+1 PA. 1x tour\nToujours tout droit.",
+      "effet": "Vous gagnez+1 PA. 1/tour\nToujours tout droit.",
       "quantite": 10,
       "notes": "",
       "details": [
@@ -1919,7 +1919,7 @@
       "id": "r4",
       "nom": "Sprinter",
       "statut": "Validé",
-      "effet": "1 PA, 1x tour — Lancez un dé et déplacez-vous jusqu'à ce nombre de cases révélées.",
+      "effet": "1 PA, 1/tour — Lancez un dé et déplacez-vous jusqu'à ce nombre de cases révélées.",
       "notes": ""
     },
     {
@@ -1984,7 +1984,7 @@
     {
       "id": "l4",
       "terme": "Sprint",
-      "definition": "1 PA, 1x tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement."
+      "definition": "1 PA, 1/tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement."
     },
     {
       "id": "l5",
@@ -2063,7 +2063,7 @@
     },
     {
       "id": "l20",
-      "terme": "1x tour",
+      "terme": "1/tour",
       "definition": "Ne peut être utilisé qu'une fois pendant votre tour."
     }
   ],
@@ -2265,7 +2265,7 @@
       "notes": "1v1 Capture de drapeau: \n\n All in d'un côté. Les énergies qui donnent PA font trop la différence. Si un à 6pa et l'autre 3 c'est pas jouable \n• enlever bonus énergie ?\n• déconseiller en 1v1 ?\n\n----------\n\nLaboratoire :\n\n• Énergies multi et ombre devrait pas donner de bonus.\n\n• Situation avec 2 gentils et un méchant sur une case, le méchant transforme un en gentil, est-ce que l'autre gentil peut attaquer directement ? Je pense que non mais faut clarifier \n\n• faut reclarifier le fait d'attaquer quelqu'un sur notre case quand c'est pas notre tour. \nGenre entre joueurs, n'importe qui peut déclencher une attaque si case commune, celui qui gagne le lancé de dé peut choisir d'instantanément refaire une attaque. \n\n• Si un joueur meurt d'une case instable, l'item qu'il va perdre va dans la défausse\n\n\n\nDrapeau 1v1 maps 1xtour\n\n•Moins all in\n•Monstre peuvent donner trop de sorts \n•Attention sorts counter en 1v1 peuvent être cancer \n• Question pour combat. Pas plus simple d'attaquer uniquement pendant son tour et arrêter quand on veut ? Permet de tuer avec cases instable et permet d'ajouter des sorts qui attaque pendant tour de l'autre (+ un renvoie de dommages avec une chance sur deux ?)"
     }
   ],
-  "ideeEnVrac": "Passer à 5 pa permet de moins faire des tours à vide ? Et faire payer les contrôles de labyrinthe ?\n\nLimiter les effets de map à juste une fois par tour ? Permet de récup juste un sort et juste une énergie max par tour . Mais favorise l'envie de rester sur place pour farmer des mobs à chaque tours..\nsinon, comme dis Simon mixer le principe de slots pour qu'on puisse avoir qu'une case par partie \n\nSi monstre qu'une fois par tour, si 2 joueur sur une case monstre, les 2 gagnent les récompenses ? Et l'autre peut redéclencher un combat le tour d'après les 2 gagnent encore les récompenses ?\n\nLes sorts qui font du counter sont trop fort en 1v1 ?\n\nRéduire la taille des carrés des persos\n\nVersion tel paysage, footer et header à gauche\n\n\nRemplacer 1x tour par 1/tour\n\n\nContour coeur pv\n\nPlus de sorts qui peuvent faire plusieurs choses ?\n\nQuand j'aurai mis les cartes sur l'App, tester si je peux bien déplacer les items du header entre eux \n\nDans certains mode on pourrait ajouter les carte de départ dans la pioche et on peut respawn dessus, indéplaçable etc ...\n\nAjouter mécanique poison ",
+  "ideeEnVrac": "Passer à 5 pa permet de moins faire des tours à vide ? Et faire payer les contrôles de labyrinthe ?\n\nLimiter les effets de map à juste une fois par tour ? Permet de récup juste un sort et juste une énergie max par tour . Mais favorise l'envie de rester sur place pour farmer des mobs à chaque tours..\nsinon, comme dis Simon mixer le principe de slots pour qu'on puisse avoir qu'une case par partie \n\nSi monstre qu'une fois par tour, si 2 joueur sur une case monstre, les 2 gagnent les récompenses ? Et l'autre peut redéclencher un combat le tour d'après les 2 gagnent encore les récompenses ?\n\nLes sorts qui font du counter sont trop fort en 1v1 ?\n\nRéduire la taille des carrés des persos\n\nVersion tel paysage, footer et header à gauche\n\n\nRemplacer 1/tour par 1/tour\n\n\nContour coeur pv\n\nPlus de sorts qui peuvent faire plusieurs choses ?\n\nQuand j'aurai mis les cartes sur l'App, tester si je peux bien déplacer les items du header entre eux \n\nDans certains mode on pourrait ajouter les carte de départ dans la pioche et on peut respawn dessus, indéplaçable etc ...\n\nAjouter mécanique poison ",
   "materiel": "10 personnages carton sur bloc plastique vertical\n2 dés\n1 case Boule Géante\n2 drapeaux bleus + 2 drapeaux rouges\n1 jeton Artefact (sert aussi pour Clé et Relique)\n3 jetons Chacal / Cape d'invisibilité\n10 jetons personnages (dos : logo mort)\n20 petites pierres bleues + 20 petites pierres rouges\n\n---\n\nRecherches prix proto :\nV1 tile 2mm 51x51 et 32x32 : ~53$\nV2 tile 2mm 32x32 et 19x19 : ~32$\nDé : ~6$ pièce\nPersonnages acrylique : ~13.5$\n\nPour compter les PV ce serait rigolo un petit cœur avec un chiffre à l'intérieur sur une roue. Et on peut faire tourner un truc pour faire tourner la roue et changer le chiffre (style appareil photo jetable ou livre 3d)",
   "visuels": [
     {

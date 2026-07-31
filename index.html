@@ -120,6 +120,32 @@ button,input,textarea{font-family:inherit;cursor:pointer}
 }
 .dice-result-grow{ animation:diceResultGrow .22s ease-out both; }
 .dice-result-shrink{ animation:diceResultShrink .18s ease-in both; }
+
+/* Plateau — mise en page "tel à l'horizontale" (Gus : "la map sur la moitié
+   de droite... sur la moitié de gauche, le header en haut et le footer en
+   bas"). Portrait/desktop restent en display:flex column (inchangé, voir
+   le style inline de PlateauPage.js) — cette media query bascule le même
+   conteneur en CSS Grid uniquement pour un écran court en paysage (un
+   téléphone tourné sur le côté ; max-height évite de déclencher ça sur une
+   tablette ou une fenêtre desktop large-mais-haute, qui restent en mode
+   portrait normal). grid-template-areas répété sur 3 lignes pour "viewport"
+   fait s'étendre la carte sur toute la hauteur de sa colonne, à côté d'un
+   header/footer empilés dans l'autre colonne — aucun changement de DOM
+   nécessaire, seuls header/footer/viewport reçoivent un nom de zone via
+   className, les popups/le panneau joueurs restent en position:fixed donc
+   insensibles à ce display:grid (leur bloc de référence reste le viewport
+   du navigateur, pas ce conteneur). */
+@media (orientation:landscape) and (max-height:500px){
+  .plateau-root{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto 1fr auto;
+    grid-template-areas:"header viewport" ". viewport" "footer viewport";
+  }
+  .plateau-header{ grid-area:header; }
+  .plateau-footer{ grid-area:footer; }
+  .plateau-viewport{ grid-area:viewport; min-height:0; }
+}
 </style>
 </head>
 <body>
