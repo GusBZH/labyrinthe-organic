@@ -175,12 +175,25 @@ function FlagIcon({color, size=16}){
 // handled as a 5th TILE type (see the 'depart' pile above, not here — this
 // map is only the 5 unlimited-supply "marqueurs" that follow it). Jetons and
 // la roche use the emoji Gus gave directly; the two flags share FlagIcon.
-const MARKER_ORDER = ['jeton_bleu', 'drapeau_bleu', 'drapeau_rouge', 'jeton_rouge', 'roche'];
-const MARKER_EMOJI = {jeton_bleu:'🔵', jeton_rouge:'🔴', roche:'🪨'};
+// `cle` ajoutée après coup (Gus : "juste emoji pour l'instant"), en dernier
+// dans l'ordre puisqu'il n'a précisé aucune position — voir plus bas
+// (keyMarkerExistsElsewhere) pour sa contrainte d'unicité, propre à ce
+// marqueur uniquement.
+const MARKER_ORDER = ['jeton_bleu', 'drapeau_bleu', 'drapeau_rouge', 'jeton_rouge', 'roche', 'cle'];
+const MARKER_EMOJI = {jeton_bleu:'🔵', jeton_rouge:'🔴', roche:'🪨', cle:'🔑'};
 function MarkerIcon({type, size=16}){
   if (type === 'drapeau_bleu') return h(FlagIcon, {color:'#4fa3ff', size});
   if (type === 'drapeau_rouge') return h(FlagIcon, {color:'#e74c3c', size});
   return h('span', {style:{fontSize:size, lineHeight:1}}, MARKER_EMOJI[type] || '❔');
+}
+// Marqueurs dont la présence dans le footer d'un joueur (markerShelf) doit
+// mettre son pion en surbrillance jaune/orange sur le plateau (Gus : "la clé
+// ... apparait en surbrillance ... également sur le pion du personnage...
+// il faudrait aussi faire ça quand un joueur a le drapeau dans son footer")
+// — la clé (unique) et les deux drapeaux, pas les jetons ni la roche.
+const HIGHLIGHT_SHELF_MARKER_TYPES = ['cle', 'drapeau_bleu', 'drapeau_rouge'];
+function hasHighlightShelfMarker(shelf){
+  return (shelf || []).some(m => HIGHLIGHT_SHELF_MARKER_TYPES.includes(m.type));
 }
 
 // Clamps a popup's top-left corner so it never opens partly off-screen
@@ -529,7 +542,7 @@ function CardFace({showBack, size, kind='case', data}) {
 // how you reunite piles after splitting them apart. While a card is
 // selected elsewhere (a placed tile, or the top of the défausse), clicking
 // a pile instead opens a Dessus/Dessous menu to insert that card into it.
-function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, spawnFromRect, onSpawnAnimDone}) {
+function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, hasSelectedCard, disabled, blockArm, boxSize=56, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onRecallAll, spawnFromRect, onSpawnAnimDone}) {
   const cardSize = boxSize - 4;
   const anchorRef = useRef(null);
   const pressTimer = useRef(null);
@@ -613,7 +626,9 @@ function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, has
   // popup can render `position:fixed` there (see the render below for why).
   function menuPosNow(){
     const r = anchorRef.current.getBoundingClientRect();
-    return clampPopupPos(r.left, r.bottom+6, 56, 90);
+    // 3 lignes maintenant (Diviser/Mélanger/Récupérer tout) — hauteur
+    // estimée relevée en conséquence, voir le item supplémentaire plus bas.
+    return clampPopupPos(r.left, r.bottom+6, 56, 130);
   }
   function startPress(){
     if (hasSelectedCard) return; // a quick click here means "insert", not "arm"
@@ -697,6 +712,10 @@ function PileStack({pile, holding, heldCardId, catalog, armedId, armedIdRef, has
       items:[
         {label:'✂️', onClick:()=>onSplit(pile.id)},
         {label:'🔀', onClick:()=>onShuffle(pile.id)},
+        // Gus : "ajouter une option sur les pioches... pour récupérer dans
+        // cette pioche toutes les cartes présentes sur le plateau, dans la
+        // défausse et sur les footer (en gros reset la pioche)".
+        {label:'📥', onClick:()=>onRecallAll(pile.id)},
       ]
     }),
     showInsertMenu && h(Popup, {
@@ -819,7 +838,7 @@ function DiscardSlot({cards, type='case', catalog, selectedId, armedId, armedIdR
 // then column 2 then wraps to a new row on its own, no manual row-breaking
 // logic needed. The défausse sits outside that grid entirely, so it always
 // stays right after the last pile regardless of how many there are.
-function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, splitAnim, onSpawnAnimDone}) {
+function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedId, armedIdRef, hasSelectedCard, hasSelectedTile, disabled, allowPileDraw, visionMode, hideDiscard, onOpenDiscardPeek, onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onShuffleInPlace, onDiscardSelectedTile, onToggleSelect, onRecallAll, splitAnim, onSpawnAnimDone}) {
   const groupPiles = piles.filter(p => p.type === type);
   const groupDiscard = discardCards.filter(c => c.type === type);
   // `allowPileDraw` (case piles only, see its own comment where it's
@@ -829,10 +848,19 @@ function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedI
   // overrides that entirely: a pioche's top card is FACE-DOWN/unknown, so
   // there's nothing meaningful to preview — Gus asked for it to just do
   // nothing there ("pas pouvoir cliquer sur les pioches"), unconditionally,
-  // `allowPileDraw` included (that override only ever existed for the
-  // 'placed' tile mode UX, unrelated to Vision — the two states can't
-  // overlap anyway, entering Vision always clears any tile selection).
-  const pileClickDisabled = visionMode ? true : (disabled && !allowPileDraw);
+  // `allowPileDraw` included. SEULE EXCEPTION désormais : une carte de
+  // défausse sélectionnée en quittant l'aperçu Vision (voir
+  // handleSingleClick et le clic extérieur de visionDiscardPeek) reste
+  // "en main" même en mode Vision — cliquer la pioche DU MÊME TYPE doit
+  // alors offrir Dessus/Dessous comme d'habitude (Gus : "si on clique sur
+  // la pioche en question on a le choix de mettre au dessus ou en
+  // dessous comme d'hab"), pas rester inerte. `hasSelectedCard` inclut déjà
+  // `discardSelType === type` (voir hasSelectedCardOfType) — et une tuile
+  // sélectionnée ne peut structurellement pas coexister avec `visionMode`
+  // (toujours effacée à l'entrée en Vision, jamais reposée pendant), donc
+  // `hasSelectedCard && visionMode` ne peut venir que de cette nouvelle
+  // sélection de défausse.
+  const pileClickDisabled = (visionMode && !hasSelectedCard) ? true : (disabled && !allowPileDraw);
   const pileArmBlocked = visionMode || disabled;
   // Cases de départ skip the défausse entirely (Gus: "pas besoin de
   // défausse pour les cases de départ") — discarding one just deletes it
@@ -867,7 +895,7 @@ function PileGroup({type, piles, discardCards, catalog, boxSize, holding, armedI
           groupPiles.map(p => h(PileStack, {
             key:p.id, pile:p, boxSize, holding: holding.pileId === p.id, heldCardId:holding.cardId, catalog,
             armedId, armedIdRef, hasSelectedCard, disabled:pileClickDisabled, blockArm:pileArmBlocked,
-            onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected,
+            onArm, onDisarm, onDraw, onSplit, onShuffle, onMergeInto, onInsertSelected, onRecallAll,
             spawnFromRect: (splitAnim && splitAnim.find(a => a.pileId === p.id) || {}).fromRect || null, onSpawnAnimDone
           })),
           discardFitsInGrid && discardEl
@@ -2137,6 +2165,29 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     }
   }
 
+  // Défausse-click équivalent de discardSelectedItem, pour les groupes
+  // sort/énergie uniquement (voir leur PileGroup, prop onDiscardSelectedTile)
+  // — Gus : "si en sélectionnant on clique sur la défausse il faut que ça
+  // aille dans la défausse", distinct de la petite croix du pied de page
+  // (qui, elle, continue d'envoyer l'item sur la case du joueur, inchangée —
+  // voir discardSelectedItem/le câblage onDiscard de FooterItemRow). Un item
+  // du PLATEAU (selectedItemId) va déjà dans la défausse via
+  // discardSelectedItem — retombe dessus telle quelle, rien à changer pour
+  // ce cas. Seul un item du FOOTER (selectedFooterItem) change de
+  // destination selon lequel des deux chemins l'a atteint.
+  function discardSelectedItemViaDiscardPile(){
+    const live = liveRef.current;
+    if (live.selectedItemId) { discardSelectedItem(); return; }
+    if (live.selectedFooterItem) {
+      const sel = live.selectedFooterItem;
+      commitBoard({
+        players: removeFooterItem(live.players, sel),
+        discardCards: [...live.discardCards, {id:sel.cardId, type: sel.slot === 'energie' ? 'energie' : 'sort'}]
+      });
+      setSelectedFooterItem(null);
+    }
+  }
+
   // Monster equivalent of discardSelectedTile/discardSelectedItem — the
   // last step of an encounter per CLAUDE.md ("il fait une sélection... puis
   // clique sur la défausse pour le défausser"): the monster entity is
@@ -2164,6 +2215,17 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     setSelectedMarkerId(null);
   }
 
+  // La clé est UNIQUE (Gus : "elle est unique, un seul exemplaire") —
+  // contrairement aux 5 autres marqueurs à supply illimitée, il ne doit
+  // jamais en exister deux à la fois nulle part : ni posée sur le plateau
+  // (`markers`), ni dans l'étagère d'un joueur (`markerShelf`), ni tenue en
+  // main (`heldMarker`, vérifié séparément dans drawMarker puisque ce
+  // dernier cas a déjà son propre court-circuit juste avant).
+  function keyMarkerExistsElsewhere(){
+    if (markers.some(m => m.type === 'cle')) return true;
+    return players.some(p => (p.markerShelf || []).some(m => m.type === 'cle'));
+  }
+
   // Marker equivalent of drawFromPile, minus the pile itself: a MarkerButton
   // (see its own component) has infinite supply, so "drawing" just conjures
   // a fresh marker id into heldMarker — clicking the SAME button again while
@@ -2175,6 +2237,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       if (heldMarker.markerType === markerType) setHeldMarker(null);
       return;
     }
+    if (markerType === 'cle' && keyMarkerExistsElsewhere()) return; // unique: refuse a 2nd one
     setHeldMarker({cardId:uid(), markerType});
     setSelectedItemId(null);
     setSelectedFooterItem(null);
@@ -2391,14 +2454,16 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     toggleSelectDiscardCard(cardId);
   }
 
-  // Equips whichever item is currently held (fresh from a pile, heldItem)
-  // or selected on the board (selectedItemId) onto the CURRENT player —
-  // "peu importe où je clique dans cette zone avec un item" (Gus): any tap
-  // anywhere in the footer's nature/sorts/énergies zone does this, wired via
-  // onClickCapture below so it pre-empts the individual cards' own
-  // tap-to-enlarge click. The very first sort a player ever equips goes
-  // into the single "nature" slot; every one after (and every énergie
-  // always) appends to the end of its row.
+  // Equips whichever item is currently held (fresh from a pile, heldItem),
+  // selected on the board (selectedItemId), or selected in the défausse
+  // (selectedDiscardCardId, sort/énergie uniquement — Gus : "je dois pouvoir
+  // faire passer un item de la défausse directement dans le footer") onto
+  // the CURRENT player — "peu importe où je clique dans cette zone avec un
+  // item" (Gus): any tap anywhere in the footer's nature/sorts/énergies zone
+  // does this, wired via onClickCapture below so it pre-empts the individual
+  // cards' own tap-to-enlarge click. The very first sort a player ever
+  // equips goes into the single "nature" slot; every one after (and every
+  // énergie always) appends to the end of its row.
   function equipHeldOrSelectedItem(){
     const live = liveRef.current;
     const cur = live.players[live.currentIndex];
@@ -2415,6 +2480,12 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       cardId = it.id;
       itemType = it.type;
       updates.boardItems = live.boardItems.filter(x => x.id !== live.selectedItemId);
+    } else if (live.selectedDiscardCardId) {
+      const dc = live.discardCards.find(x => x.id === live.selectedDiscardCardId);
+      if (!dc || (dc.type !== 'sort' && dc.type !== 'energie')) return; // cases/monstres ne s'équipent pas
+      cardId = dc.id;
+      itemType = dc.type;
+      updates.discardCards = live.discardCards.filter(x => x.id !== live.selectedDiscardCardId);
     } else return;
     updates.players = live.players.map(p => {
       if (p.id !== cur.id) return p;
@@ -2426,6 +2497,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     });
     commitBoard(updates);
     setSelectedItemId(null);
+    setSelectedDiscardCardId(null);
   }
 
   // Picks up an already-equipped card for the "move it elsewhere" flow
@@ -2520,8 +2592,15 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
     // Vision mode is inspect-only: no card ever moves while it's active (a
     // held/selected card just waits, untouched, until Vision is turned back
-    // off) — only players can be inspected here.
-    if (live.visionMode) {
+    // off) — only players can be inspected here. SEULE EXCEPTION : une
+    // carte de défausse sélectionnée en quittant l'aperçu (voir le clic
+    // extérieur de visionDiscardPeek) reste déplaçable même si Vision est
+    // encore actif (Gus : "si ensuite on clique sur le plateau, sur la
+    // pioche qui correspond ou sur un footer... on puisse la déplacer") —
+    // tout le reste (heldTile/heldItem/tuiles déjà posées) continue d'être
+    // bloqué en Vision comme avant, seule cette sélection précise traverse
+    // l'inspection pure et retombe sur la logique normale plus bas.
+    if (live.visionMode && !live.selectedDiscardCardId) {
       const herePlayers = live.players.filter(p => p.row === r && p.col === c);
       const hereMonsters = live.monsters.filter(m => m.row === r && m.col === c);
       if (herePlayers.length === 0 && hereMonsters.length === 0) return;
@@ -2821,30 +2900,17 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     handleSingleClick(clientX, clientY);
   }
 
-  function selectTileAt(r, c){
-    const tile = placedTiles.find(t => t.row === r && t.col === c);
-    if (!tile) return;
-    if (players.some(p => p.row === r && p.col === c)) return; // occupied: not selectable
-    setSelectedTileId(tile.id);
-    setSelectedTileMode('moving');
-    setSelectedDiscardCardId(null);
-    setSelectedId(null); // only one thing selected at a time
-    setSelectedItemId(null);
-    setSelectedFooterItem(null);
-    setSelectedMonsterId(null);
-    setSelectedMarkerId(null);
-    setSelectedShelfMarkerId(null);
-  }
-
-  // Same field-setting as selectTileAt, minus its occupancy check —
-  // used ONLY by the "retap the cell of the player you just selected"
-  // gesture (see handleSingleClick's selectedId branch and onContentClick's
-  // own comment). That retap is a deliberate, unambiguous "I meant the
-  // tile" signal, unlike a plain double-click (still funneled through
-  // selectTileAt, still blocked while a player stands there) which could in
-  // principle be an accidental mis-click. Returns whether a tile was
-  // actually there to select, so the caller can fall back to a plain
-  // deselect when there's nothing to switch to.
+  // Sélectionne la tuile d'une case, sans vérifier l'occupation par un
+  // joueur — utilisée à la fois par le retap "je voulais la tuile, pas le
+  // joueur" (voir la branche `selectedId` de `handleSingleClick`) et par un
+  // vrai double-clic natif confirmé (`onContentDoubleClick`) : les deux sont
+  // des gestes délibérés et non-ambigus (un double-clic confirmé — via
+  // `sameCellStreakRef` — ne peut structurellement pas être un clic
+  // accidentel au hasard), donc aucun des deux n'a besoin du filet de
+  // sécurité de l'occupation, qui n'existe que pour empêcher une
+  // sélection/manipulation de tuile totalement passive/non-voulue. Renvoie
+  // si une tuile a bien été trouvée, pour que l'appelant retombe sur un
+  // simple désélectionnement sinon.
   function selectTileIgnoringOccupancy(r, c){
     const tile = placedTiles.find(t => t.row === r && t.col === c);
     if (!tile) return false;
@@ -2873,7 +2939,24 @@ export function PlateauPage({onBack, data, onlineRoom}) {
     const c = Math.floor((e.clientX - rect.left) / effectiveCell);
     const r = Math.floor((e.clientY - rect.top) / effectiveCell);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-    selectTileAt(r, c);
+    // Bug corrigé (Gus : "quand plusieurs joueurs (ou monstre, marqueurs)
+    // sont sur la même case, je peux plus sélectionner cette case map en
+    // double tap") : `selectTileAt` (avec son vérificateur d'occupation)
+    // bloquait la sélection dès qu'UN SEUL joueur se trouvait sur la case —
+    // sans conséquence pour une case à un seul joueur, puisque ce cas passe
+    // déjà par `selectTileIgnoringOccupancy` via le enchaînement clic-clic
+    // AVANT même qu'un vrai `dblclick` natif n'ait la moindre chance de se
+    // déclencher (le 1er clic sélectionne le joueur, le 2e clic — retap sur
+    // sa propre case — bascule déjà vers la tuile en ignorant l'occupation).
+    // Mais dès que 2+ entités partagent la case, AUCUN des deux clics ne
+    // sélectionne quoi que ce soit directement (chacun programme plutôt
+    // `cellPicker` via `scheduleCellPicker`) — le double-clic natif devient
+    // alors le SEUL chemin vers la sélection de tuile, et c'est justement
+    // celui qui utilisait `selectTileAt`. Un vrai `dblclick` confirmé
+    // (`sameCellStreakRef` déjà vérifié juste au-dessus) est par définition
+    // un geste délibéré, donc `selectTileIgnoringOccupancy` (déjà jugée sûre
+    // pour ce même genre de signal explicite) convient ici aussi.
+    selectTileIgnoringOccupancy(r, c);
   }
 
   // Items (sorts/énergies) use a THIRD, dedicated gesture — long-press —
@@ -3065,6 +3148,64 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   function shufflePile(pileId){
     const live = liveRef.current;
     commitBoard({piles: live.piles.map(p => p.id === pileId ? {...p, cards:shuffle(p.cards)} : p)});
+  }
+
+  // Gus : "ajouter une option sur les pioches quand on maintient le tap,
+  // pour récupérer dans cette pioche toutes les cartes présentes sur le
+  // plateau, dans la défausse et sur les footer (en gros reset la
+  // pioche)" — ramène TOUTES les cartes de ce type qui traînent ailleurs
+  // (plateau/défausse/équipement des joueurs) dans CETTE pioche précise,
+  // mélangées. Les autres pioches déjà existantes de ce même type (issues
+  // d'une division antérieure) ne sont volontairement pas touchées — seules
+  // les cartes SORTIES d'une pioche (posées/défaussées/équipées) reviennent.
+  function recallAllToPile(pileId){
+    const live = liveRef.current;
+    const pile = live.piles.find(p => p.id === pileId);
+    if (!pile) return;
+    const type = pile.type;
+    let recalled = [];
+    const updates = {};
+    if (type === 'case' || type === 'depart') {
+      recalled = recalled.concat(live.placedTiles.filter(t => (t.type || 'case') === type).map(t => ({id:t.id})));
+      updates.placedTiles = live.placedTiles.filter(t => (t.type || 'case') !== type);
+    } else if (type === 'monstre') {
+      recalled = recalled.concat(live.monsters.map(m => ({id:m.id})));
+      updates.monsters = [];
+    } else { // sort / energie — aussi équipables, donc à récupérer des footers
+      recalled = recalled.concat(live.boardItems.filter(it => it.type === type).map(it => ({id:it.id})));
+      updates.boardItems = live.boardItems.filter(it => it.type !== type);
+      updates.players = live.players.map(p => {
+        if (type === 'sort') {
+          if (p.natureSort) recalled.push({id:p.natureSort.id});
+          recalled = recalled.concat((p.sorts || []).map(c => ({id:c.id})));
+          return {...p, natureSort:null, sorts:[]};
+        }
+        recalled = recalled.concat((p.energies || []).map(c => ({id:c.id})));
+        return {...p, energies:[]};
+      });
+    }
+    const discardCard = live.selectedDiscardCardId ? live.discardCards.find(c => c.id === live.selectedDiscardCardId) : null;
+    recalled = recalled.concat(live.discardCards.filter(c => c.type === type).map(c => ({id:c.id})));
+    updates.discardCards = live.discardCards.filter(c => c.type !== type);
+    updates.piles = live.piles.map(p => p.id === pileId ? {...p, cards:shuffle([...p.cards, ...recalled])} : p);
+    commitBoard(updates);
+    // N'importe quelle sélection portant sur une carte de CE type vient de
+    // disparaître de son emplacement d'origine (plateau/défausse/footer) —
+    // la nettoyer plutôt que de laisser une sélection fantôme, sans toucher
+    // à une sélection d'un AUTRE type (ex: une tuile 'sort' sélectionnée
+    // pendant qu'on récupère les 'case' doit rester intacte).
+    if (discardCard && discardCard.type === type) setSelectedDiscardCardId(null);
+    if (type === 'case' || type === 'depart') {
+      const tile = live.selectedTileId ? live.placedTiles.find(t => t.id === live.selectedTileId) : null;
+      if (tile && (tile.type || 'case') === type) clearTileSelection();
+    } else if (type === 'monstre') {
+      if (live.selectedMonsterId) setSelectedMonsterId(null);
+    } else {
+      const it = live.selectedItemId ? live.boardItems.find(x => x.id === live.selectedItemId) : null;
+      if (it && it.type === type) setSelectedItemId(null);
+      const fsel = live.selectedFooterItem;
+      if (fsel && (fsel.slot === 'energie' ? 'energie' : 'sort') === type) setSelectedFooterItem(null);
+    }
   }
 
   // Merging two piles together (unlike splitting) does shuffle the result —
@@ -3526,7 +3667,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           allowPileDraw:true,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace, onRecallAll:recallAllToPile,
           onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
@@ -3539,8 +3680,8 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace, onRecallAll:recallAllToPile,
+          onDiscardSelectedTile:discardSelectedItemViaDiscardPile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
@@ -3552,8 +3693,8 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
-          onDiscardSelectedTile:discardSelectedItem, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace, onRecallAll:recallAllToPile,
+          onDiscardSelectedTile:discardSelectedItemViaDiscardPile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
         h('div', {style:{width:1, alignSelf:'stretch', background: borderColor(visionMode,'rgba(255,255,255,.12)')}}),
@@ -3571,7 +3712,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace, onRecallAll:recallAllToPile,
           onDiscardSelectedTile:discardSelectedMonster, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
@@ -3606,7 +3747,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           visionMode, onOpenDiscardPeek:openDiscardPeek,
           onArm:armPile, onDisarm:disarmPile,
           onDraw:drawFromPileOrCancelSelection, onSplit:splitPile, onShuffle:shufflePile, onMergeInto:mergeArmedInto,
-          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace,
+          onInsertSelected:insertSelectedCardIntoPile, onShuffleInPlace:shuffleDiscardInPlace, onRecallAll:recallAllToPile,
           onDiscardSelectedTile:discardSelectedTile, onToggleSelect:toggleSelectDiscardCardOrCancelSelection,
           splitAnim, onSpawnAnimDone
         }),
@@ -3795,7 +3936,12 @@ export function PlateauPage({onBack, data, onlineRoom}) {
               width:26, height:26, borderRadius:'50%', background:e.couleur,
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:11, fontWeight:700, color:'#fff', pointerEvents:'none', opacity:boardTokenOpacity,
-              boxShadow: selectedId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff' : '0 1px 4px rgba(0,0,0,.5)'
+              // Surbrillance jaune/orange si ce joueur porte la clé et/ou un
+              // drapeau dans son footer (hasHighlightShelfMarker) — priorité
+              // au glow de sélection bleu habituel s'il est aussi sélectionné.
+              boxShadow: selectedId===e.id ? '0 0 0 2px #fff, 0 0 10px 3px #4fa3ff'
+                : hasHighlightShelfMarker(e.markerShelf) ? '0 0 0 2px #fff, 0 0 10px 3px #fb3'
+                : '0 1px 4px rgba(0,0,0,.5)'
             }
           }, e.nom.slice(0,1).toUpperCase());
         })),
@@ -4106,7 +4252,14 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       const card = list[visionDiscardPeek.index];
       if (!card) return null;
       return h('div', {
-        onClick:()=>setVisionDiscardPeek(null),
+        // Gus : "quand on clique dans le vide à ce moment-là, ce serait
+        // cool que la carte qu'on regardait soit sélectionnée" — clic
+        // extérieur ferme l'aperçu ET sélectionne la carte affichée à cet
+        // instant, comme un `selectedDiscardCardId` normal (voir la petite
+        // exception ajoutée dans handleSingleClick pour qu'une carte ainsi
+        // sélectionnée reste déplaçable même si le mode Vision est encore
+        // actif — sinon rien de ce qui suit n'aurait d'effet).
+        onClick:()=>{ setVisionDiscardPeek(null); setSelectedDiscardCardId(card.id); },
         style:{position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:275, display:'flex', alignItems:'center', justifyContent:'center'}
       },
         h('div', {onClick:e=>e.stopPropagation(), style:{position:'relative'}},
@@ -4349,7 +4502,13 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // — le monstre reste tenu, exactement comme taper n'importe quel
           // autre endroit sans rapport avec lui).
           const heldIsEquippable = live.heldItem && (live.heldItem.itemType === 'sort' || live.heldItem.itemType === 'energie');
-          if (heldIsEquippable || live.selectedItemId) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
+          // Gus : "je dois pouvoir faire passer un item de la défausse
+          // directement dans le footer" — même filtre de type que ci-dessus
+          // (une case/un monstre sélectionné dans la défausse n'est pas
+          // équipable, retombe plus bas sur hasAnySelection()/l'annulation).
+          const discardCard = live.selectedDiscardCardId ? live.discardCards.find(x => x.id === live.selectedDiscardCardId) : null;
+          const discardSelIsEquippable = discardCard && (discardCard.type === 'sort' || discardCard.type === 'energie');
+          if (heldIsEquippable || live.selectedItemId || discardSelIsEquippable) { e.stopPropagation(); equipHeldOrSelectedItem(); return; }
           // The trailing native click right after a footer long-press
           // selection (see selectFooterItem's own comment) — stopped here
           // entirely (capture-phase stopPropagation halts the event before

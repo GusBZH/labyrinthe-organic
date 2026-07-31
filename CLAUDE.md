@@ -1950,6 +1950,105 @@ pu tester plusieurs parties et ça fonctionne très bien !", suivi d'une liste d
   reconfirmé avec ce scénario exact, mais probablement résolu par le même fix
   (`applyingRemoteRef`) plutôt qu'un bug séparé propre aux pioches de cases.
 
+### Septième passage de retouches (après confirmation que le crash Firebase est résolu)
+Gus, une fois le crash confirmé corrigé ("parfait tout fonctionne bravo !"), a enchaîné
+avec 6 nouvelles demandes.
+- **Item de la défausse équipable directement dans le footer** (Gus : "je dois pouvoir
+  faire passer un item de la défausse directement dans le footer") — `equipHeldOrSelectedItem`
+  ne gérait que `heldItem` (fraîchement pioché) et `selectedItemId` (déjà sur le plateau).
+  Ajoute une 3ème branche `selectedDiscardCardId` (sort/énergie uniquement — une case/un
+  monstre sélectionné dans la défausse n'est pas équipable, retombe sur l'annulation
+  générique) qui retire la carte de `discardCards` au lieu de `boardItems`. Le
+  `onClickCapture` de la zone d'équipement gagne le même filtre de type
+  (`discardSelIsEquippable`) pour déclencher cette branche.
+- **Défausse cliquée avec un item du footer sélectionné → défausse maintenant, au lieu
+  d'aller sur la case du joueur** (Gus : "si en sélectionnant on clique sur sa petite
+  croix, ça va sur la case où est le joueur ça c'est bon [inchangé] mais si en
+  sélectionnant on clique sur la défausse il faut que ça aille dans la défausse") —
+  `hasSelectedForDiscardOfType` incluait déjà `footerSelType === type`, donc cliquer la
+  défausse avec un item du footer sélectionné appelait déjà `onDiscardSelectedTile`, mais
+  celui-ci (`discardSelectedItem`) envoyait TOUJOURS sur la case du joueur, y compris
+  pour ce chemin — le même comportement servait à la fois à la croix ✕ ET au clic
+  défausse, qui ont maintenant besoin de destinations différentes. Nouvelle fonction
+  `discardSelectedItemViaDiscardPile` (un `selectedItemId` retombe sur
+  `discardSelectedItem` inchangé ; un `selectedFooterItem` va dans `discardCards` au lieu
+  de `boardItems`), câblée comme `onDiscardSelectedTile` des `PileGroup` sort/énergie
+  uniquement — la croix ✕ du pied de page reste câblée sur `discardSelectedItem` telle
+  quelle, comportement inchangé.
+- **Marqueur "clé" ajouté, UNIQUE (un seul exemplaire possible)** — 6ème marqueur,
+  emoji 🔑 seul pour l'instant (`MARKER_EMOJI.cle`), ajouté en dernier dans `MARKER_ORDER`.
+  Réutilise tout le mécanisme générique des marqueurs (pioche infinie/tenir/poser/
+  sélectionner/étagère/défausser) sans code dédié, SAUF sa contrainte d'unicité :
+  `keyMarkerExistsElsewhere()` (vérifie `markers`, et le `markerShelf` de CHAQUE joueur)
+  fait un no-op de `drawMarker('cle')` si une clé existe déjà n'importe où (plateau OU
+  étagère d'un joueur) — testé en Playwright : une 2ème tentative de tirage n'ajoute
+  jamais de doublon.
+  **Surbrillance jaune/orange sur le pion du joueur qui porte la clé (ou un drapeau) dans
+  son footer** (Gus : "quand elle est dans le footer d'un joueur elle apparait en
+  surbrillance... également sur le pion du personnage. [...] il faudrait aussi faire ça
+  quand un joueur a le drapeau dans son footer") — `HIGHLIGHT_SHELF_MARKER_TYPES =
+  ['cle', 'drapeau_bleu', 'drapeau_rouge']` (pas les jetons ni la roche) et
+  `hasHighlightShelfMarker(shelf)`, consultés au rendu du jeton joueur dans `cellGroups`
+  (`e.markerShelf`, déjà présent puisque le jeton reçoit l'objet joueur complet) — glow
+  `#fb3` (jaune/orange) si non sélectionné, le glow bleu de sélection reste prioritaire
+  si le joueur est aussi sélectionné.
+- **Nouvelle option "récupérer tout" sur le menu Diviser/Mélanger d'une pioche (appui
+  long)** (Gus : "récupérer dans cette pioche toutes les cartes présentes sur le plateau,
+  dans la défausse et sur les footer, en gros reset la pioche") — 3ème item du menu
+  (`📥`, à côté de `✂️`/`🔀`), `onRecallAll` threadé `PlateauPage → PileGroup → PileStack`.
+  `recallAllToPile(pileId)` ramène dans CETTE pioche précise (mélangée) toutes les cartes
+  de son type sorties d'une pioche — jamais les AUTRES pioches déjà existantes du même
+  type (issues d'une division), seulement ce qui a été posé/défaussé/équipé : `placedTiles`
+  pour case/depart, `monsters` pour monstre, `boardItems` + `natureSort`/`sorts`/
+  `energies` de CHAQUE joueur pour sort/énergie, et `discardCards` dans tous les cas.
+  Nettoie aussi toute sélection (tuile/item/carte-défausse/footer) qui pointerait vers une
+  carte tout juste balayée, sans toucher à une sélection d'un AUTRE type. Hauteur estimée
+  du popup (`menuPosNow`) relevée de 90 à 130 pour ce 3ème item.
+- **Bug corrigé (double-tap impossible pour sélectionner une tuile quand 2+ entités —
+  joueurs/monstres/marqueurs — partagent la case)** — Gus : "je peux plus sélectionner
+  cette case map en double tap". Cause : `onContentDoubleClick` appelait `selectTileAt`
+  (avec son vérificateur d'occupation, qui bloque dès qu'UN SEUL joueur est sur la case)
+  — sans conséquence pour une case à UN SEUL joueur, puisque ce cas se résout déjà avant
+  même qu'un vrai `dblclick` natif se déclenche (1er tap sélectionne le joueur, 2e tap —
+  retap sur sa propre case — bascule déjà vers la tuile via `selectTileIgnoringOccupancy`,
+  qui ignore l'occupation). Mais dès que 2+ entités partagent la case, AUCUN des deux
+  clics ne sélectionne quoi que ce soit directement (chacun programme `cellPicker` via
+  `scheduleCellPicker` à la place) — le double-clic natif devient alors le SEUL chemin
+  vers la sélection de tuile, et c'est justement celui qui utilisait la version AVEC
+  vérificateur. Fix : `onContentDoubleClick` appelle maintenant `selectTileIgnoringOccupancy`
+  — un vrai `dblclick` confirmé (`sameCellStreakRef`) est par définition un geste
+  délibéré, comme le retap, donc n'a pas besoin du filet de l'occupation. `selectTileAt`
+  (devenue sans appelant) supprimée plutôt que laissée en code mort. Vérifié en
+  Playwright : 2 joueurs + 1 tuile sur la même case, double-clic sélectionne bien la tuile
+  (`selectedTileId` posé), alors que ça échouait silencieusement avant le fix.
+- **Mode Vision : sélectionner une carte de défausse en fermant l'aperçu, pour pouvoir la
+  déplacer malgré tout** (Gus : "quand on clique sur une défausse on peut voir une par une
+  toutes les cartes... quand on clique dans le vide à ce moment-là ce serait cool que la
+  carte qu'on regardait soit sélectionnée. Donc si ensuite on clique sur le plateau, sur
+  la pioche qui correspond ou sur un footer (uniquement si c'est un item) on puisse la
+  déplacer [...] si on clique à un endroit où elle peut pas aller, ça desélectionne") —
+  le clic extérieur qui ferme `visionDiscardPeek` pose maintenant aussi
+  `selectedDiscardCardId` sur la carte affichée à cet instant, EN PLUS de fermer
+  l'aperçu — mais le mode Vision est délibérément conçu comme "aucune carte ne bouge tant
+  qu'il est actif" (`handleSingleClick` retourne tout en haut si `visionMode`), donc
+  cette nouvelle sélection serait normalement inerte. Exception ciblée : la garde devient
+  `if (live.visionMode && !live.selectedDiscardCardId)` — une tuile sélectionnée ne peut
+  structurellement jamais coexister avec `visionMode` (toujours effacée à l'entrée en
+  Vision), donc cette condition ne laisse passer QUE la nouvelle sélection de défausse,
+  rien d'autre du mode Vision n'est affaibli. Même exception pour les PIOCHES
+  (`PileGroup`'s `pileClickDisabled`, normalement totalement inertes en Vision) :
+  devient `(visionMode && !hasSelectedCard) ? true : ...` — `hasSelectedCard` inclut déjà
+  `discardSelType === type`, donc cliquer la pioche DU MÊME TYPE ouvre bien Dessus/Dessous
+  au lieu de rester inerte. Le footer n'a besoin d'aucun changement : son
+  `onClickCapture` ne teste déjà `visionMode` nulle part, donc le fix précédent
+  (défausse → footer) y fonctionne déjà tel quel. "Cliquer où elle ne peut pas aller
+  désélectionne" reste géré par le `hasAnySelection()`/`guardedBySelection` déjà en
+  place, indépendant de Vision. Vérifié en Playwright de bout en bout : entrer en Vision,
+  ouvrir l'aperçu défausse, cliquer dans le vide (carte sélectionnée, Vision toujours
+  actif), cliquer une case vide du plateau → carte déplacée dans `boardItems` ; même
+  scénario mais en cliquant la pioche correspondante → menu Dessus/Dessous, "⬆️" remet
+  bien la carte dans la pioche — Vision reste actif du début à la fin des deux scénarios.
+
 ### Pan et zoom
 - **Bouton recentrer** (`centerView()`, cible SVG discrète `TargetIcon`) : en bas à
   gauche, `position:fixed` ancré sur `sidebarBounds.bottom` (déjà mesuré pour la
