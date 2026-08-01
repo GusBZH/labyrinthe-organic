@@ -2938,6 +2938,102 @@ contrairement à `BlockEditor` — liste courte, l'ordre n'a pas d'importance ic
   `updArr('cases', ...)` → `upd(...)` dans `App.js`, exactement le même chemin que
   `notes`/`nom`/`effet` — aucun câblage undo/redo séparé à écrire.
 
+## Neuvième passage de retouches (application générale, hors Plateau)
+Gus, après avoir validé le rendu précédent : "parfait, merci !", suivi de 7 petites demandes
+sur l'application de note/catalogue en général (pas le Plateau).
+- **Auto-scroll indésirable pendant l'édition/le glisser dans `BlockEditor`** (Gus : "ça
+  scroll un peu tout seul comme pour essayer de recentrer le contenu sur mon écran... pour
+  déplacer des notes ça sort de l'écran... quand j'édite une note pareil, ça scroll pour
+  sortir de l'écran et je vois pas ce que j'écris") — deux mécanismes de scroll automatique
+  du navigateur identifiés comme causes plausibles (non vérifiables empiriquement en
+  sandbox headless, comportement de scroll fin non observable de façon fiable sans un vrai
+  appareil — même limite que les bugs iPhone/Android déjà documentés) : (1) `el.focus()`
+  (appelé après Entrée-deux-fois ou Retour-arrière-en-début-de-bloc pour refocaliser le
+  bon `<textarea>`) déclenche par défaut le comportement natif "scroller l'élément focalisé
+  dans la vue", qui se recalcule souvent mal juste après un `autoGrow()` (la hauteur du
+  `<textarea>` vient de changer) — passé à `el.focus({preventScroll:true})` ; (2) le "scroll
+  anchoring" natif du navigateur (activé par défaut) réajuste automatiquement le scroll
+  quand du contenu AU-DESSUS de la position actuelle change de taille — exactement ce qui
+  arrive à chaque frappe (`autoGrow`) et à chaque étape d'un glisser (les blocs changent de
+  hauteur relative) — désactivé via `style:{overflowAnchor:'none'}` sur le conteneur racine
+  de `BlockEditor`. **Best-effort, à confirmer par Gus** : les deux fixes sont sûrs et sans
+  effet de bord (ils ne font que désactiver un comportement automatique du navigateur), mais
+  impossibles à vérifier visuellement dans ce bac à sable.
+- **Écran de token : "Mode local" en premier et mis en avant** (Gus, pour les invités sans
+  token : "ce serait bien que le bouton continuer sans token en mode local arrive en premier
+  et en évidence (surbrillance ou autre) et tu peux juste écrire mode local") — `App.js`
+  réordonne l'écran d'accueil (token) : le bouton (renommé "Mode local", auparavant
+  "Continuer sans token (mode local)") passe AVANT le champ token, avec un style en
+  évidence (fond/bordure/glow bleu clair), suivi d'un séparateur "— ou avec un token
+  GitHub —" puis le champ token + bouton "Connexion GitHub" inchangés en dessous.
+- **Statistiques de monstre éditables individuellement, par carte** (Gus : "pouvoir indiquer
+  individuellement les caractéristiques du mob (PV, -1 au dé, récompense...)") — deux
+  nouveaux champs optionnels sur chaque item de `data.monstres`, `item.recompense` et
+  `item.pvBonus`, rendus dans `Card.js` (nouvelle prop `withMonsterStats`, passée uniquement
+  par `LvlGroup.js`) juste sous l'effet, visibles seulement si non vides ou si `editMode` :
+  quand renseignés, ils REMPLACENT respectivement le texte de récompense partagé du niveau
+  (`LR[lvl]`/`data.lvlRewards[lvl]`, voir juste en dessous) et le bonus PV commun
+  (`MONSTER_PV_BONUS`) pour CETTE carte précise uniquement lors de la construction du deck
+  physique (`buildMonstreCards` dans `PlateauPage.js`, résolution en cascade `item.recompense
+  || lvlRewards[item.lvl] || LR[item.lvl] || ''`, pareil pour `pvBonus`) — les autres
+  monstres du même niveau gardent le texte partagé. Résolu UNE SEULE FOIS à la construction
+  du deck (pas à chaque rendu de `CardFront`), même raisonnement déjà documenté pour
+  `cardCatalogRef` : évite de threader `data.lvlRewards` en profondeur jusqu'au rendu de la
+  carte physique.
+- **Ligne à côté du niveau (récompense partagée) rendue éditable** (Gus : "pouvoir modifier
+  la ligne à côté des niveaux du monstre (les lvl au niveau de la catégorie avant d'ouvrir
+  l'onglet déroulant)") — le texte `LR[lvl]` ("1 énergie / -2 au dé" etc.) était jusqu'ici
+  une constante figée dans `config.js`, jamais éditable. Migré vers un nouveau champ
+  `data.lvlRewards` (objet `{[lvl]: texte}`), migration douce `migrateLvlRewards` (dans
+  `src/utils.js`, appelée depuis `withMigrations` comme les autres migrations) qui seed
+  chaque niveau depuis `LR[lvl]` (config.js) si absent — donc un `data.json` existant
+  récupère automatiquement les valeurs d'origine comme point de départ éditable, aucune
+  modification manuelle requise. `LvlGroup.js` (en-tête de chaque groupe de niveau, TOUJOURS
+  visible même onglet fermé — c'est exactement l'endroit demandé par Gus) affiche maintenant
+  ce texte via un `EditText` double-tap (`h('span', {onClick:e=>e.stopPropagation()}, ...)`
+  — le `stopPropagation` évite que le double-tap d'édition ne déclenche aussi le
+  plier/déplier de l'accordéon, même garde déjà utilisée ailleurs dans l'app pour ce genre
+  de collision). `LR`/`MONSTER_PV_BONUS` (config.js) restent importés dans `PlateauPage.js`
+  comme replis ultimes (une vieille carte déjà dans `cardCatalogRef` avant cette
+  fonctionnalité, ou un niveau absent de `data.lvlRewards`).
+- **Soirées Proto n'avait pas le système double-entrée** (Gus : "Soirée proto n'a pas le
+  système divider double entrée") — le champ "Notes" de chaque soirée (`SoireePage.js`)
+  passe de `EditText multiline` à `BlockEditor`, même convention que Idée en vrac/Visuels/
+  Matériel/notes globales/notes des blocs. Le champ "Participants & lieu" reste un simple
+  `EditText` (texte court, une seule ligne d'info — pas un besoin de "prise de notes" au
+  sens où Gus l'entendait pour ce point précis).
+- **Notes des 2 sous-catégories d'Application visibles hors mode édition** (Gus : "Notes des
+  2 sous catégories de application doivent être visible sans le mode edit") — `NotesBlock.js`
+  gagne un paramètre `alwaysVisible` qui contourne le `if (!editMode) return null` d'origine
+  et affiche, hors édition, un rendu lecture seule via `renderText` (même contenu, mêmes
+  séparateurs, juste pas éditable) — exactement le même schéma déjà utilisé pour "note des
+  blocs" dans `Card.js`. Câblé uniquement sur `data.applicationNoteNotes`/
+  `data.applicationJeuNotes` (les 2 sous-onglets 📜 Note / 👾 Jeu) dans `HomePage.js` — la
+  note globale de la catégorie principale Application elle-même (`data.applicationNotes`)
+  reste édit-mode-only comme toutes les autres notes globales, Gus n'ayant demandé que les
+  2 sous-catégories.
+- **Champs PA/tour (`cout`/`limite`) des sorts/énergies pas éditables quand vides** (Gus :
+  "Pas possible de rajouter les pa xtour sur les items. ce serait bien de pouvoir edit cette
+  partie") — dans `Card.js`, ces deux `<span>` n'étaient rendus QUE si déjà non-vides
+  (`item.cout &&`/`item.limite &&`), donc un sort/énergie sans coût renseigné n'avait
+  simplement aucun moyen d'en ajouter un depuis l'UI. Passé à `(editMode || item.cout) &&`/
+  `(editMode || item.limite) &&` — même convention déjà en place pour `joueurs` sur
+  `ModeCard.js` ("pour rester éditable même vide, pouvoir en ajouter un là où il n'y en
+  avait pas") — les deux champs restent invisibles hors édition tant qu'ils sont vides
+  (comportement de lecture inchangé), mais apparaissent comme cibles double-tap vides dès
+  que `editMode` est actif.
+- Vérifié en Playwright (les 4 points testables sans device réel) : le bouton "Mode local"
+  apparaît bien en premier avec le style en évidence ; les champs coût/limite vides
+  affichent bien le placeholder "Double-cliquer…" en mode édition ; les nouveaux champs
+  "Récompense (remplace..."/"PV (remplace..." apparaissent bien sur une carte monstre
+  dépliée, et éditer le texte à côté de "Lvl 1" (double-tap sur la ligne d'en-tête) se
+  répercute immédiatement dans le DOM ; `BlockEditor` (avec sa poignée de glisser `⠿`) est
+  bien présent sur le champ Notes d'une Soirée Proto ; taper dans les `BlockEditor` des
+  sous-onglets Note/Jeu d'Application puis désactiver le mode édition laisse bien le texte
+  visible. Contrôle de non-régression : navigation Plateau (solo) sans erreur console après
+  ces changements, y compris le rendu d'une carte monstre physique (résolution
+  `recompense`/`pvBonus` en cascade).
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

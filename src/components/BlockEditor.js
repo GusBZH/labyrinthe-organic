@@ -27,7 +27,18 @@ export function BlockEditor({value, onChange, placeholder}){
     const el = refs.current[index];
     if (el) {
       autoGrow(el);
-      el.focus();
+      // Bug corrigé (Gus : "quand j'édite une note... ça scroll pour
+      // sortir de l'écran et je vois pas ce que j'écris") — un `.focus()`
+      // brut déclenche par défaut le comportement natif du navigateur "fait
+      // défiler la page pour amener l'élément focalisé dans la vue", qui se
+      // recalcule souvent mal juste après un `autoGrow()` (la hauteur du
+      // <textarea> vient de changer) et finit par scroller le bloc qu'on
+      // vient de créer/rejoindre HORS de l'écran au lieu de le montrer.
+      // `preventScroll:true` désactive ce comportement automatique — la
+      // position de scroll de l'utilisateur reste celle qu'il avait déjà
+      // (l'élément focalisé est de toute façon déjà quasi à l'endroit où il
+      // vient de taper Entrée/Retour arrière, pas besoin de re-scroller).
+      el.focus({preventScroll:true});
       el.selectionStart = el.selectionEnd = pos;
     }
   });
@@ -72,7 +83,21 @@ export function BlockEditor({value, onChange, placeholder}){
     }
   }
 
-  return h('div', {ref:containerRef},
+  return h('div', {
+    ref:containerRef,
+    // Le "scroll anchoring" natif du navigateur (activé par défaut) essaie
+    // de garder le même contenu visible quand quelque chose AU-DESSUS de la
+    // position de scroll actuelle change de taille — exactement ce qui se
+    // passe à chaque frappe (`autoGrow`, un <textarea> qui grandit/rétrécit)
+    // et à chaque étape d'un glisser (les blocs changent d'ordre/de
+    // hauteur relative pendant qu'on déplace un bloc) : Gus, "ça scroll un
+    // peu tout seul comme pour essayer de recentrer le contenu sur mon
+    // écran" décrit précisément ce mécanisme. `overflow-anchor:'none'`
+    // désactive ce recalage automatique pour toute la zone d'édition —
+    // laisse la position de scroll de l'utilisateur strictement comme il
+    // l'a laissée, qu'il tape ou qu'il glisse un bloc.
+    style:{overflowAnchor:'none'}
+  },
     display.map((block,i) => h('div', {key:'block'+i, style:{
       opacity: dragIndex===i?0.6:1, transform: dragIndex===i?'scale(1.01)':'none',
       boxShadow: dragIndex===i?'0 4px 14px rgba(0,0,0,.4)':'none', transition:'opacity .1s, box-shadow .1s',

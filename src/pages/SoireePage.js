@@ -5,6 +5,7 @@ import { AddBtn } from "../components/AddBtn.js";
 import { EditToggle } from "../components/EditToggle.js";
 import { UndoRedo } from "../components/UndoRedo.js";
 import { DragHandle } from "../components/DragHandle.js";
+import { BlockEditor } from "../components/BlockEditor.js";
 import { renderText, uid, editBgStyle, useEditFlash, useReorder } from "../utils.js";
 
 export function SoireePage({soirees, onUpdate, onAdd, onDelete, onReorder, editMode, setEditMode, canUndo, canRedo, onUndo, onRedo, onBack}) {
@@ -38,8 +39,13 @@ export function SoireePage({soirees, onUpdate, onAdd, onDelete, onReorder, editM
             ),
             h('hr', {className:'sep'}),
             h('div', {style:{fontSize:10, color:'#555', marginBottom:4}}, 'Notes'),
+            // Gus : "Soirée proto n'a pas le système divider double entrée" —
+            // passé de EditText multiline à BlockEditor (Entrée deux fois de
+            // suite scinde le texte en un nouveau bloc séparé par un <hr>,
+            // comme Idée en vrac/Visuels/Matériel/notes globales), lecture
+            // seule via renderText (même convention `\n\n`) hors édition.
             editMode
-              ? h(EditText, {value:s.notes||'', onChange:v=>onUpdate({...s,notes:v}), editMode, multiline:true})
+              ? h(BlockEditor, {value:s.notes||'', onChange:v=>onUpdate({...s,notes:v})})
               : h('div', {style:{fontSize:12, color:'#bbb'}}, renderText(s.notes||'')),
             editMode && h('div', {style:{marginTop:8, textAlign:'right'}},
               h('button', {onClick:()=>onDelete(s.id), style:{background:'none', border:'1px solid #333', borderRadius:4, color:'#666', padding:'2px 8px', fontSize:11}}, 'Supprimer')
