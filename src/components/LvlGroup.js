@@ -1,11 +1,12 @@
 import { h, useState, useRef } from "../react.js";
-import { STATUTS, LR } from "../config.js";
+import { STATUTS } from "../config.js";
 import { uid, useReorder } from "../utils.js";
 import { Card } from "./Card.js";
 import { AddBtn } from "./AddBtn.js";
 import { DragHandle } from "./DragHandle.js";
+import { EditText } from "./EditText.js";
 
-export function LvlGroup({lvl, items, editMode, onUpdate, onDelete, onAdd, onReorder}) {
+export function LvlGroup({lvl, items, editMode, rewardText, onRewardChange, onUpdate, onDelete, onAdd, onReorder}) {
   const validCount = items.filter(i => i.statut === 'Validé').length;
   const [open, setOpen] = useState(false);
   const filtered = editMode
@@ -24,7 +25,19 @@ export function LvlGroup({lvl, items, editMode, onUpdate, onDelete, onAdd, onReo
       h('span', {style:{fontSize:11, transform:open?'rotate(0)':'rotate(-90deg)', transition:'transform .2s', display:'inline-block', color:'#777'}}, '▼'),
       h('span', {style:{flex:1, fontSize:12, fontWeight:600, color:'#ccc'}},
         lvl,
-        h('span', {style:{fontWeight:400, color:'#666', fontSize:11}}, ` — ${LR[lvl]}`)
+        h('span', {style:{fontWeight:400, color:'#666', fontSize:11}},
+          ' — ',
+          // Éditable par double-tap directement depuis l'en-tête replié (Gus :
+          // "pouvoir modifier la ligne à côté des niveaux du monstre... avant
+          // d'ouvrir l'onglet déroulant") — ce texte vivait jusqu'ici comme la
+          // constante figée LR[lvl] (config.js), jamais éditable ; migré en
+          // data.lvlRewards (voir migrateLvlRewards). onClick:stopPropagation
+          // pour que le double-tap n'ouvre/ferme pas l'accordéon en même
+          // temps (même garde déjà utilisée pour ModeCard difficulte/joueurs).
+          h('span', {onClick:e=>e.stopPropagation()},
+            h(EditText, {value:rewardText||'', onChange:onRewardChange, editMode})
+          )
+        )
       ),
       h('span', {style:{fontSize:11, background:'rgba(255,255,255,.08)', color:'#aaa', padding:'1px 8px', borderRadius:10, fontWeight:700}}, validCount)
     ),
@@ -37,7 +50,7 @@ export function LvlGroup({lvl, items, editMode, onUpdate, onDelete, onAdd, onReo
         }},
           editMode && h(DragHandle, {onPointerDown:e=>startDrag(idx, e, containerRef.current)}),
           h('div', {style:{flex:1, minWidth:0}},
-            h(Card, {item:i, onUpdate, onDelete, editMode, showElem:false, withLvl:editMode})
+            h(Card, {item:i, onUpdate, onDelete, editMode, showElem:false, withLvl:editMode, withMonsterStats:true})
           )
         ))
       ),

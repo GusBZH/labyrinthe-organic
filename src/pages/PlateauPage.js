@@ -365,9 +365,19 @@ function buildEnergieCards(energies){
   return shuffle(cards);
 }
 
-function buildMonstreCards(monstres){
+// `recompense`/`pvBonus` résolus UNE FOIS ici (Gus : "pouvoir indiquer
+// individuellement les caractéristiques du mob") — priorité à un override
+// posé sur CETTE carte précise (item.recompense/item.pvBonus, catalogue
+// Monstres), sinon la ligne partagée de son niveau (lvlRewards, éditable
+// depuis LvlGroup), sinon la constante LR/MONSTER_PV_BONUS d'origine (repli
+// pour un data.json jamais migré). CardFront lit ensuite directement
+// data.recompense/data.pvBonus, déjà résolus, sans avoir besoin d'accéder
+// à lvlRewards lui-même (il ne voit que le catalogue PAR CARTE).
+function buildMonstreCards(monstres, lvlRewards){
   const cards = expandByQuantite(monstres).map(item => ({
-    id:uid(), nom:item.nom, lvl:item.lvl, effet:item.effet, notes:item.notes, back:monsterBackFor(item.lvl)
+    id:uid(), nom:item.nom, lvl:item.lvl, effet:item.effet, notes:item.notes, back:monsterBackFor(item.lvl),
+    recompense: item.recompense || (lvlRewards && lvlRewards[item.lvl]) || LR[item.lvl] || '',
+    pvBonus: item.pvBonus || MONSTER_PV_BONUS
   }));
   return shuffle(cards);
 }
@@ -378,7 +388,7 @@ function makeInitialPiles(catalog){
     {id:uid(), type:'case', cards:buildCaseCards(c.cases)},
     {id:uid(), type:'sort', cards:buildSortCards(c.sorts)},
     {id:uid(), type:'energie', cards:buildEnergieCards(c.energies)},
-    {id:uid(), type:'monstre', cards:buildMonstreCards(c.monstres)},
+    {id:uid(), type:'monstre', cards:buildMonstreCards(c.monstres, c.lvlRewards)},
     {id:uid(), type:'depart', cards:buildDepartCards(c.cases)}
   ];
 }
@@ -491,9 +501,14 @@ function CardFront({kind, data, size}) {
       // ligne... et sans '+'") sur sa propre ligne en dessous, pas concaténé
       // au texte LR — MONSTER_PV_BONUS est fixe, le même pour tous les
       // niveaux (voir config.js).
+      // recompense/pvBonus déjà résolus par buildMonstreCards (override par
+      // carte > ligne du niveau > constante LR/MONSTER_PV_BONUS d'origine) —
+      // repli sur LR/MONSTER_PV_BONUS ici seulement pour une session/un
+      // catalogue jamais reconstruit depuis ce fix (ids déjà enregistrés
+      // dans cardCatalogRef avant l'ajout de ces deux champs).
       h('div', {style:{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:Math.max(6, 10*base), color:'#666', lineHeight:1.25}},
-        h('div', {}, LR[data.lvl] || ''),
-        h('div', {}, MONSTER_PV_BONUS)
+        h('div', {}, data.recompense || LR[data.lvl] || ''),
+        h('div', {}, data.pvBonus || MONSTER_PV_BONUS)
       ),
       h('div', {style:{textAlign:'center', fontSize:bodySize, lineHeight:1.25, overflow:'hidden'}}, data.effet || '')
     );

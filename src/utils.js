@@ -1,5 +1,5 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
-import { VISUEL_CATS, SECTION_ORDER_DEFAULT, SECTION_LABELS_DEFAULT, ELEMENTS, LVLS } from "./config.js";
+import { VISUEL_CATS, SECTION_ORDER_DEFAULT, SECTION_LABELS_DEFAULT, ELEMENTS, LVLS, LR } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
 
@@ -130,6 +130,21 @@ export function migrateLvlOrder(order){
   const kept = order.filter(k => known.has(k));
   const missing = LVLS.filter(k => !kept.includes(k));
   return [...kept, ...missing];
+}
+
+// La ligne de récompense affichée à côté d'un niveau de monstre (Gus :
+// "pouvoir modifier la ligne à côté des niveaux du monstre") vivait
+// jusqu'ici uniquement comme la constante figée `LR` dans config.js —
+// éditable nulle part. Migrée en un champ `data.lvlRewards` (objet
+// niveau→texte), initialisé depuis `LR` au premier chargement d'un
+// data.json qui ne l'a pas encore, puis modifiable comme tout le reste.
+// Un niveau absent de `LR` (ne devrait pas arriver, mais LVLS pourrait
+// évoluer) retombe sur une chaîne vide plutôt que planter.
+export function migrateLvlRewards(lvlRewards){
+  const base = (lvlRewards && typeof lvlRewards === 'object') ? lvlRewards : {};
+  const out = {};
+  LVLS.forEach(l => { out[l] = base[l] !== undefined ? base[l] : (LR[l] || ''); });
+  return out;
 }
 
 // Press-and-hold (mouse or touch, via Pointer Events) reordering for a flat

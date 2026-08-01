@@ -120,6 +120,7 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
       h('div', {key:'list', ref:lvlOrderRef},
         lvlOrder.display.map((l,i) => h(DragRow, {key:l, dragging:lvlOrder.dragIndex===i, dragHandle:editMode && h(DragHandle, {onPointerDown:e=>lvlOrder.startDrag(i, e, lvlOrderRef.current)})},
           h(LvlGroup, {lvl:l, items:monsByLvl[l]||[], editMode,
+            rewardText:(data.lvlRewards||{})[l], onRewardChange:v=>upd({...data, lvlRewards:{...(data.lvlRewards||{}), [l]:v}}),
             onUpdate:i2=>updArr('monstres',i2), onDelete:id=>delArr('monstres',id),
             onAdd:i2=>addArr('monstres',i2),
             onReorder:next=>upd({...data, monstres: reorderSubset(data.monstres, next)})
@@ -220,10 +221,10 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     // globale de la catégorie principale elle-même, juste en dessous).
     application: [
       h(Section, {key:'note', emoji:'📜', title:'Note'},
-        h(NotesBlock, {value:data.applicationNoteNotes, onChange:v=>upd({...data,applicationNoteNotes:v}), editMode, label:'Notes'})
+        h(NotesBlock, {value:data.applicationNoteNotes, onChange:v=>upd({...data,applicationNoteNotes:v}), editMode, label:'Notes', alwaysVisible:true})
       ),
       h(Section, {key:'jeu', emoji:'👾', title:'Jeu'},
-        h(NotesBlock, {value:data.applicationJeuNotes, onChange:v=>upd({...data,applicationJeuNotes:v}), editMode, label:'Notes'})
+        h(NotesBlock, {value:data.applicationJeuNotes, onChange:v=>upd({...data,applicationJeuNotes:v}), editMode, label:'Notes', alwaysVisible:true})
       ),
       h(NotesBlock, {key:'notes', value:data.applicationNotes, onChange:v=>upd({...data,applicationNotes:v}), editMode, label:'Notes — Application'})
     ],

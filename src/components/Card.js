@@ -7,7 +7,7 @@ import { BlockEditor } from "./BlockEditor.js";
 import { DetailsEditor } from "./DetailsEditor.js";
 import { renderText, countNoteBlocks } from "../utils.js";
 
-export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, withLvl, withDetails}) {
+export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, withLvl, withDetails, withMonsterStats}) {
   const [showSt, setShowSt] = useState(false);
   const [showEl, setShowEl] = useState(false);
   const [showLv, setShowLv] = useState(false);
@@ -50,17 +50,44 @@ export function Card({item, onUpdate, onDelete, editMode, showElem, withElem, wi
             h(EditText, {value:item.nom, onChange:v=>onUpdate({...item,nom:v}), editMode})
           ),
           h('div', {style:{display:'flex', gap:6, flexShrink:0, alignItems:'center'}},
-            item.cout && h('span', {style:{fontSize:11,color:'#aaa',background:'rgba(255,255,255,.07)',padding:'1px 6px',borderRadius:4}},
-              h(EditText, {value:item.cout, onChange:v=>onUpdate({...item,cout:v}), editMode})
+            // `(editMode || item.cout)` plutôt que `item.cout` seul (Gus :
+            // "pas possible de rajouter les pa x/tour sur les items") — tant
+            // que le champ est vide (le cas de toute carte énergie, qui n'a
+            // jamais eu cette donnée), l'ancienne condition ne rendait même
+            // pas l'EditText, donc aucune cible de double-tap pour EN
+            // ajouter un — même correctif déjà appliqué à `joueurs` sur
+            // ModeCard. Reste caché hors édition tant qu'il est vide (pas de
+            // pastille fantôme pour un simple lecteur).
+            (editMode || item.cout) && h('span', {style:{fontSize:11,color:'#aaa',background:'rgba(255,255,255,.07)',padding:'1px 6px',borderRadius:4}},
+              h(EditText, {value:item.cout||'', onChange:v=>onUpdate({...item,cout:v}), editMode})
             ),
-            item.limite && h('span', {style:{fontSize:11,color:'#777'}},
-              h(EditText, {value:item.limite, onChange:v=>onUpdate({...item,limite:v}), editMode})
+            (editMode || item.limite) && h('span', {style:{fontSize:11,color:'#777'}},
+              h(EditText, {value:item.limite||'', onChange:v=>onUpdate({...item,limite:v}), editMode})
             ),
             item.lvl && !withLvl && h('span', {style:{fontSize:11,color:'#aaa',background:'rgba(255,255,255,.07)',padding:'1px 6px',borderRadius:4}}, item.lvl)
           )
         ),
         h('div', {style:{fontSize:12, color:'#bbb', lineHeight:1.6}},
           h(EditText, {value:item.effet, onChange:v=>onUpdate({...item,effet:v}), editMode, multiline:true})
+        ),
+        // Monstres uniquement — caractéristiques individuelles du mob (Gus :
+        // "pouvoir indiquer individuellement les caractéristiques du mob
+        // (PV, -1 au dé, récompense...)"), en plus de la ligne de récompense
+        // partagée par niveau (voir LvlGroup/data.lvlRewards). Chaque champ
+        // ne remplace le texte partagé QUE s'il est renseigné sur CETTE
+        // carte précise (voir buildMonstreCards, PlateauPage.js, pour la
+        // résolution recompense||lvlRewards[lvl] / pvBonus||MONSTER_PV_BONUS
+        // au moment de construire le deck) — laisser vide garde le
+        // comportement par défaut du niveau.
+        withMonsterStats && (editMode || item.recompense || item.pvBonus) && h('div', {style:{display:'flex', flexDirection:'column', gap:2, marginTop:4}},
+          (editMode || item.recompense) && h('div', {style:{fontSize:11, color:'#888'}},
+            h('span', {style:{color:'#555'}}, 'Récompense (remplace celle du niveau) : '),
+            h(EditText, {value:item.recompense||'', onChange:v=>onUpdate({...item,recompense:v}), editMode})
+          ),
+          (editMode || item.pvBonus) && h('div', {style:{fontSize:11, color:'#888'}},
+            h('span', {style:{color:'#555'}}, 'PV (remplace le bonus commun) : '),
+            h(EditText, {value:item.pvBonus||'', onChange:v=>onUpdate({...item,pvBonus:v}), editMode})
+          )
         ),
         h('div', {style:{position:'relative', display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6}},
           h('div', {style:{display:'flex', alignItems:'center', gap:8}},

@@ -6,7 +6,7 @@ import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { PlateauPage } from "./pages/PlateauPage.js";
 import { OnlineLobbyPage } from "./pages/OnlineLobbyPage.js";
-import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder } from "./utils.js";
+import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder, migrateLvlRewards } from "./utils.js";
 
 const MAX_HISTORY = 50;
 
@@ -17,6 +17,7 @@ function withMigrations(d){
     sectionOrder: migrateSectionOrder(d.sectionOrder),
     elementOrder: migrateElementOrder(d.elementOrder),
     lvlOrder: migrateLvlOrder(d.lvlOrder),
+    lvlRewards: migrateLvlRewards(d.lvlRewards),
   };
 }
 
@@ -127,17 +128,13 @@ export function App() {
         h('div', {style:{fontSize:40, marginBottom:16}}, '🎲'),
         h('h1', {style:{color:'#eee', fontSize:20, marginBottom:8}}, 'Labyrinthe Organic'),
         h('p', {style:{color:'#666', fontSize:13, marginBottom:20}}, 'Entre ton token GitHub, ou continue sans token.'),
-        h('input', {
-          type:'password', value:tokenInput, autoFocus:true,
-          onChange:e=>setTokenInput(e.target.value),
-          onKeyDown:e=>{ if(e.key==='Enter'&&tokenInput){try{localStorage.setItem('gh_token',tokenInput);}catch{}setToken(tokenInput);} },
-          placeholder:'ghp_...',
-          style:{width:'100%', background:'rgba(255,255,255,.05)', border:'1px solid #333', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14, boxSizing:'border-box', marginBottom:10}
-        }),
-        h('button', {
-          onClick:()=>{ if(tokenInput){try{localStorage.setItem('gh_token',tokenInput);}catch{}setToken(tokenInput);} },
-          style:{width:'100%', background:'#222', border:'1px solid #444', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14, marginBottom:8}
-        }, 'Connexion GitHub'),
+        // Bouton "Mode local" mis en premier et mis en évidence (Gus : "pour
+        // les invités ce serait bien que le bouton continuer sans token en
+        // mode local arrive en premier et en évidence") — c'est le chemin
+        // que suit quasiment tout le monde SAUF Gus lui-même (les autres
+        // joueurs n'ont pas de token GitHub personnel), donc il mérite d'être
+        // la première chose vue, pas une petite ligne discrète tout en bas.
+        // Libellé raccourci en "Mode local" (Gus l'a explicitement demandé).
         h('button', {
           // Va chercher data.json en direct (lecture seule, pas besoin de
           // token pour un dépôt public) plutôt que de retomber sur INIT —
@@ -157,8 +154,20 @@ export function App() {
             setLoading(false);
             resetHistory();
           },
-          style:{width:'100%', background:'none', border:'1px solid #2a2a2a', borderRadius:8, color:'#666', padding:'8px 14px', fontSize:12}
-        }, 'Continuer sans token (mode local)')
+          style:{width:'100%', background:'rgba(79,163,255,.15)', border:'1px solid rgba(79,163,255,.6)', borderRadius:8, color:'#9cf', padding:'12px 14px', fontSize:15, fontWeight:600, marginBottom:20, boxShadow:'0 0 10px rgba(79,163,255,.25)'}
+        }, 'Mode local'),
+        h('div', {style:{color:'#555', fontSize:12, marginBottom:14}}, '— ou avec un token GitHub —'),
+        h('input', {
+          type:'password', value:tokenInput, autoFocus:true,
+          onChange:e=>setTokenInput(e.target.value),
+          onKeyDown:e=>{ if(e.key==='Enter'&&tokenInput){try{localStorage.setItem('gh_token',tokenInput);}catch{}setToken(tokenInput);} },
+          placeholder:'ghp_...',
+          style:{width:'100%', background:'rgba(255,255,255,.05)', border:'1px solid #333', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14, boxSizing:'border-box', marginBottom:10}
+        }),
+        h('button', {
+          onClick:()=>{ if(tokenInput){try{localStorage.setItem('gh_token',tokenInput);}catch{}setToken(tokenInput);} },
+          style:{width:'100%', background:'#222', border:'1px solid #444', borderRadius:8, color:'#eee', padding:'10px 14px', fontSize:14}
+        }, 'Connexion GitHub')
       )
     );
   }
