@@ -12,7 +12,7 @@
       "element": "Feu",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
       "quantite": 1,
       "notes": ""
@@ -100,7 +100,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur pour gagner 1 PV",
       "quantite": 1,
       "notes": ""
@@ -166,7 +166,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Déplacez-vous et explorez d'autant de cases que possible sur 1 ligne droite.",
       "quantite": 1,
       "notes": ""
@@ -188,7 +188,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Poser 1 compteur sur ce sort. Pendant votre tour, vous pouvez utiliser 1 compteur pour gagner 1 PA.",
       "quantite": 1,
       "notes": ""
@@ -199,7 +199,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "2x tour",
+      "limite": "2/tour",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
       "quantite": 1,
       "notes": ""
@@ -419,7 +419,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Pose 1 carte Map n'importe où sur un emplacement vide.",
       "quantite": 1,
       "notes": ""
@@ -430,7 +430,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Retire 1 case du plateau où il n'y a pas de joueurs.",
       "quantite": 1,
       "notes": ""
@@ -441,7 +441,7 @@
       "element": "Terre",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Tourne 1 case du plateau même s'il y a des joueurs dessus.",
       "quantite": 1,
       "notes": ""
@@ -540,7 +540,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "À la place d'attaquer 1 joueur, vous pouvez le pousser de 3 cases dans 1 direction. La cible ne peut pas vous attaquer avant pour contrer.",
       "quantite": 1,
       "notes": ""
@@ -584,7 +584,7 @@
       "element": "Air",
       "statut": "Validé",
       "cout": "1 PA",
-      "limite": "4x tour",
+      "limite": "4/tour",
       "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
       "quantite": 1,
       "notes": ""
@@ -617,7 +617,7 @@
       "element": "Air",
       "statut": "Test 1",
       "cout": "1 PA",
-      "limite": "2x tour",
+      "limite": "2/tour",
       "effet": "Relancer 1 dé.",
       "quantite": 1,
       "notes": ""
@@ -727,7 +727,7 @@
       "element": "Eau",
       "statut": "Validé",
       "cout": "0 PA",
-      "limite": "4x tour",
+      "limite": "4/tour",
       "effet": "Si vous êtes sur une case fontaine, vous pouvez vous téléporter sur une autre fontaine comme si c'était des portails.",
       "quantite": 1,
       "notes": ""
@@ -749,7 +749,7 @@
       "element": "Eau",
       "statut": "Test 1",
       "cout": "1 PA",
-      "limite": "3x tour",
+      "limite": "3/tour",
       "effet": "Échange 1 case contrôlable du plateau par la première de la pioche.",
       "quantite": 1,
       "notes": ""
@@ -2262,7 +2262,7 @@
       "id": "p7oa4t7k5rh",
       "date": "26/07/2026",
       "meta": "Moi et moi chez moi ",
-      "notes": "1v1 Capture de drapeau: \n\n All in d'un côté. Les énergies qui donnent PA font trop la différence. Si un à 6pa et l'autre 3 c'est pas jouable \n• enlever bonus énergie ?\n• déconseiller en 1v1 ?\n\n----------\n\nLaboratoire :\n\n• Énergies multi et ombre devrait pas donner de bonus.\n\n• Situation avec 2 gentils et un méchant sur une case, le méchant transforme un en gentil, est-ce que l'autre gentil peut attaquer directement ? Je pense que non mais faut clarifier \n\n• faut reclarifier le fait d'attaquer quelqu'un sur notre case quand c'est pas notre tour. \nGenre entre joueurs, n'importe qui peut déclencher une attaque si case commune, celui qui gagne le lancé de dé peut choisir d'instantanément refaire une attaque. \n\n• Si un joueur meurt d'une case instable, l'item qu'il va perdre va dans la défausse\n\n\n\nDrapeau 1v1 maps 1xtour\n\n•Moins all in\n•Monstre peuvent donner trop de sorts \n•Attention sorts counter en 1v1 peuvent être cancer \n• Question pour combat. Pas plus simple d'attaquer uniquement pendant son tour et arrêter quand on veut ? Permet de tuer avec cases instable et permet d'ajouter des sorts qui attaque pendant tour de l'autre (+ un renvoie de dommages avec une chance sur deux ?)"
+      "notes": "1v1 Capture de drapeau: \n\n All in d'un côté. Les énergies qui donnent PA font trop la différence. Si un à 6pa et l'autre 3 c'est pas jouable \n• enlever bonus énergie ?\n• déconseiller en 1v1 ?\n\n----------\n\nLaboratoire :\n\n• Énergies multi et ombre devrait pas donner de bonus.\n\n• Situation avec 2 gentils et un méchant sur une case, le méchant transforme un en gentil, est-ce que l'autre gentil peut attaquer directement ? Je pense que non mais faut clarifier \n\n• faut reclarifier le fait d'attaquer quelqu'un sur notre case quand c'est pas notre tour. \nGenre entre joueurs, n'importe qui peut déclencher une attaque si case commune, celui qui gagne le lancé de dé peut choisir d'instantanément refaire une attaque. \n\n• Si un joueur meurt d'une case instable, l'item qu'il va perdre va dans la défausse\n\n\n\nDrapeau 1v1 maps 1/tour\n\n•Moins all in\n•Monstre peuvent donner trop de sorts \n•Attention sorts counter en 1v1 peuvent être cancer \n• Question pour combat. Pas plus simple d'attaquer uniquement pendant son tour et arrêter quand on veut ? Permet de tuer avec cases instable et permet d'ajouter des sorts qui attaque pendant tour de l'autre (+ un renvoie de dommages avec une chance sur deux ?)"
     }
   ],
   "ideeEnVrac": "Passer à 5 pa permet de moins faire des tours à vide ? Et faire payer les contrôles de labyrinthe ?\n\nLimiter les effets de map à juste une fois par tour ? Permet de récup juste un sort et juste une énergie max par tour . Mais favorise l'envie de rester sur place pour farmer des mobs à chaque tours..\nsinon, comme dis Simon mixer le principe de slots pour qu'on puisse avoir qu'une case par partie \n\nSi monstre qu'une fois par tour, si 2 joueur sur une case monstre, les 2 gagnent les récompenses ? Et l'autre peut redéclencher un combat le tour d'après les 2 gagnent encore les récompenses ?\n\nLes sorts qui font du counter sont trop fort en 1v1 ?\n\nRéduire la taille des carrés des persos\n\nVersion tel paysage, footer et header à gauche\n\n\nRemplacer 1/tour par 1/tour\n\n\nContour coeur pv\n\nPlus de sorts qui peuvent faire plusieurs choses ?\n\nQuand j'aurai mis les cartes sur l'App, tester si je peux bien déplacer les items du header entre eux \n\nDans certains mode on pourrait ajouter les carte de départ dans la pioche et on peut respawn dessus, indéplaçable etc ...\n\nAjouter mécanique poison ",
