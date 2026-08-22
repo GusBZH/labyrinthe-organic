@@ -1941,7 +1941,7 @@
       "id": "r7",
       "nom": "Mort",
       "statut": "Validé",
-      "effet": "Lâchez un item au choix sur votre case et réapparaissez sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",
+      "effet": "Lâchez un item au choix sur votre case et à votre prochain tour, replacer votre personnage sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",
       "notes": ""
     },
     {
