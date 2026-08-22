@@ -3226,6 +3226,34 @@ les angles proche de l'intérieur de l'étoile bien sharp (les coins à la base 
   nettement arrondies, creux entre les pointes bien nets ; aucune régression sur les
   clics PV/PA/dé/Vision, aucune erreur console.
 
+### Quatrième (petite) retouche — chiffre du PA légèrement recalé
+Gus, satisfait du reste : "juste le chiffre dans l'étoile est un tout petit peu plus haut
+si je comparé avec le chiffre dans le cœur, sinon parfait". Le chiffre du PV et celui du
+PA sont tous deux centrés sur le centre géométrique de leur boîte, mais l'emoji ❤️ laisse
+un peu plus de vide sous sa pointe basse que l'étoile n'en laisse sous ses deux pointes du
+bas — un chiffre parfaitement centré paraît donc légèrement plus haut par rapport au
+dessin de l'étoile que par rapport au dessin du cœur. Plutôt que retoucher encore
+`STAR_PATH` (déjà recentré précisément sur sa propre boîte), un `marginTop:1` sur les deux
+`<div>` de chiffre du PA (pied de page ET fenêtre `visionPlayerId`) suffit à compenser cet
+écart perçu. Mesuré/ajusté empiriquement (`getBoundingClientRect` du chiffre du PV vs
+celui du PA) : écart résiduel ramené à 0.5px, en dessous du seuil perceptible.
+
+## Bonus naturel des énergies Ombre/Multi retiré
+Gus : "est-ce que tu peux enlever le bonus +1 PA de toutes les cartes énergie ombre et
+énergie multi ? (c'est pas l'effet écrit au milieu de la carte mais le bonus écrit en bas
+de la carte)". `ENERGY_BONUS` (`src/data/cardAssets.js`) associait un bonus naturel fixe
+par élément à la ligne du bas de `CardFront` (voir "Pioches dynamiques depuis le
+catalogue" — Multi/Ombre/Eau/Air → "+1 PA", Feu/Terre → "+1 PV") : Multi et Ombre passent
+maintenant à une chaîne vide, Eau/Air/Feu/Terre inchangés. `CardFront` fait déjà
+`ENERGY_BONUS[data.element] || ''`, donc une chaîne vide se comporte exactement comme une
+entrée absente (aucun texte affiché, aucune retouche de layout nécessaire). Vérifié par un
+rendu isolé de `CardFront` (les 6 éléments côte à côte, `CardFront` temporairement exporté
+dans la copie de test uniquement) : Eau/Air affichent bien "+1 PA", Feu/Terre "+1 PV",
+Ombre/Multi n'affichent plus rien en bas de carte — et confirmé via le catalogue de deck
+réel (`cardCatalogRef`) que des cartes Ombre (3) et Multi (12) existent bien dans le deck
+avec `element` correctement renseigné, donc la correction s'applique à de vraies cartes en
+jeu, pas seulement à des données de test.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

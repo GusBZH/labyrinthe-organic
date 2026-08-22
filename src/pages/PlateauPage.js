@@ -4456,7 +4456,16 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                     // de haut à l'écran, pas la même chose que sa taille de
                     // police) — voir la note de `StarIcon`.
                     h('div', {style:{position:'absolute'}}, h(StarIcon, {targetHeight:42})),
-                    h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pa ?? DEFAULT_PA)
+                    // marginTop:1 (Gus : "le chiffre dans l'étoile est un
+                    // tout petit peu plus haut... comparé au chiffre dans
+                    // le cœur") — les deux chiffres sont bien tous les deux
+                    // centrés sur le centre géométrique de leur boîte, mais
+                    // le cœur (emoji) a un peu plus de vide sous sa "pointe"
+                    // basse que l'étoile n'en a sous ses deux pointes du
+                    // bas, donc son chiffre paraît plus bas par rapport au
+                    // dessin — un petit décalage manuel comble l'écart
+                    // perçu sans retoucher au recentrage de `STAR_PATH`.
+                    h('div', {style:{position:'relative', marginTop:1, fontSize:14, fontWeight:700, color:'#fff'}}, p.pa ?? DEFAULT_PA)
                   )
                 ),
                 h('div', {
@@ -4794,7 +4803,8 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             // côté dans le pied de page (fontSize:30 → ~35px de haut à
             // l'écran) — voir la note de `StarIcon`.
             h('div', {style:{position:'absolute'}}, h(StarIcon, {targetHeight:35})),
-            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
+            // marginTop:1 — voir la même note dans la fenêtre visionPlayerId.
+            h('div', {style:{position:'relative', marginTop:1, fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
           ),
           h('button', {key:'pa-plus', onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
         ] : [
