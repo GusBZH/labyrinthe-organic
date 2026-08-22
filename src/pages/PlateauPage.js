@@ -24,12 +24,17 @@ const CENTER_ROW = Math.floor(ROWS/2), CENTER_COL = Math.floor(COLS/2);
 const MIN_ZOOM = 0.4, MAX_ZOOM = 2.5;
 const MAX_HISTORY = 50;
 const DEFAULT_PV = 3;
+// Compteur de PA (points d'action), "même principe" que le PV (Gus) — un
+// second compteur -/étoile/+ juste à droite du cœur dans le pied de page,
+// à 3 de base comme le PV.
+const DEFAULT_PA = 3;
 // Léger contour blanc sur les cœurs de PV (Gus) — un `text-shadow` plutôt
 // qu'un `-webkit-text-stroke` : ce dernier n'a pas d'effet fiable sur un
 // glyphe emoji couleur (le navigateur ignore le trait sur un bitmap/vecteur
 // déjà coloré), alors qu'un `text-shadow` se dessine bien derrière n'importe
 // quel glyphe, emoji couleur inclus — 4 décalages cardinaux de 1px créent un
-// contour fin plutôt qu'un simple flou.
+// contour fin plutôt qu'un simple flou. Réutilisé tel quel pour l'étoile de
+// PA (même style de contour, glyphe différent).
 const HEART_OUTLINE = {textShadow:'1px 0 0 #fff, -1px 0 0 #fff, 0 1px 0 #fff, 0 -1px 0 #fff'};
 // Sorts/énergies are smaller than a tile card everywhere they appear —
 // ITEM_BOX is the base size used to derive the footer's own (doubled) card
@@ -1172,7 +1177,7 @@ function DiceFace({value, size}){
   );
 }
 
-const DICE_EMOJI_SIZE = 20, DICE_RESULT_SIZE = 27;
+const DICE_EMOJI_SIZE = 18, DICE_RESULT_SIZE = 24;
 // Dice roll button: click shakes the 🎲 emoji for ~1s (Gus: "petit
 // mouvement mais rapide/nerveux dans des sens qui semble aléatoires"),
 // then the result pops in as a white square with dice pips (DiceFace),
@@ -1209,7 +1214,7 @@ function DiceButton({player, onRoll, guardedBySelection, visionMode}){
   return h('button', {
     onClick:handleClick,
     style:{position:'relative', background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`,
-      borderRadius:6, width:44, height:34, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
+      borderRadius:6, width:40, height:32, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
   },
     h('div', {className: phase === 'shaking' ? 'dice-shake' : '', style:{fontSize:DICE_EMOJI_SIZE, lineHeight:1}}, '🎲'),
     showResult && h('div', {
@@ -2067,7 +2072,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
   }
 
   function addPlayer(){
-    commitPlayers([...players, {id:uid(), nom:nextPlayerName(), couleur:nextColor(), pv:DEFAULT_PV, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
+    commitPlayers([...players, {id:uid(), nom:nextPlayerName(), couleur:nextColor(), pv:DEFAULT_PV, pa:DEFAULT_PA, row:CENTER_ROW, col:CENTER_COL, dice:null}]);
   }
 
   // Removing a player used to just drop their equipped cards along with
@@ -2103,6 +2108,14 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
   function updatePv(id, delta){
     commitPlayers(players.map(p => p.id === id ? {...p, pv: p.pv + delta} : p));
+  }
+
+  // `p.pa ?? DEFAULT_PA` au moment de lire/écrire (pas seulement à l'affichage,
+  // voir le rendu du compteur plus bas) : un joueur créé avant l'ajout de ce
+  // compteur n'a pas encore de champ `pa` du tout — sans ce repli, le tout
+  // premier clic sur -/+ partirait de `undefined + delta` (NaN) au lieu de 3.
+  function updatePa(id, delta){
+    commitPlayers(players.map(p => p.id === id ? {...p, pa: (p.pa ?? DEFAULT_PA) + delta} : p));
   }
 
   function clearTileSelection(){
@@ -4670,13 +4683,29 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           current && h(DiceButton, {player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode})
         ),
 
-        current ? h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-          h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
-          h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-            h('div', {style:{position:'absolute', fontSize:30, ...HEART_OUTLINE}}, '❤️'),
-            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
+        current ? h('div', {style:{display:'flex', alignItems:'center', gap:14}},
+          h('div', {style:{display:'flex', alignItems:'center', gap:4}},
+            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
+            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+              h('div', {style:{position:'absolute', fontSize:30, ...HEART_OUTLINE}}, '❤️'),
+              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
+            ),
+            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
           ),
-          h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+          // Compteur de PA, "même principe" que le PV juste à gauche (Gus) :
+          // même paire de boutons -/+, même bulle de contour blanc, mais une
+          // étoile bleue (`color:'#4fa3ff'`, l'accent bleu déjà utilisé
+          // partout dans l'app — ex. le glow du mode Vision) à la place du
+          // cœur. Pas d'emoji "étoile bleue" en Unicode, donc un glyphe ★
+          // coloré via CSS plutôt qu'un emoji à couleur fixe.
+          h('div', {style:{display:'flex', alignItems:'center', gap:4}},
+            h('button', {onClick:guardedBySelection(()=>updatePa(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
+            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+              h('div', {style:{position:'absolute', fontSize:26, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
+              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
+            ),
+            h('button', {onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+          )
         ) : h('div', {onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur'),
 
         h('div', {style:{display:'flex', alignItems:'center', gap:8}},
@@ -4686,7 +4715,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
             style:{
               background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
               border:`1px solid ${visionMode ? 'rgba(79,163,255,.7)' : '#444'}`,
-              borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:40, height:40, fontSize:18,
+              borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:36, height:36, fontSize:16,
               boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
             }
           }, '👁️'),
@@ -4740,7 +4769,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
 function navBtnStyle(enabled, vision){
   return {background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(vision, '#444')}`, borderRadius:8, color: enabled?'#eee':'#444',
-    width:40, height:40, fontSize:26, lineHeight:1, cursor: enabled?'pointer':'default'};
+    width:36, height:36, fontSize:22, lineHeight:1, cursor: enabled?'pointer':'default'};
 }
 function pvBtnStyle(vision){
   return {background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(vision, '#444')}`, borderRadius:6, color:'#eee', width:24, height:24, fontSize:14, lineHeight:1};

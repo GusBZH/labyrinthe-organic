@@ -3034,6 +3034,49 @@ sur l'application de note/catalogue en général (pas le Plateau).
   ces changements, y compris le rendu d'une carte monstre physique (résolution
   `recompense`/`pvBonus` en cascade).
 
+## Compteur de PA (points d'action) — pied de page du Plateau
+Gus : "ce serait bien d'avoir un compteur de PA juste à droite du cœur, même principe mais
+avec une étoile bleue, même léger trait contour blanc, bouton - à gauche, bouton + à
+droite, et c'est de base à 3". Deuxième compteur par joueur, à côté du PV dans le groupe
+central du pied de page (`player.pa`, nouveau champ à côté de `pv` — même position dans
+l'objet joueur, donc hérite gratuitement de tout ce qui traite déjà `players` comme un
+bloc : undo/redo (`commitBoard`/`applySnapshot`), persistance `localStorage`, synchro
+Firebase en ligne — aucune plomberie séparée à écrire, exactement le même raisonnement
+déjà documenté pour `natureSort`/`markerShelf`).
+- **`DEFAULT_PA = 3`** (à côté de `DEFAULT_PV`), posé sur chaque nouveau joueur par
+  `addPlayer`. **Repli `p.pa ?? DEFAULT_PA`** à la fois dans `updatePa` (lecture ET
+  écriture) et à l'affichage : un joueur créé AVANT cette fonctionnalité n'a encore aucun
+  champ `pa` du tout dans son objet (contrairement à une migration `data.json`, ceci est
+  un état de session/partie, jamais rétro-rempli) — sans ce repli, le tout premier clic
+  sur -/+ d'un tel joueur partirait de `undefined + delta` (`NaN`) au lieu de démarrer à 3.
+  Vérifié en Playwright avec un joueur injecté directement en `localStorage` sans champ
+  `pa` : affiche bien 3 par défaut, et un clic sur "−" donne bien 2 (pas `NaN`).
+- **Étoile bleue plutôt qu'un emoji** : aucun emoji "étoile bleue" n'existe en Unicode
+  (contrairement au cœur ❤️ pour le PV) — glyphe texte `★` coloré via CSS
+  (`color:'#4fa3ff'`, le même bleu d'accent déjà utilisé partout dans l'app, ex. le glow
+  du mode Vision) à la place. Même `HEART_OUTLINE` (contour blanc en `text-shadow`,
+  4 décalages cardinaux de 1px) réutilisé tel quel — le commentaire de la constante a été
+  mis à jour pour refléter qu'elle sert maintenant aux deux glyphes, pas seulement au cœur.
+- **Structure du groupe central du pied de page** : le bloc PV existant (−/❤️/+) et le
+  nouveau bloc PA (−/★/+) sont maintenant frères dans un même conteneur flex partagé
+  (`gap:14`) à la place du seul bloc PV d'avant — le PA apparaît donc "juste à droite du
+  cœur" comme demandé, sans toucher au fallback "Ajoute un joueur" (toujours affiché seul
+  quand `current` est `null`, structure de la branche ternaire inchangée).
+- **Boutons œil/dé/‹/› légèrement réduits** (Gus : "tu peux légèrement réduire la taille
+  des boutons oeil, dé, < , > pour que tout soit à peu près de la même taille") — pour
+  garder un pied de page visuellement cohérent maintenant qu'il y a un 4ème groupe de
+  contrôles. `navBtnStyle` (‹/›) : 40×40 → 36×36, police 26 → 22. Bouton Vision (👁️) :
+  40×40 → 36×36, police 18 → 16. `DiceButton` : 44×34 → 40×32, `DICE_EMOJI_SIZE` 20 → 18,
+  `DICE_RESULT_SIZE` 27 → 24 (les deux constantes de taille du résultat du dé ajustées
+  ensemble pour rester proportionnées). Aucun changement sur les boutons −/+ eux-mêmes
+  (`pvBtnStyle`, 24×24, déjà les plus petits du groupe et non mentionnés par Gus).
+  Vérifié en Playwright : ‹/›/👁️ mesurent maintenant 36×36, le dé 40×32 — un gabarit
+  nettement plus homogène qu'avant (40×40/40×40/44×34).
+- Vérifié en Playwright de bout en bout : PA affiché à 3 par défaut sur un nouveau joueur,
+  indépendant du PV (bouton + du PA ne touche jamais au PV et vice-versa), indépendant par
+  joueur (bump le PA du joueur 1 à 5, passer au joueur 2 via › affiche bien 3, pas 5),
+  aucune erreur console.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
