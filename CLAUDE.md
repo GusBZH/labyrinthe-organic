@@ -3077,6 +3077,69 @@ déjà documenté pour `natureSort`/`markerShelf`).
   joueur (bump le PA du joueur 1 à 5, passer au joueur 2 via › affiche bien 3, pas 5),
   aucune erreur console.
 
+### Retouches après premier retour de Gus sur le compteur de PA (même fonctionnalité)
+Gus, après avoir vu le premier rendu : "pas mal ! il faudrait réduire un tout petit peu...
+les autres boutons... et avoir une distance égale entre chaque bouton (là les boutons +
+et- touchent un peu les boutons dé et œil)... sans rien changer d'autres il faudrait
+augmenter la taille de l'étoile (genre 2 fois plus grande)... et sinon les pa doivent être
+visible également à côté des cœurs quand on clique sur un joueur sur la barre des carrés
+des joueurs à droite. ainsi que quand on clique sur un joueur en mode vision".
+- **Distance égale entre CHAQUE bouton, pas seulement entre les 3 gros groupes** — la
+  structure à 3 groupes imbriqués (chacun avec son propre `gap` interne — 4/8/14px selon
+  le groupe — le tout espacé par `justifyContent:'space-between'` sur le conteneur
+  parent) laissait `space-between` répartir l'espace RESTANT uniquement entre les 3
+  groupes eux-mêmes, sans aucun plancher garanti — dès que leur largeur cumulée
+  approchait celle du pied de page, cet espace restant tombait à quasi zéro, collant les
+  boutons voisins de deux groupes différents (le symptôme signalé : `−`/`+` du PA
+  touchant 🎲/👁️) tout en gardant les `gap` internes fixes à l'intérieur de chaque
+  groupe — deux règles de distance différentes selon qu'on regarde entre ou dans un
+  groupe. Fix : tous les boutons/éléments de la ligne aplatis en enfants DIRECTS d'un
+  seul conteneur flex avec un seul `gap:10` — ce `gap` devient alors un plancher garanti
+  entre CHAQUE paire d'éléments adjacents quelle que soit la largeur totale, et
+  `justifyContent:'space-between'` continue de répartir tout espace EN PLUS de ce
+  plancher de façon rigoureusement égale entre les n-1 intervalles (propriété native de
+  la spec flexbox : `space-between` distribue toujours l'espace restant à parts égales
+  entre tous les intervalles, pas seulement entre les enfants directs visibles comme
+  "groupes") — `‹`/`›` restent ancrés aux extrémités comme avant, mais maintenant TOUS
+  les intervalles intermédiaires (dé↔PV, PV↔PA, PA↔œil, et chaque `−`/glyphe/`+` à
+  l'intérieur) partagent la même distance. Vérifié en Playwright : les 9 intervalles
+  entre les 10 enfants de la ligne mesurent tous exactement le même écart en pixels.
+- **Boutons ‹/›/👁️/🎲 réduits une nouvelle fois, très légèrement** ("un tout petit peu,
+  vraiment pas beaucoup") : `navBtnStyle` 36×36→34×34 (police 22→20), bouton Vision
+  36×36→34×34 (police 16→15), `DiceButton` 40×32→38×30 (`DICE_EMOJI_SIZE` 18→17,
+  `DICE_RESULT_SIZE` 24→23). Les boutons `−`/`+` (`pvBtnStyle`) restent inchangés (jamais
+  mentionnés par Gus, déjà les plus petits du lot).
+- **Étoile agrandie (~2×), même boîte 34×34 inchangée** — Gus a explicitement demandé de
+  ne "rien changer d'autre" que la taille : `fontSize` de l'étoile 26→52 (exactement le
+  facteur 2× suggéré), tout le reste (position de la boîte, contour, taille du chiffre
+  par-dessus) intact. Cause du problème d'origine : le glyphe texte `★` occupe beaucoup
+  moins sa boîte de caractère que l'emoji `❤️` à taille de police ÉGALE — doubler
+  seulement la police du glyphe suffit à obtenir une taille VISUELLE comparable au cœur,
+  sans agrandir la boîte de positionnement 34×34 elle-même (`position:absolute` sans
+  `overflow:hidden` laisse simplement le glyphe déborder visuellement de sa boîte tout en
+  restant centré — déjà le cas pour le cœur lui-même à 30px dans une boîte de 34px,
+  aucune retouche structurelle nécessaire). Le chiffre par-dessus (`position:relative`,
+  peint après le glyphe `absolute` dans le même contexte d'empilement — z-index implicite
+  par ordre du DOM) reste bien lisible par-dessus l'étoile agrandie, vérifié visuellement
+  par capture d'écran.
+- **PA maintenant visible dans la fenêtre `visionPlayerId`** — cette fenêtre est LA SEULE
+  et MÊME fenêtre pour les deux points d'entrée cités par Gus (cliquer un carré de la
+  barre latérale via `onOpenInfo`, ou cliquer un jeton en mode Vision — voir "Mode
+  Vision" et le commentaire de `visionPlayerId` plus haut dans ce fichier), donc une
+  seule modification couvre les deux cas. Étoile ajoutée juste après le cœur existant
+  dans la rangée du haut (nom + cœur + étoile + ✕), même schéma que dans le pied de page
+  mais à l'échelle de cette fenêtre (boîte 40×40 comme le cœur qui l'y voisine, police
+  d'étoile 64 pour obtenir le même ratio visuel cœur/étoile que dans le pied de page —
+  36px de cœur dans cette fenêtre contre 30px dans le pied de page, donc l'étoile suit
+  proportionnellement : 64 contre 52). Purement consultatif (aucun bouton −/+ ici, cette
+  fenêtre n'affiche jamais le joueur COURANT de façon exclusive — n'importe quel joueur
+  de la partie peut y être affiché).
+- Vérifié en Playwright (capture d'écran + mesures DOM) : cœur et étoile visuellement
+  comparables en taille dans le pied de page ET dans la fenêtre `visionPlayerId` (ouverte
+  via un clic sur le carré de la barre latérale, chemin partagé avec le mode Vision),
+  chiffre du PA lisible par-dessus l'étoile dans les deux cas, les 9 écarts entre les 10
+  boutons/éléments du pied de page tous égaux, aucune régression sur PV/dé/Vision/undo.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
