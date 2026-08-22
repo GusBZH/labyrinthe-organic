@@ -32,8 +32,15 @@ export function monsterBackFor(lvl) {
 // Natural bonus text printed on an énergie's face, fixed per element (not
 // derived from any catalog field) — Gus's own split: Multi/Ombre/Eau/Air
 // give +1 PA, Feu/Terre give +1 PV.
+// Bonus naturel affiché en bas de la carte (pas l'effet du milieu) — Gus a
+// demandé de retirer celui de Multi/Ombre spécifiquement ("le bonus +1 PA
+// de toutes les cartes énergie ombre et énergie multi"), gardant Eau/Air
+// (+1 PA) et Feu/Terre (+1 PV) inchangés. Chaîne vide plutôt qu'une entrée
+// absente : `CardFront` fait déjà `ENERGY_BONUS[data.element] || ''`, donc
+// les deux se comportent pareil, mais une entrée explicite documente que
+// c'est un choix délibéré plutôt qu'un oubli.
 export const ENERGY_BONUS = {
-  Multi: '+1 PA', Ombre: '+1 PA', Eau: '+1 PA', Air: '+1 PA',
+  Multi: '', Ombre: '', Eau: '+1 PA', Air: '+1 PA',
   Feu: '+1 PV', Terre: '+1 PV',
 };
 
