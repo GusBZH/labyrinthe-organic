@@ -1480,7 +1480,8 @@
       "statut": "Validé",
       "effet": "Victoire : posez 3 cases Map n'importe où. Un joueur de votre chois choisit l'orientation.",
       "quantite": 1,
-      "notes": ""
+      "notes": "",
+      "cout": ""
     },
     {
       "id": "m2",
