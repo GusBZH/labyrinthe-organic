@@ -1003,7 +1003,7 @@
       "nom": "+ 1 Magique !",
       "element": "Multi",
       "statut": "Validé",
-      "cout": "",
+      "cout": "0 pa",
       "limite": "",
       "effet": "Pour chaque sort d'élément différent, augmentez de 1 le chiffre sur 1 item pendant 1 tour global.",
       "quantite": 5,
