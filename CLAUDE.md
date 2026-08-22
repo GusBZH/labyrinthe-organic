@@ -3140,6 +3140,43 @@ des joueurs à droite. ainsi que quand on clique sur un joueur en mode vision".
   chiffre du PA lisible par-dessus l'étoile dans les deux cas, les 9 écarts entre les 10
   boutons/éléments du pied de page tous égaux, aucune régression sur PV/dé/Vision/undo.
 
+### Deuxième retouche sur le compteur de PA — étoile SVG + carré du dé
+Gus, encore : "la taille du carré du bouton de oeil et dé sont pas identiques, possible de
+faire en sorte que ce soit la même taille de bouton... bon pour l'étoile c'est pas encore
+ça, le centre de l'étoile n'est pas centré par rapport au chiffre, du coup on voit
+toujours pas bien le chiffre et elle dépasse vers le bas, possible de faire une étoile
+beaucoup plus arrondie sur les pics ?".
+- **`DiceButton` devient un carré 34×34 identique au bouton œil**, au lieu du rectangle
+  38×30 d'avant (même `borderRadius:8` que les autres boutons du groupe pour un jeu de
+  boutons visuellement assorti). `DICE_EMOJI_SIZE`/`DICE_RESULT_SIZE` réajustés (16/24)
+  pour rester bien proportionnés dans la nouvelle boîte carrée, un peu plus petite en
+  largeur qu'avant.
+- **Étoile remplacée par une icône SVG dessinée (`StarIcon`), plus un glyphe de police
+  `★`** — cause des deux symptômes signalés : un glyphe de caractère n'est ni centré ni à
+  la même hauteur dans sa boîte selon la police/OS (même raison déjà documentée pour
+  `RotateIcon`/`FlipIcon`/`TargetIcon`/`EyeIcon`, tous des SVG pour cette même raison —
+  l'étoile aurait dû suivre ce même schéma dès le début plutôt que rester le seul glyphe
+  de police du lot). `STAR_PATH` (constante de module, jamais recalculée) est un chemin à
+  5 branches PRÉ-ARRONDI : chaque sommet (pointe extérieure ET creux intérieur) est
+  remplacé par une courbe quadratique qui "coupe le coin" à 34% de la longueur de chaque
+  arête au lieu de rejoindre le sommet en angle vif — la seule façon d'obtenir des pointes
+  franchement arrondies sur une forme en étoile (un simple `border-radius` CSS ne
+  s'applique qu'à un rectangle). `StarIcon({size, color})` rend ce chemin rempli en bleu
+  (`fill`, prop `color`, défaut `#4fa3ff`) avec un fin contour blanc (`stroke:'#fff'`,
+  `strokeLinejoin:'round'` pour que le contour lui-même épouse l'arrondi des pointes) —
+  même esprit que `HEART_OUTLINE` pour le cœur, porté par le SVG plutôt qu'un
+  `text-shadow` puisque ce n'est plus un glyphe de police. Positionné en `position:
+  'absolute'` dans la même boîte 34×34 (pied de page) / 40×40 (fenêtre `visionPlayerId`)
+  qu'avant — un `<svg>` centré par le flex du parent se comporte exactement comme le
+  faisait le `<div>` de texte, donc le chiffre par-dessus (`position:'relative'`, peint
+  après dans le même contexte d'empilement) reste bien visible sans rien retoucher à cette
+  partie-là.
+- Vérifié en Playwright : capture d'écran de l'étoile isolée (rendu HTML autonome, avant
+  intégration) pour valider visuellement la forme arrondie avant de la câbler dans l'app ;
+  bouton dé et bouton œil mesurent maintenant tous les deux exactement 34×34 ; chiffre du
+  PA lisible en zoomant sur la boîte (pied de page ET fenêtre `visionPlayerId`) ; aucune
+  régression sur les clics PV/PA/dé/Vision/carré joueur, aucune erreur console.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

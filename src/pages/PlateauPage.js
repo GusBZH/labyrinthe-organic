@@ -171,6 +171,30 @@ function EyeIcon(){
   );
 }
 
+// PA star, replacing the text glyph ★ (Gus, x2 : d'abord "on peut même pas
+// voir le chiffre" — le glyphe ★ d'une police n'est ni centré ni de la
+// même hauteur qu'un emoji dans sa boîte de caractère, comme documenté
+// pour Rotate/Flip/Target/Eye ci-dessus, donc l'agrandir seul ne réglait
+// que la taille, pas le centrage — puis "possible de faire une étoile
+// beaucoup plus arrondie sur les pics ?"). `STAR_PATH` (constante de
+// module, jamais recalculée) est un chemin à 5 branches PRÉ-ARRONDI —
+// chaque sommet (pointe extérieure ET creux intérieur) est remplacé par
+// une courbe quadratique qui "coupe le coin" à 34% de la longueur de
+// chaque arête plutôt que de rejoindre le sommet en angle vif — plutôt
+// qu'un `<polygon>` à pointes nettes ou un `border-radius` CSS (qui ne
+// s'applique pas à une forme en étoile). Rempli en bleu (`fill`, prop
+// `color`) avec un fin contour blanc (`stroke`, même esprit que
+// `HEART_OUTLINE` pour le cœur, juste porté par le SVG plutôt qu'un
+// `text-shadow` puisque ce n'est plus un glyphe de police) —
+// `strokeLinejoin:'round'` pour que le contour lui-même épouse
+// l'arrondi des pointes sans jamais les faire ressortir pointues.
+const STAR_PATH = 'M11.08 3.80 Q12.00 1.50 12.92 3.80 L13.78 5.97 Q14.70 8.28 17.18 8.44 L19.51 8.59 Q21.99 8.76 20.08 10.34 L18.28 11.83 Q16.37 13.42 16.99 15.83 L17.56 18.09 Q18.17 20.49 16.07 19.17 L14.10 17.92 Q12.00 16.60 9.90 17.92 L7.93 19.17 Q5.83 20.49 6.44 18.09 L7.01 15.83 Q7.63 13.42 5.72 11.83 L3.92 10.34 Q2.01 8.76 4.49 8.59 L6.82 8.44 Q9.30 8.28 10.22 5.97 Z';
+function StarIcon({size, color='#4fa3ff'}){
+  return h('svg', {width:size, height:size, viewBox:'0 0 24 24', fill:color, stroke:'#fff', strokeWidth:0.6, strokeLinejoin:'round'},
+    h('path', {d:STAR_PATH})
+  );
+}
+
 // Small flag glyph, color-parameterized — reused for BOTH drapeau bleu and
 // drapeau rouge markers (Gus gave neither an explicit emoji, unlike the two
 // jetons/la roche below): no single Unicode flag reads as a plain "blue
@@ -1177,7 +1201,7 @@ function DiceFace({value, size}){
   );
 }
 
-const DICE_EMOJI_SIZE = 17, DICE_RESULT_SIZE = 23;
+const DICE_EMOJI_SIZE = 16, DICE_RESULT_SIZE = 24;
 // Dice roll button: click shakes the 🎲 emoji for ~1s (Gus: "petit
 // mouvement mais rapide/nerveux dans des sens qui semble aléatoires"),
 // then the result pops in as a white square with dice pips (DiceFace),
@@ -1213,8 +1237,12 @@ function DiceButton({player, onRoll, guardedBySelection, visionMode}){
   const showResult = player.dice && phase !== 'shaking';
   return h('button', {
     onClick:handleClick,
+    // Même carré que le bouton œil juste à côté (Gus : "la taille du carré
+    // du bouton de œil et dé sont pas identiques... possible que ce soit
+    // la même taille de bouton") — 34×34, même `borderRadius`, plutôt que
+    // le rectangle 38×30 d'avant.
     style:{position:'relative', background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`,
-      borderRadius:6, width:38, height:30, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
+      borderRadius:8, width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
   },
     h('div', {className: phase === 'shaking' ? 'dice-shake' : '', style:{fontSize:DICE_EMOJI_SIZE, lineHeight:1}}, '🎲'),
     showResult && h('div', {
@@ -4398,7 +4426,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                   // -/+ : cette fenêtre n'est jamais celle du joueur
                   // courant, voir "Vision player modal" plus haut).
                   h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
-                    h('div', {style:{position:'absolute', fontSize:64, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
+                    h('div', {style:{position:'absolute'}}, h(StarIcon, {size:34})),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pa ?? DEFAULT_PA)
                   )
                 ),
@@ -4725,20 +4753,15 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // même paire de boutons -/+, même bulle de contour blanc, mais une
           // étoile bleue (`color:'#4fa3ff'`, l'accent bleu déjà utilisé
           // partout dans l'app — ex. le glow du mode Vision) à la place du
-          // cœur. Pas d'emoji "étoile bleue" en Unicode, donc un glyphe ★
-          // coloré via CSS plutôt qu'un emoji à couleur fixe.
+          // cœur. Icône SVG (`StarIcon`, voir sa propre note) plutôt qu'un
+          // glyphe de police ★ — celui-ci n'était ni centré ni à la bonne
+          // hauteur dans sa boîte de caractère (Gus : "on peut même pas voir
+          // le chiffre... elle dépasse vers le bas"), et ses pointes étaient
+          // trop nettes ("possible de faire une étoile beaucoup plus
+          // arrondie sur les pics ?").
           h('button', {key:'pa-minus', onClick:guardedBySelection(()=>updatePa(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
           h('div', {key:'pa-box', style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-            // Gus, après coup : "l'étoile est beaucoup plus petite que le
-            // cœur alors que ça devrait être la même taille... augmente la
-            // taille (genre 2 fois plus grande)" — le glyphe texte ★ occupe
-            // beaucoup moins sa boîte de caractère que l'emoji ❤️ à taille
-            // de police égale (même contour blanc, même boîte de
-            // positionnement 34×34 non redimensionnée exprès : `position:
-            // absolute` sans `overflow:hidden` laisse le glyphe déborder
-            // visuellement de la boîte tout en restant centré, donc rien
-            // d'autre à retoucher).
-            h('div', {style:{position:'absolute', fontSize:52, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
+            h('div', {style:{position:'absolute'}}, h(StarIcon, {size:30})),
             h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
           ),
           h('button', {key:'pa-plus', onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
