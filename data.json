@@ -2359,10 +2359,10 @@
     }
   ],
   "elementOrder": [
+    "Air",
     "Feu",
     "Eau",
     "Terre",
-    "Air",
     "Ombre",
     "Multi"
   ],
