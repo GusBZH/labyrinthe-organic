@@ -3177,6 +3177,55 @@ beaucoup plus arrondie sur les pics ?".
   PA lisible en zoomant sur la boîte (pied de page ET fenêtre `visionPlayerId`) ; aucune
   régression sur les clics PV/PA/dé/Vision/carré joueur, aucune erreur console.
 
+### Troisième retouche sur le compteur de PA — taille égale au cœur + pointes seules arrondies
+Gus, une nouvelle fois précis : "c'est quasiment parfait... la taille est redevenu petite,
+tu peux pas faire sorte que ce soit comme le cœur ? que le haut du coeur soit à la même
+hauteur que le haut de l'étoile, le bas du coeur à la même hauteur que le bas de
+l'étoile... uniquement les pics extérieur de l'étoile qui sont arrondis, si on peut garder
+les angles proche de l'intérieur de l'étoile bien sharp (les coins à la base des pics)".
+- **`STAR_PATH` régénéré : SEULS les 5 sommets EXTÉRIEURS (les pointes) sont arrondis,
+  les 5 sommets INTÉRIEURS (les creux en V à la base de chaque pointe) restent des angles
+  droits** — la version précédente arrondissait les deux types de sommet uniformément.
+  Concrètement : dans la boucle qui construit le chemin SVG, seuls les sommets d'indice
+  pair (`i%2===0`, les pointes) passent par la coupe-de-coin + courbe quadratique déjà
+  utilisée ; les sommets d'indice impair (les creux) sont désormais rejoints par une
+  simple ligne droite (`L`) directement au sommet, sans coupe ni courbe — produit
+  exactement le look "étoile pleine aux pointes rondes mais aux creux nets" demandé
+  (proche d'un badge/étoile de récompense classique). Rayon extérieur aussi élargi
+  (10.5→11.3 sur 24 unités de viewBox) pour remplir un peu mieux la boîte disponible.
+- **Taille calculée dynamiquement pour égaler la hauteur RÉELLEMENT RENDUE du cœur voisin,
+  pas une valeur choisie à l'œil** — une étoile, contrairement à un cercle ou un carré, ne
+  remplit jamais toute sa boîte carrée (des coins vides entre les pointes) : agrandir sa
+  police/sa taille de police d'un simple facteur "×2" (comme la retouche précédente
+  l'avait fait) ne suffit pas à l'aligner visuellement sur un glyphe qui, lui, remplit
+  différemment sa propre boîte. Mesuré empiriquement (`getBoundingClientRect` sur le
+  `<path>` rendu dans un banc d'essai HTML autonome) : le chemin de `STAR_PATH` ne remplit
+  que ~73.5% de la hauteur de son `<svg>` conteneur — `STAR_FILL_RATIO = 0.735`, constante
+  de module. `StarIcon` prend maintenant une prop `targetHeight` (la hauteur RÉELLE en
+  pixels que l'étoile doit occuper à l'écran, mesurée directement sur le cœur voisin à cet
+  endroit précis — 35 dans le pied de page, 42 dans la fenêtre `visionPlayerId`, deux
+  tailles de cœur différentes selon l'endroit) plutôt qu'une taille de boîte SVG brute
+  (`size`) — et calcule elle-même la taille de `<svg>` nécessaire
+  (`size = targetHeight / STAR_FILL_RATIO`) pour que l'étoile RENDUE fasse exactement
+  `targetHeight` de haut, quel que soit l'endroit où elle est utilisée.
+- **Recentrage vertical du chemin lui-même** — une étoile à 5 branches pointe-en-haut n'a
+  pas son encre centrée sur le centre géométrique de son propre viewBox par nature (la
+  pointe du haut dépasse plus au-dessus du centre que les deux jambes du bas n'en
+  dépassent en-dessous) : générée autour de `(12, 12)`, l'étoile apparaissait bien de la
+  bonne HAUTEUR une fois `targetHeight` appliqué, mais décalée d'environ 2px vers le HAUT
+  par rapport au cœur malgré une hauteur identique. Corrigé en régénérant le chemin autour
+  d'un centre `(12, 12.885)` (décalé vers le bas) — affiné par deux itérations de mesure/
+  ajustement (`getBoundingClientRect` du cœur vs de l'étoile aux tailles réelles utilisées
+  dans l'app, pas seulement sur le banc d'essai isolé) jusqu'à un écart résiduel
+  sous-pixel (<0.2px) entre le haut/bas du cœur et le haut/bas de l'étoile, dans le pied
+  de page ET la fenêtre `visionPlayerId`. Recentré une fois pour toutes dans la constante
+  elle-même — aucun décalage à gérer aux sites d'appel.
+- Vérifié en Playwright (mesures DOM précises + captures d'écran) : hauteur de l'étoile
+  et hauteur du cœur identiques à ~0.02px près dans les deux endroits ; haut/bas alignés à
+  moins de 0.2px d'écart ; chiffre du PA parfaitement lisible par-dessus ; pointes
+  nettement arrondies, creux entre les pointes bien nets ; aucune régression sur les
+  clics PV/PA/dé/Vision, aucune erreur console.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
