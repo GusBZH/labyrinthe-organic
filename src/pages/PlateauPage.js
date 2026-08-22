@@ -1177,7 +1177,7 @@ function DiceFace({value, size}){
   );
 }
 
-const DICE_EMOJI_SIZE = 18, DICE_RESULT_SIZE = 24;
+const DICE_EMOJI_SIZE = 17, DICE_RESULT_SIZE = 23;
 // Dice roll button: click shakes the 🎲 emoji for ~1s (Gus: "petit
 // mouvement mais rapide/nerveux dans des sens qui semble aléatoires"),
 // then the result pops in as a white square with dice pips (DiceFace),
@@ -1214,7 +1214,7 @@ function DiceButton({player, onRoll, guardedBySelection, visionMode}){
   return h('button', {
     onClick:handleClick,
     style:{position:'relative', background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(visionMode,'#444')}`,
-      borderRadius:6, width:40, height:32, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
+      borderRadius:6, width:38, height:30, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0}
   },
     h('div', {className: phase === 'shaking' ? 'dice-shake' : '', style:{fontSize:DICE_EMOJI_SIZE, lineHeight:1}}, '🎲'),
     showResult && h('div', {
@@ -4386,6 +4386,20 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                   h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
                     h('div', {style:{position:'absolute', fontSize:36, ...HEART_OUTLINE}}, '❤️'),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pv)
+                  ),
+                  // PA visible à côté du PV ici aussi (Gus : "les pa doivent
+                  // être visible également à côté des cœurs quand on clique
+                  // sur un joueur sur la barre des carrés des joueurs à
+                  // droite, ainsi que quand on clique sur un joueur en mode
+                  // vision") — une seule et même fenêtre pour les deux
+                  // points d'entrée (voir le commentaire de `visionPlayerId`
+                  // plus haut), donc un seul endroit à modifier. Purement
+                  // consultatif ici, comme le cœur juste à côté (pas de
+                  // -/+ : cette fenêtre n'est jamais celle du joueur
+                  // courant, voir "Vision player modal" plus haut).
+                  h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
+                    h('div', {style:{position:'absolute', fontSize:64, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
+                    h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pa ?? DEFAULT_PA)
                   )
                 ),
                 h('div', {
@@ -4673,54 +4687,77 @@ export function PlateauPage({onBack, data, onlineRoom}) {
       // guardedBySelection makes each one cancel a pending selection
       // instead of ALSO performing its own action when one exists (Gus's
       // general rule — see its own comment for the full reasoning).
-      h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px'}},
+      //
+      // FLAT single-level row (Gus : "avoir une distance égale entre chaque
+      // bouton, là les boutons + et − touchent un peu les boutons dé et
+      // œil") — remplace l'ancienne structure à 3 groupes imbriqués
+      // (chacun avec son propre `gap` interne, le tout espacé par
+      // `justifyContent:'space-between'` sur le conteneur) : avec 3 gros
+      // groupes, l'espace restant distribué par `space-between` pouvait
+      // devenir quasi nul dès que leur largeur cumulée approchait celle du
+      // pied de page, collant les boutons voisins entre deux groupes tout
+      // en gardant un `gap` interne fixe (4/8/14px) À L'INTÉRIEUR de
+      // chaque groupe — deux règles différentes selon qu'on regarde entre
+      // ou dans un groupe, jamais garanties égales. En aplatissant tous les
+      // boutons en enfants directs d'un même conteneur avec un seul `gap`
+      // fixe, CE `gap` devient un plancher garanti entre CHAQUE paire de
+      // boutons adjacents, quelle que soit la largeur totale — et
+      // `justifyContent:'space-between'` continue de répartir tout espace
+      // EN PLUS de ce plancher de façon rigoureusement égale entre les
+      // n-1 intervalles (propriété de la spec flexbox), donc ‹ et ›
+      // restent bien ancrés aux extrémités du pied de page comme avant.
+      h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 14px'}},
+        h('button', {key:'prev', onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
         // Dice sits right next to ‹ now — "le miroir du bouton vision"
         // (Gus): Vision sits right next to › on the other side, so this
         // mirrors that grouping. Hidden entirely (not just disabled) when
         // there's no current player — nothing to roll for.
-        h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-          h('button', {onClick:guardedBySelection(()=>switchPlayer(-1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '‹'),
-          current && h(DiceButton, {player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode})
-        ),
+        current && h(DiceButton, {key:'dice', player:current, onRoll:()=>rollDice(current.id), guardedBySelection, visionMode}),
 
-        current ? h('div', {style:{display:'flex', alignItems:'center', gap:14}},
-          h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
-            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-              h('div', {style:{position:'absolute', fontSize:30, ...HEART_OUTLINE}}, '❤️'),
-              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
-            ),
-            h('button', {onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+        ...(current ? [
+          h('button', {key:'pv-minus', onClick:guardedBySelection(()=>updatePv(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
+          h('div', {key:'pv-box', style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+            h('div', {style:{position:'absolute', fontSize:30, ...HEART_OUTLINE}}, '❤️'),
+            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pv)
           ),
+          h('button', {key:'pv-plus', onClick:guardedBySelection(()=>updatePv(current.id,1)), style:pvBtnStyle(visionMode)}, '+'),
           // Compteur de PA, "même principe" que le PV juste à gauche (Gus) :
           // même paire de boutons -/+, même bulle de contour blanc, mais une
           // étoile bleue (`color:'#4fa3ff'`, l'accent bleu déjà utilisé
           // partout dans l'app — ex. le glow du mode Vision) à la place du
           // cœur. Pas d'emoji "étoile bleue" en Unicode, donc un glyphe ★
           // coloré via CSS plutôt qu'un emoji à couleur fixe.
-          h('div', {style:{display:'flex', alignItems:'center', gap:4}},
-            h('button', {onClick:guardedBySelection(()=>updatePa(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
-            h('div', {style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-              h('div', {style:{position:'absolute', fontSize:26, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
-              h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
-            ),
-            h('button', {onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
-          )
-        ) : h('div', {onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur'),
+          h('button', {key:'pa-minus', onClick:guardedBySelection(()=>updatePa(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
+          h('div', {key:'pa-box', style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
+            // Gus, après coup : "l'étoile est beaucoup plus petite que le
+            // cœur alors que ça devrait être la même taille... augmente la
+            // taille (genre 2 fois plus grande)" — le glyphe texte ★ occupe
+            // beaucoup moins sa boîte de caractère que l'emoji ❤️ à taille
+            // de police égale (même contour blanc, même boîte de
+            // positionnement 34×34 non redimensionnée exprès : `position:
+            // absolute` sans `overflow:hidden` laisse le glyphe déborder
+            // visuellement de la boîte tout en restant centré, donc rien
+            // d'autre à retoucher).
+            h('div', {style:{position:'absolute', fontSize:52, color:'#4fa3ff', ...HEART_OUTLINE}}, '★'),
+            h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
+          ),
+          h('button', {key:'pa-plus', onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
+        ] : [
+          h('div', {key:'add', onClick:e=>{ e.stopPropagation(); guardedBySelection(addPlayer)(); }, style:{fontSize:11, color:'#777', cursor:'pointer', textDecoration:'underline'}}, 'Ajoute un joueur')
+        ]),
 
-        h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-          h('button', {
-            onClick:guardedBySelection(toggleVisionMode),
-            title:'Mode Vision',
-            style:{
-              background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
-              border:`1px solid ${visionMode ? 'rgba(79,163,255,.7)' : '#444'}`,
-              borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:36, height:36, fontSize:16,
-              boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
-            }
-          }, '👁️'),
-          h('button', {onClick:guardedBySelection(()=>switchPlayer(1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
-        )
+        h('button', {
+          key:'vision',
+          onClick:guardedBySelection(toggleVisionMode),
+          title:'Mode Vision',
+          style:{
+            background: visionMode ? 'rgba(79,163,255,.15)' : 'rgba(255,255,255,.06)',
+            border:`1px solid ${visionMode ? 'rgba(79,163,255,.7)' : '#444'}`,
+            borderRadius:8, color: visionMode ? '#9cf' : '#eee', width:34, height:34, fontSize:15,
+            boxShadow: visionMode ? '0 0 10px 2px rgba(79,163,255,.5)' : 'none', transition:'all .3s'
+          }
+        }, '👁️'),
+        h('button', {key:'next', onClick:guardedBySelection(()=>switchPlayer(1)), disabled:players.length<2, style:navBtnStyle(players.length>1, visionMode)}, '›')
       )
     ),
 
@@ -4769,7 +4806,7 @@ export function PlateauPage({onBack, data, onlineRoom}) {
 
 function navBtnStyle(enabled, vision){
   return {background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(vision, '#444')}`, borderRadius:8, color: enabled?'#eee':'#444',
-    width:36, height:36, fontSize:22, lineHeight:1, cursor: enabled?'pointer':'default'};
+    width:34, height:34, fontSize:20, lineHeight:1, cursor: enabled?'pointer':'default'};
 }
 function pvBtnStyle(vision){
   return {background:'rgba(255,255,255,.06)', border:`1px solid ${borderColor(vision, '#444')}`, borderRadius:6, color:'#eee', width:24, height:24, fontSize:14, lineHeight:1};
