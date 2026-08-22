@@ -171,25 +171,50 @@ function EyeIcon(){
   );
 }
 
-// PA star, replacing the text glyph ★ (Gus, x2 : d'abord "on peut même pas
-// voir le chiffre" — le glyphe ★ d'une police n'est ni centré ni de la
-// même hauteur qu'un emoji dans sa boîte de caractère, comme documenté
-// pour Rotate/Flip/Target/Eye ci-dessus, donc l'agrandir seul ne réglait
-// que la taille, pas le centrage — puis "possible de faire une étoile
-// beaucoup plus arrondie sur les pics ?"). `STAR_PATH` (constante de
-// module, jamais recalculée) est un chemin à 5 branches PRÉ-ARRONDI —
-// chaque sommet (pointe extérieure ET creux intérieur) est remplacé par
-// une courbe quadratique qui "coupe le coin" à 34% de la longueur de
-// chaque arête plutôt que de rejoindre le sommet en angle vif — plutôt
-// qu'un `<polygon>` à pointes nettes ou un `border-radius` CSS (qui ne
-// s'applique pas à une forme en étoile). Rempli en bleu (`fill`, prop
-// `color`) avec un fin contour blanc (`stroke`, même esprit que
-// `HEART_OUTLINE` pour le cœur, juste porté par le SVG plutôt qu'un
-// `text-shadow` puisque ce n'est plus un glyphe de police) —
-// `strokeLinejoin:'round'` pour que le contour lui-même épouse
-// l'arrondi des pointes sans jamais les faire ressortir pointues.
-const STAR_PATH = 'M11.08 3.80 Q12.00 1.50 12.92 3.80 L13.78 5.97 Q14.70 8.28 17.18 8.44 L19.51 8.59 Q21.99 8.76 20.08 10.34 L18.28 11.83 Q16.37 13.42 16.99 15.83 L17.56 18.09 Q18.17 20.49 16.07 19.17 L14.10 17.92 Q12.00 16.60 9.90 17.92 L7.93 19.17 Q5.83 20.49 6.44 18.09 L7.01 15.83 Q7.63 13.42 5.72 11.83 L3.92 10.34 Q2.01 8.76 4.49 8.59 L6.82 8.44 Q9.30 8.28 10.22 5.97 Z';
-function StarIcon({size, color='#4fa3ff'}){
+// PA star, replacing the text glyph ★ (Gus, plusieurs passages : d'abord
+// "on peut même pas voir le chiffre" — le glyphe ★ d'une police n'est ni
+// centré ni de la même hauteur qu'un emoji dans sa boîte de caractère,
+// comme documenté pour Rotate/Flip/Target/Eye ci-dessus, donc l'agrandir
+// seul ne réglait que la taille, pas le centrage — puis "possible de
+// faire une étoile beaucoup plus arrondie sur les pics ?", puis "que le
+// haut du cœur soit à la même hauteur que le haut de l'étoile, le bas du
+// cœur à la même hauteur que le bas de l'étoile" et "uniquement les pics
+// extérieurs arrondis, les angles à la base des pics bien sharp").
+// `STAR_PATH` (constante de module, jamais recalculée) est un chemin à
+// 5 branches où SEULS les 5 sommets EXTÉRIEURS (les pointes) sont
+// pré-arrondis (coupés à 42% de la longueur de chaque arête puis
+// rejoints par une courbe quadratique) — les 5 sommets INTÉRIEURS (les
+// creux en V à la base de chaque pointe) restent des angles droits
+// (`L` direct vers le sommet, sans coupe ni courbe), pour le look
+// "étoile pleine aux pointes rondes mais aux creux nets" demandé. Rempli
+// en bleu (`fill`, prop `color`) avec un fin contour blanc (`stroke`,
+// même esprit que `HEART_OUTLINE` pour le cœur, juste porté par le SVG
+// plutôt qu'un `text-shadow` puisque ce n'est plus un glyphe de police)
+// — `strokeLinejoin:'round'` pour que le contour lui-même épouse
+// l'arrondi des pointes sans jamais les faire ressortir anguleuses.
+// Généré autour d'un centre (12, 12.885) plutôt que (12, 12) : une étoile
+// à 5 branches pointe vers le haut n'a par nature PAS son encre centrée
+// sur le centre géométrique de son propre viewBox (la pointe du haut
+// dépasse plus au-dessus du centre que les deux jambes du bas n'en
+// dépassent en-dessous) — sans ce décalage vers le bas, l'étoile
+// paraissait juste un peu plus haute que le cœur juste à côté malgré une
+// hauteur identique (mesuré empiriquement via `getBoundingClientRect` :
+// ~4px de décalage vers le haut à l'échelle du pied de page). Recentré une
+// fois pour toutes ici, aucun décalage à ajouter aux sites d'appel.
+const STAR_PATH = 'M10.86 5.69 Q12.00 2.50 13.14 5.69 L14.70 10.08 L19.37 10.22 Q22.75 10.31 20.07 12.38 L16.37 15.23 L17.69 19.70 Q18.64 22.95 15.85 21.04 L12.00 18.41 L8.15 21.04 Q5.36 22.95 6.31 19.70 L7.63 15.23 L3.93 12.38 Q1.25 10.31 4.63 10.22 L9.30 10.08 Z';
+// Le chemin ci-dessus ne remplit qu'environ 73.5% de la hauteur de son
+// propre viewBox (24 unités) — contrairement à un simple carré/cercle,
+// une étoile a forcément des marges vides dans les coins de sa boîte.
+// `STAR_FILL_RATIO` (mesuré empiriquement via `getBoundingClientRect` sur
+// le path rendu) sert à calculer, à chaque site d'appel, la taille de
+// `<svg>` nécessaire pour que la hauteur VISIBLE de l'étoile égale celle
+// du cœur juste à côté (Gus : "le haut du cœur à la même hauteur que le
+// haut de l'étoile, le bas du cœur à la même hauteur que le bas de
+// l'étoile") — passer directement `targetHeight` évite de refaire ce
+// calcul à la main à chaque endroit où l'étoile est utilisée.
+const STAR_FILL_RATIO = 0.735;
+function StarIcon({targetHeight, color='#4fa3ff'}){
+  const size = targetHeight / STAR_FILL_RATIO;
   return h('svg', {width:size, height:size, viewBox:'0 0 24 24', fill:color, stroke:'#fff', strokeWidth:0.6, strokeLinejoin:'round'},
     h('path', {d:STAR_PATH})
   );
@@ -4426,7 +4451,11 @@ export function PlateauPage({onBack, data, onlineRoom}) {
                   // -/+ : cette fenêtre n'est jamais celle du joueur
                   // courant, voir "Vision player modal" plus haut).
                   h('div', {style:{position:'relative', width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}},
-                    h('div', {style:{position:'absolute'}}, h(StarIcon, {size:34})),
+                    // targetHeight:42 = hauteur réellement mesurée du cœur
+                    // juste à côté dans CETTE fenêtre (fontSize:36 → ~42px
+                    // de haut à l'écran, pas la même chose que sa taille de
+                    // police) — voir la note de `StarIcon`.
+                    h('div', {style:{position:'absolute'}}, h(StarIcon, {targetHeight:42})),
                     h('div', {style:{position:'relative', fontSize:14, fontWeight:700, color:'#fff'}}, p.pa ?? DEFAULT_PA)
                   )
                 ),
@@ -4761,7 +4790,10 @@ export function PlateauPage({onBack, data, onlineRoom}) {
           // arrondie sur les pics ?").
           h('button', {key:'pa-minus', onClick:guardedBySelection(()=>updatePa(current.id,-1)), style:pvBtnStyle(visionMode)}, '−'),
           h('div', {key:'pa-box', style:{position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center'}},
-            h('div', {style:{position:'absolute'}}, h(StarIcon, {size:30})),
+            // targetHeight:35 = hauteur réellement mesurée du cœur juste à
+            // côté dans le pied de page (fontSize:30 → ~35px de haut à
+            // l'écran) — voir la note de `StarIcon`.
+            h('div', {style:{position:'absolute'}}, h(StarIcon, {targetHeight:35})),
             h('div', {style:{position:'relative', fontSize:12, fontWeight:700, color:'#fff'}}, current.pa ?? DEFAULT_PA)
           ),
           h('button', {key:'pa-plus', onClick:guardedBySelection(()=>updatePa(current.id,1)), style:pvBtnStyle(visionMode)}, '+')
