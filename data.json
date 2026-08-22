@@ -2077,7 +2077,7 @@
       "style": "Stratégie Combat",
       "joueurs": "2-10",
       "contenu": "Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux équipes Rouge et Bleu. Bases indestructibles à 7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRègles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lâche le drapeau.\n\nVariante Distorsion : sur case Œil, piocher une carte et la placer n'importe où dans n'importe quel sens.",
-      "notes": "À tester : rester 1 tour sur la base pour valider ☑️\n\n\nProblème : nombre impair de joueurs\n\nContrôle de labyrinthe que cases adjacentes pour pas casser trop facilement ce que font les adversaires \n\nFinir sont tour chez les ennemis pour récupérer le drapeau. Mais aussi finir sont tour chez sois avec le drapeau pour gagner ? Peut être chiant parce qu'après un combat on est low PV. Mais du coup le but est de rentrer et casser le passage(ex fermer portail)"
+      "notes": "À tester : rester 1 tour sur la base pour valider ☑️\n\n\nProblème : nombre impair de joueurs\n\nContrôle de labyrinthe que cases adjacentes pour pas casser trop facilement ce que font les adversaires \n\nFinir sont tour chez les ennemis pour récupérer le drapeau. Mais aussi finir sont tour chez sois avec le drapeau pour gagner ? Peut être chiant parce qu'après un combat on est low PV. Mais du coup le but est de rentrer et casser le passage(ex fermer portail). (Et maintenant qu'on réapparaît qu'au prochain tour de jeu lors d'une mort c'est mieux,)☑️"
     },
     {
       "id": "md2",
