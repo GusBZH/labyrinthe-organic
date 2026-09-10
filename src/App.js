@@ -105,8 +105,24 @@ export function App() {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setSaving(true); setSaveErr(null);
-      try { const s = await ghPut(token, nd, shaRef.current); setSha(s); shaRef.current = s; }
-      catch(e) { setSaveErr('Sauvegarde échouée'); }
+      try {
+        const s = await ghPut(token, nd, shaRef.current); setSha(s); shaRef.current = s;
+      } catch(e) {
+        // Le sha retenu localement a désynchronisé avec celui de GitHub
+        // (deux sauvegardes trop rapprochées, connexion coupée en plein
+        // envoi...) — sans ce filet, TOUTES les sauvegardes suivantes
+        // échoueraient pour de bon, puisque shaRef ne se corrige jamais
+        // tout seul en dehors d'un rechargement de page (Gus : "je peux
+        // plus rien sauvegarder... ça s'est arrêté au moment où j'ai créé
+        // la v2"). Un seul essai de récupération : on va chercher le vrai
+        // sha actuel puis on retente une fois avant d'abandonner.
+        try {
+          const {sha:freshSha} = await ghGet(token);
+          const s2 = await ghPut(token, nd, freshSha); setSha(s2); shaRef.current = s2;
+        } catch(e2) {
+          setSaveErr('Sauvegarde échouée');
+        }
+      }
       setSaving(false);
     }, 2000);
   }, [token]);
