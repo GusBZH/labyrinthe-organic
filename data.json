@@ -120,7 +120,7 @@
       "id": "s56",
       "nom": "Nan J'crois Pas",
       "element": "Air",
-      "statut": "Validé",
+      "statut": "Test 2",
       "cout": "1 PA",
       "limite": "1/tour",
       "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
