@@ -3254,6 +3254,85 @@ réel (`cardCatalogRef`) que des cartes Ombre (3) et Multi (12) existent bien da
 avec `element` correctement renseigné, donc la correction s'applique à de vraies cartes en
 jeu, pas seulement à des données de test.
 
+## Versions de règles (cases/sorts/énergies/monstres/modes) — implémenté
+Gus, avant de se lancer dans "des grosses modifications sur les cases map et des sorts" :
+"je serai rassuré si on pouvait [faire] une 'sauvegarde' de jeu tel qu'il est... une
+option discrète tout en bas de l'appli pour switcher entre les versions... si je modifie
+et j'écris v2 sur l'option en bas ça passe à la v2 et je peux modifier des trucs sans
+impacter la v1... pour créer une nouvelle version il faudrait que ça duplique la version
+sur laquelle on est". Confirmé faisable et détaillé avec Gus avant d'implémenter (taille
+de fichier, comportement sans token, notes globales versionnées) via `AskUserQuestion`/
+échange direct.
+- **`VERSIONED_FIELDS`** (`src/config.js`) — liste fermée des SEULES clés dupliquées par
+  version : `regles`/`cases`/`sorts`/`energies`/`monstres`/`modes` + leurs 6 notes
+  globales associées (Gus : "les notes vont avec les versions"). Tout le reste
+  (`visuels`, `materiel`, `lexique`, `ideeEnVrac`, `soireesProto`, `application*`,
+  `sectionOrder`/`elementOrder`/`lvlOrder`/`lvlRewards`...) reste partagé entre toutes
+  les versions, jamais dupliqué — exactement la portée que Gus a délimitée lui-même.
+- **`data.versions` = `{nom: {...VERSIONED_FIELDS}}`, `data.activeVersion` = nom de la
+  version affichée** — mais les pages de l'appli (HomePage, Card.js, etc.) continuent
+  de lire directement `data.sorts`/`data.cases`/... comme avant, SANS savoir que les
+  versions existent : `withMigrations` (`src/App.js`) recopie systématiquement le
+  contenu de la version active sur ces clés de premier niveau à chaque chargement
+  (`...versions[activeVersion]`, en dernier dans le spread pour bien écraser toute
+  valeur périmée) — c'est la SEULE raison pour laquelle aucune autre page n'a eu besoin
+  d'être modifiée pour ce chantier.
+- **Migration douce** (`migrateVersions`, `src/utils.js`) : un `data.json` d'avant cette
+  fonctionnalité (ou dont `versions` serait vide/absent) récupère automatiquement une
+  unique version `"v1"` contenant tout son contenu actuel — aucune modification manuelle
+  de data.json nécessaire, même schéma que les autres migrations douces du fichier
+  (`migrateVisuels`, `migrateSectionOrder`...).
+- **`switchOrCreateVersion(data, upd, name)`** (`src/App.js`) — logique en 2 temps à
+  chaque bascule, pour ne jamais perdre de travail en cours : (1) "photographie" la
+  version ACTUELLEMENT active (`snapshotVersionedFields`, dans `data.versions[
+  data.activeVersion]`) avant de bouger quoi que ce soit — c'est ce qui permet de
+  revenir plus tard sur une version tout en retrouvant exactement les modifs qu'on y
+  avait laissées ; (2) si `name` existe déjà dans `data.versions` → bascule dessus
+  (recopie son contenu sur les clés de premier niveau) ; si `name` est nouveau → le crée
+  comme copie de ce qu'on vient de photographier à l'étape (1), donc de la version sur
+  laquelle on était — exactement le "duplique la version sur laquelle on est" demandé
+  par Gus, avec son propre exemple vérifié (rester sur v1, taper v3 → v3 est une copie de
+  v1, pas de la dernière version visitée en cas d'aller-retour). Un seul `upd()` final :
+  un seul pas d'undo pour toute l'opération, et repasse par le même flux de sauvegarde
+  (GitHub si token, purement local sinon) que n'importe quelle autre modification —
+  **aucun code séparé n'a été nécessaire pour le cas "sans token"** : un visiteur sans
+  token peut déjà éditer l'appli sans que rien ne se sauvegarde pour de vrai (comportement
+  préexistant), donc "basculer pour regarder sans pouvoir persister" en découle
+  gratuitement, exactement comme Gus l'a anticipé lui-même dans la discussion.
+- **Toujours la version la plus récente à l'ouverture de l'appli, peu importe celle
+  sauvegardée en dernier** (Gus, après coup : "il faudrait que quand on arrive sur
+  l'appli ça affiche de base la version la plus à jour (le chiffre le plus élevé)") —
+  `pickLatestVersionName` (extrait le premier nombre du nom de chaque version via
+  regex, garde le plus grand ; un nom sans chiffre est traité comme le plus ancien
+  plutôt que de faire planter le tri) est appelé à CHAQUE chargement dans
+  `withMigrations`, pas seulement lors de la première migration — `data.activeVersion`
+  stocké dans le fichier n'est donc qu'indicatif/de confort pour le reste de la session,
+  jamais celui qui décide quoi afficher à l'arrivée. Vérifié en Playwright avec un
+  data.json fabriqué où `activeVersion` vaut `"v1"` mais où `"v3"` existe aussi : l'appli
+  affiche bien "v3" au chargement, pas "v1".
+- **UI** : option discrète tout en bas de l'accueil, sous "Déconnexion" — petit libellé
+  "Version active : X" + un champ texte (placeholder "ex: v2") + bouton "Basculer /
+  Créer". Aucune restriction d'accès particulière à cette zone (visible/utilisable en
+  et hors mode édition) — la bascule elle-même est déjà sans risque (voir le point
+  "sans token" ci-dessus).
+- **Espace disque — pas un souci à court/moyen terme** : les 6 catégories versionnées
+  pèsent ~50 Ko sur les ~65 Ko actuels de `data.json` (mesuré directement) ; chaque
+  nouvelle version ajoute donc ~50 Ko au fichier (pas de "diff", chaque version garde sa
+  propre copie complète). La vraie limite à surveiller est celle de l'API GitHub utilisée
+  pour LIRE le fichier (1 Mo pour l'API Contents, utilisée par `ghGet`) — à ce rythme, ça
+  laisse de la marge pour environ 20 versions avant d'être embêtant. Si ça devient un
+  jour un sujet réel, il existe une solution simple (répartir les vieilles versions dans
+  des fichiers séparés), mais non implémentée pour l'instant (non demandée).
+- Vérifié en Playwright de bout en bout : migration d'un data.json sans `versions` →
+  une seule version "v1" contenant tout le contenu existant ; création de "v2" → contenu
+  strictement identique à "v1" au moment de la duplication (sorts comparés par égalité
+  JSON) ; ajout d'une règle test pendant que "v2" est actif, bascule vers "v1" (règle
+  absente, comme attendu), puis retour vers "v2" (règle bien présente) — confirme que
+  rien ne fuite entre versions et que rien n'est perdu en allant-et-retour ; les champs
+  partagés (`visuels`/`materiel`/`lexique`/`sectionOrder`/`applicationNotes`) restent
+  identiques avant/après une bascule ; aller sur le Plateau puis revenir à l'accueil ne
+  perturbe pas la version active ; aucune erreur console sur l'ensemble du scénario.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

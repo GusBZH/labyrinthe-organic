@@ -1,4 +1,4 @@
-import { h, useRef } from "../react.js";
+import { h, useRef, useState } from "../react.js";
 import { ELEMENTS, STATUTS, LVLS } from "../config.js";
 import { Card } from "../components/Card.js";
 import { ElemGroup } from "../components/ElemGroup.js";
@@ -26,8 +26,9 @@ function DragRow({dragging, dragHandle, children}) {
   );
 }
 
-export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo, canRedo, onUndo, onRedo, upd, updArr, delArr, addArr, setPage, onLogout}) {
+export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo, canRedo, onUndo, onRedo, upd, updArr, delArr, addArr, setPage, onSwitchVersion, onLogout}) {
   const flashCls = useEditFlash(editMode);
+  const [versionInput, setVersionInput] = useState(data.activeVersion || '');
   const sortsByEl = {};
   ELEMENTS.forEach(el => { sortsByEl[el] = data.sorts.filter(s => s.element === el); });
   const energElems = ['Commun', ...ELEMENTS];
@@ -291,7 +292,38 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
         h('button', {
           onClick:onLogout,
           style:{width:'100%', background:'none', border:'1px solid #222', borderRadius:10, padding:10, color:'#444', fontSize:12, marginTop:8}
-        }, 'Déconnexion')
+        }, 'Déconnexion'),
+
+        // Système de versions (Gus : "des grosses modifications sur les
+        // cases map et des sorts... je serai rassuré si on pouvait une
+        // 'sauvegarde' de jeu tel qu'il est") — option discrète tout en bas
+        // de l'accueil, comme demandé : petit libellé montrant la version
+        // active (`data.activeVersion`, toujours la plus récente à
+        // l'arrivée sur l'appli, voir `pickLatestVersionName`), puis un
+        // champ texte + bouton. Taper un nom déjà existant bascule dessus ;
+        // un nom nouveau duplique la version active en cours (donc "règles,
+        // cases, sorts, énergies, monstres, modes de jeu" + leurs notes
+        // globales — tout le reste de l'appli reste partagé) sous ce
+        // nouveau nom et bascule dessus — voir `switchOrCreateVersion` dans
+        // App.js pour le détail. Sans token, la bascule reste purement
+        // locale à l'affichage (comme toute autre modif non connectée) —
+        // rien de spécifique à gérer ici, `upd()` s'en charge déjà.
+        h('div', {style:{textAlign:'center', marginTop:14, paddingTop:14, borderTop:'1px solid #1a1a1a'}},
+          h('div', {style:{color:'#444', fontSize:10, marginBottom:6}}, 'Version active : ' + data.activeVersion),
+          h('div', {style:{display:'flex', gap:6, justifyContent:'center'}},
+            h('input', {
+              value:versionInput,
+              onChange:e=>setVersionInput(e.target.value),
+              onKeyDown:e=>{ if (e.key==='Enter' && versionInput.trim()) onSwitchVersion(versionInput); },
+              placeholder:'ex: v2',
+              style:{width:80, textAlign:'center', background:'rgba(255,255,255,.05)', border:'1px solid #292929', borderRadius:6, color:'#777', fontSize:11, padding:'5px 6px', boxSizing:'border-box'}
+            }),
+            h('button', {
+              onClick:()=>{ if (versionInput.trim()) onSwitchVersion(versionInput); },
+              style:{background:'none', border:'1px solid #292929', borderRadius:6, color:'#666', fontSize:11, padding:'5px 10px'}
+            }, 'Basculer / Créer')
+          )
+        )
       )
     )
   );
