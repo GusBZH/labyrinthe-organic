@@ -1,5 +1,5 @@
 import { h, Fragment, useState, useEffect, useRef } from "./react.js";
-import { VISUEL_CATS, SECTION_ORDER_DEFAULT, SECTION_LABELS_DEFAULT, ELEMENTS, LVLS, LR } from "./config.js";
+import { VISUEL_CATS, SECTION_ORDER_DEFAULT, SECTION_LABELS_DEFAULT, ELEMENTS, LVLS, LR, VERSIONED_FIELDS } from "./config.js";
 
 export function uid(){ return Math.random().toString(36).slice(2); }
 
@@ -145,6 +145,50 @@ export function migrateLvlRewards(lvlRewards){
   const out = {};
   LVLS.forEach(l => { out[l] = base[l] !== undefined ? base[l] : (LR[l] || ''); });
   return out;
+}
+
+// Extrait un instantané des champs versionnés (`VERSIONED_FIELDS` dans
+// config.js) depuis un objet data — utilisé à la fois pour migrer un
+// data.json d'avant les versions (son contenu actuel devient la version
+// "v1") et pour "photographier" la version active au moment de basculer ou
+// d'en créer une nouvelle (voir `switchOrCreateVersion` dans App.js).
+export function snapshotVersionedFields(d){
+  const out = {};
+  VERSIONED_FIELDS.forEach(k => { out[k] = d[k] !== undefined ? d[k] : (k.endsWith('Notes') ? '' : []); });
+  return out;
+}
+
+// Système de versions de règles (Gus : "des grosses modifications sur les
+// cases map et des sorts... je serai rassuré si on pouvait une 'sauvegarde'
+// de jeu tel qu'il est") — `data.versions` = `{nom: {...champs versionnés}}`.
+// Un data.json d'avant cette fonctionnalité (ou dont `versions` a été vidé/
+// corrompu) récupère automatiquement une unique version "v1" contenant son
+// contenu actuel, comme point de départ éditable — aucune modification
+// manuelle requise, même schéma que les autres migrations douces de ce
+// fichier.
+export function migrateVersions(d){
+  if (d.versions && typeof d.versions === 'object' && !Array.isArray(d.versions) && Object.keys(d.versions).length) {
+    return d.versions;
+  }
+  return { v1: snapshotVersionedFields(d) };
+}
+
+// Un nom de version sans chiffre (ex: renommée à la main) est traité comme
+// le plus ancien plutôt que de faire planter le tri.
+function versionSortKey(name){
+  const m = String(name).match(/\d+/);
+  return m ? parseInt(m[0], 10) : -1;
+}
+
+// Gus : "il faudrait que quand on arrive sur l'appli ça affiche de base la
+// version la plus à jour (le chiffre le plus élevé)" — appelée à CHAQUE
+// chargement (pas juste à la première migration), donc peu importe quelle
+// version était active la dernière fois qu'on a sauvegardé, l'appli
+// retombe toujours sur la plus récente à l'ouverture ; changer de version
+// reste possible ensuite dans la même session, exactement comme avant.
+export function pickLatestVersionName(versions){
+  const names = Object.keys(versions);
+  return names.reduce((best, n) => versionSortKey(n) > versionSortKey(best) ? n : best, names[0]);
 }
 
 // Press-and-hold (mouse or touch, via Pointer Events) reordering for a flat

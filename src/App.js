@@ -6,11 +6,18 @@ import { IdeeVracPage } from "./pages/IdeeVracPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { PlateauPage } from "./pages/PlateauPage.js";
 import { OnlineLobbyPage } from "./pages/OnlineLobbyPage.js";
-import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder, migrateLvlRewards } from "./utils.js";
+import { migrateVisuels, migrateSectionOrder, migrateElementOrder, migrateLvlOrder, migrateLvlRewards, migrateVersions, pickLatestVersionName, snapshotVersionedFields } from "./utils.js";
 
 const MAX_HISTORY = 50;
 
 function withMigrations(d){
+  const versions = migrateVersions(d);
+  // Toujours la version la plus récente à l'arrivée (Gus : "affiche de base
+  // la version la plus à jour"), peu importe ce que `d.activeVersion`
+  // valait dans le fichier — un simple recalcul à la lecture, jamais
+  // ré-écrit tout seul (voir `switchOrCreateVersion`, seule fonction qui
+  // persiste vraiment un changement de version active).
+  const activeVersion = pickLatestVersionName(versions);
   return {
     ...d,
     visuels: migrateVisuels(d.visuels),
@@ -18,7 +25,37 @@ function withMigrations(d){
     elementOrder: migrateElementOrder(d.elementOrder),
     lvlOrder: migrateLvlOrder(d.lvlOrder),
     lvlRewards: migrateLvlRewards(d.lvlRewards),
+    versions,
+    activeVersion,
+    // Recopie le contenu de la version active sur les clés de premier
+    // niveau (regles/cases/sorts/...) — chaque page lit déjà directement
+    // `data.sorts`/`data.cases`/etc., donc c'est la SEULE ligne qui leur
+    // fait voir la bonne version, sans avoir à toucher à ces pages.
+    ...versions[activeVersion],
   };
+}
+
+// Bascule vers `name` (le crée s'il n'existe pas encore) — Gus : "on
+// sauvegarde là la v1, si je modifie et j'écris v2... ça passe à la v2 [...]
+// pour créer une nouvelle version il faudrait que ça duplique la version
+// sur laquelle on est". Toujours en 2 temps : (1) la version ACTUELLE est
+// d'abord "photographiée" (sauve les modifs en cours dans sa propre case de
+// `data.versions`, jamais perdues) ; (2) `name` devient la nouvelle version
+// active — soit en y rechargeant une version déjà existante, soit en la
+// créant comme copie de ce qu'on vient de photographier à l'étape (1). Un
+// seul `upd()` au final : un seul pas d'undo pour toute l'opération, et
+// passe par le même flux de sauvegarde (GitHub si token, local sinon)
+// qu'une modification normale — rien de spécifique à écrire pour le cas
+// "sans token" (voir CLAUDE.md, la bascule n'y sera simplement jamais
+// persistée, comme toute autre modif locale).
+export function switchOrCreateVersion(data, upd, rawName){
+  const name = (rawName || '').trim();
+  if (!name || name === data.activeVersion) return;
+  const current = snapshotVersionedFields(data);
+  const versions = {...data.versions, [data.activeVersion]: current};
+  const targetContent = versions[name] || current;
+  if (!versions[name]) versions[name] = targetContent;
+  upd({...data, versions, activeVersion:name, ...targetContent});
 }
 
 export function App() {
@@ -202,6 +239,7 @@ export function App() {
     data, editMode, setEditMode, saving, saveErr,
     canUndo, canRedo, onUndo:undo, onRedo:redo,
     upd, updArr, delArr, addArr, setPage,
+    onSwitchVersion: name => switchOrCreateVersion(data, upd, name),
     onLogout: () => { try{localStorage.removeItem('gh_token');}catch{} setToken(''); setData(null); resetHistory(); }
   });
 }

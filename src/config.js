@@ -9,7 +9,7 @@ export const GH_FILE = "data.json";
 // pousser une forme de données incompatible dans une partie en ligne
 // partagée (Gus : "si quelqu'un d'autre crée une partie ils ont une vieille
 // version du jeu, avec plus de 100 cartes maps, pas tous les monstres").
-export const APP_VERSION = "2026-08-22.5";
+export const APP_VERSION = "2026-09-10.1";
 
 export const ELEMENTS = ["Feu","Eau","Terre","Air","Ombre","Multi"];
 export const STATUTS  = ["Validé","Test 1","Test 2","Test 3","Archivé"];
@@ -62,3 +62,16 @@ export const SECTION_LABELS_DEFAULT = {
   materiel: '🧰 Matériel',
   application: '🤖 Application',
 };
+
+// Système de versions (Gus : "des grosses modifications sur les cases map et
+// des sorts... j'aimerais bien essayer mais je serai rassuré si on pouvait
+// une 'sauvegarde' de jeu tel qu'il est") — seules ces catégories (le
+// contenu qui change vraiment d'une version de règles à l'autre) sont
+// dupliquées par version ; tout le reste (visuels, matériel, lexique, idées
+// en vrac, soirées proto, application, ordres d'affichage...) reste
+// partagé entre toutes les versions. Chaque nom ci-dessous a aussi sa note
+// globale associée (Gus : "les notes vont avec les versions").
+export const VERSIONED_FIELDS = [
+  'regles', 'cases', 'sorts', 'energies', 'monstres', 'modes',
+  'reglesNotes', 'casesNotes', 'sortsNotes', 'energiesNotes', 'monstresNotes', 'modesNotes',
+];
