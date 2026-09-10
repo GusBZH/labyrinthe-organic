@@ -10,7 +10,7 @@
       "id": "s34",
       "nom": "Google drive",
       "element": "Feu",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "1 PA",
       "limite": "3/tour",
       "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
@@ -6584,9 +6584,2110 @@
       "energiesNotes": "Énergies maudite et multi donnent un bonus ? (mtn non). \nPar contre , items maudits ne comptent pas dans la limite des 3. (Donc pas chiant pour maudit mais pour multi ça les rends moins fort parce qu'ils sont pété de base)\n\nDepuis qu'on divise en 2 les pioches, on pourrait laisser face caché les items sur le sol, parce qu'on se rappelle pas forcément de l'item mais on peut voir l'élément qui nous intéresse !",
       "monstresNotes": "Préciser que les monstres commence toujours un combat full vie\n\nAjouter 2 PV aux monstres c'est bien ?\n\nCe serait cool d'avoir les niveaux des monstres sur le dos de la carte, et quand on pioche on peut un peu choisir quel niveau de monstre on affronte.\nPlus facile et moins frustrant quand on veut pas se prendre la tête et ça encourage à team play si on doit affronter un monstre fort.\n\nSi on ajoute monstre affrontements automatique dans tous les modes de jeu moins de team play, on subit juste si y a deux gros monstres .\nOu alors ! Monstres affrontements automatique mais juste pour un dé ! Donc si on est low c'est dangereux ",
       "modesNotes": ""
+    },
+    "v3": {
+      "regles": [
+        {
+          "id": "r1",
+          "nom": "Mise en place",
+          "statut": "Validé",
+          "effet": "Chaque joueur pioche 3 sorts, en choisit 1 comme Sort de Nature, placez les 2 autres en bas de la pioche. \nToutes les pioches sauf les cases sont coupées en deux.",
+          "notes": ""
+        },
+        {
+          "id": "r2",
+          "nom": "Points d'Action",
+          "statut": "Validé",
+          "effet": "3 PA par tour, utilisables dans n'importe quel ordre.",
+          "notes": ""
+        },
+        {
+          "id": "r3",
+          "nom": "Explorer",
+          "statut": "Validé",
+          "effet": "1 PA — Piochez une carte Map, reliez-la et déplacez-vous dessus.",
+          "notes": ""
+        },
+        {
+          "id": "r4",
+          "nom": "Sprinter",
+          "statut": "Validé",
+          "effet": "1 PA, 1/tour — Lancez un dé et déplacez-vous jusqu'à ce nombre de cases révélées.",
+          "notes": ""
+        },
+        {
+          "id": "r5",
+          "nom": "Contrôle du labyrinthe",
+          "statut": "Validé",
+          "effet": "1x par tour — Retirer ou tourner n'importe quelle case révélé sans autre joueur dessus.",
+          "notes": ""
+        },
+        {
+          "id": "r6",
+          "nom": "Combat",
+          "statut": "Validé",
+          "effet": "Si au moins 2 joueurs ou monstre partagent la même case, l'un d'eux peut déclencher un combat. \nChacun lance un dé. \nLe plus petit résultats perd 1 PV.\nSi plusieurs résultats sont les plus petits, ceux qui ont lancé ces dés relancent.\nSi un joueur lance plusieurs dés, il garde le meilleur résultat.",
+          "notes": "Déclancher des attaques quand c'est pas notre tour ça pourrait pas être juste pour un lancé?"
+        },
+        {
+          "id": "r7",
+          "nom": "Mort",
+          "statut": "Validé",
+          "effet": "Lâchez un item au choix sur votre case et à votre prochain tour, replacer votre personnage sur votre case de départ. Vous pouvez quand même effectuer votre contrôle du labyrinthe.",
+          "notes": ""
+        },
+        {
+          "id": "r8",
+          "nom": "PV — 1 ou 2 ou 3 ?",
+          "statut": "Test 1",
+          "effet": "À tester : 2 PV vs one shot (1 PV). Comparer rythme et durée des combats.",
+          "notes": ""
+        },
+        {
+          "id": "r9",
+          "nom": "Combat de groupe (mtn doublon)",
+          "statut": "Test 1",
+          "effet": "Plusieurs joueurs ou monstres sur la même case : tous lancent un dé, uniquement le plus bas résultat perd 1pv.",
+          "notes": ""
+        },
+        {
+          "id": "r10",
+          "nom": "Combat à distance",
+          "statut": "Test 1",
+          "effet": "Nécessite de la Porté. Uniquement le défenseur peut mourir. Impossible contre les monstres. N'empêche pas une attaque classique dans le même tour.",
+          "notes": "Pas mal si on est limité à une attaque par tour, parce qu'on affaibli la personne et on doit finir au cac. Ou taper de loin et courrir ."
+        }
+      ],
+      "cases": [
+        {
+          "id": "c1",
+          "nom": "Case de Départ",
+          "statut": "Validé",
+          "effet": "Là où les joueurs commencent et réapparaissent après une mort. Indestructible. 4 portes",
+          "quantite": 10,
+          "notes": "",
+          "details": [
+            {
+              "id": "20x94mcxi5rj",
+              "fichier": "Case_de_Depart.png",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c2",
+          "nom": "Case Instable",
+          "statut": "Validé",
+          "effet": "Se défausse dès qu'un joueur en sort. Les joueurs restants meurent.",
+          "quantite": 26,
+          "notes": "",
+          "details": [
+            {
+              "id": "7z888v28iq",
+              "fichier": "Case_Instable_T.png",
+              "quantite": 8
+            },
+            {
+              "id": "lm6vfzj4au",
+              "fichier": "Case_Instable_Tout_Droit.jpg",
+              "quantite": 8
+            },
+            {
+              "id": "e2ejafl60yn",
+              "fichier": "Case_Instable_Virage.png",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c3",
+          "nom": "Case Portail",
+          "statut": "Validé",
+          "effet": "Permet de se téléporter à n'importe quel autre portail révélé.",
+          "quantite": 20,
+          "notes": "",
+          "details": [
+            {
+              "id": "c3spxily8l",
+              "fichier": "Case_Portail_4P.png",
+              "quantite": 3
+            },
+            {
+              "id": "qjwll2i2pf",
+              "fichier": "Case_Portail_Tout_Droit.png",
+              "quantite": 7
+            },
+            {
+              "id": "ygneo6qj6gi",
+              "fichier": "Case_Portail_Virage.png",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c5",
+          "nom": "Case Fontaine",
+          "statut": "Validé",
+          "effet": "Restaure tous les PV quand on finit son tour dessus.",
+          "quantite": 15,
+          "notes": "",
+          "details": [
+            {
+              "id": "tkohgby9bri",
+              "fichier": "Case_Fontaine_T.png",
+              "quantite": 10
+            },
+            {
+              "id": "i8rbsv9szsj",
+              "fichier": "Case_Fontaine_Virage.png",
+              "quantite": 5
+            }
+          ]
+        },
+        {
+          "id": "c7",
+          "nom": "Case Monstre",
+          "statut": "Validé",
+          "effet": "1/tour, affrontez le monstre présent sur la case ou piochez en un et posez le sur la case si elle est vide.\nCombat obligatoire pour au moins un lancé de dé. \nToujours un cul-de-sac.",
+          "quantite": 10,
+          "notes": "",
+          "details": [
+            {
+              "id": "s6tkpbcjocr",
+              "fichier": "Case_Monstre.png",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c4",
+          "nom": "Case Énergie",
+          "statut": "Validé",
+          "effet": "Piochez une énergie dans la pile de son choix. 1/tour",
+          "quantite": 10,
+          "notes": "",
+          "details": [
+            {
+              "id": "a8qqe3bt2j9",
+              "fichier": "Case_Energie_Virage.jpg",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c8",
+          "nom": "Case Bonus PA",
+          "statut": "Validé",
+          "effet": "Vous gagnez+1 PA. 1/tour\nToujours tout droit.",
+          "quantite": 10,
+          "notes": "",
+          "details": [
+            {
+              "id": "kntq0oayio",
+              "fichier": "Case_PA.png",
+              "quantite": 10
+            }
+          ]
+        },
+        {
+          "id": "c6",
+          "nom": "Case Œil",
+          "statut": "Validé",
+          "effet": "En finissant son tour dessus, peut défausser un item pour défausser un item équivalent d'un autre joueur. 4 portes.",
+          "quantite": 7,
+          "notes": "",
+          "details": [
+            {
+              "id": "6x9w9fv928i",
+              "fichier": "Case_Oeil.png",
+              "quantite": 7
+            }
+          ]
+        },
+        {
+          "id": "urjtegfdqjh",
+          "nom": "Case clé",
+          "statut": "Validé",
+          "effet": "Utile dans certains modes de jeu.",
+          "quantite": 1,
+          "notes": "",
+          "details": [
+            {
+              "id": "doypmgje86w",
+              "fichier": "Case_cle.png",
+              "quantite": 1
+            }
+          ]
+        },
+        {
+          "id": "ekxjksry8",
+          "nom": "Case porte",
+          "statut": "Validé",
+          "effet": "Utile dans certains mode de jeu",
+          "quantite": 1,
+          "notes": "",
+          "details": [
+            {
+              "id": "qckrvnw5xzm",
+              "fichier": "Case_Porte.png",
+              "quantite": 1
+            }
+          ]
+        },
+        {
+          "id": "c9",
+          "nom": "Case Levier",
+          "statut": "Test 3",
+          "effet": "Détruit toutes les cases Instables du plateau. Les joueurs dessus meurent.",
+          "quantite": 1,
+          "notes": "Pourrais être utile dans un mode spécifique avec moins de case pour avoir plus de case tremblement "
+        }
+      ],
+      "sorts": [
+        {
+          "id": "s34",
+          "nom": "Google drive",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter 1 dé à un lancé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "xvekgvqvpks",
+          "nom": "Dropbox 1PA 3xTour",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur ou plus pour ajouter + 1 au résultat d'un dé en combat.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s1",
+          "nom": "Grenade",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Attaque en sélectionnant 1 case en ligne de vue. L'attaque touche la case sélectionnée et toutes les cases à 1 de distance en ligne de vue.",
+          "quantite": 1,
+          "notes": "Test"
+        },
+        {
+          "id": "s2",
+          "nom": "Lance Flamme",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Attaque tous les joueurs possibles sur 1 ligne droite en ligne de vue.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s3",
+          "nom": "Pistolet",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Attaque 1 joueur situé en ligne de vue.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s4",
+          "nom": "Furie",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Après avoir gagné 1 combat, votre tour s'arrête, vous ne faites pas de contrôle de labyrinthe mais rejouez immédiatement 1 tour entier.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s5",
+          "nom": "Chacal",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "(Vous avez un jeton mort et deux jetons neutres.) Pose 1 jeton face cachée sur une case vide. Quand un joueur arrive sur un jeton, il le retourne, il meurt uniquement si c'est le jeton mort puis le jeton revient dans votre main. Les cases où les pièges sont posés deviennent indestructibles.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s27",
+          "nom": "Flux Négatif",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Placez un compteur. À tout moment, dépensez un compteur pour réduire de 1 le résultat d'un dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s40",
+          "nom": "Cocotte Minute",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, utilisez 1 compteur pour gagner 1 PV",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "jih6xrs2rv7",
+          "nom": "Glissement de terrain 0 PA 3xTour",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lorsque vous arrivez sur une case instable vous pouvez la déplacer de 1 avec vous dessus.\nAu lieu de défausser cette case, placez là où vous voulez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s56",
+          "nom": "Nan J'crois Pas",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Placez un compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s57",
+          "nom": "Ah Nan Nan Nan",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "3 PA",
+          "limite": "1/tour",
+          "effet": "Lancez un dé, retirez les compteurs de ce sort et ajoutez ce résultat en compteur sur ce sort. À tout moment, utiliser un compteur pour relancer 1 dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s13",
+          "nom": "Pas Fantôme",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Déplace-toi de 1 case à travers les murs.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s14",
+          "nom": "Portail de Poche",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Téléporte-toi instantanément à n'importe quel portail visible sur la carte.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s16",
+          "nom": "Grappin",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Déplacez-vous et explorez d'autant de cases que possible sur 1 ligne droite.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s17",
+          "nom": "Tracer",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "À la fin de ton tour, tu peux choisir de revenir sur la case où tu as commencé ton tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s68",
+          "nom": "Stockage",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Poser 1 compteur sur ce sort. Pendant votre tour, vous pouvez utiliser 1 compteur pour gagner 1 PA.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s70",
+          "nom": "Le Grand Détournement",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "2/tour",
+          "effet": "Ajoutez 1 compteur sur ce sort. À tout moment, retirez 1 compteur : l'item qui ciblait 1 joueur cible 1 autre joueur à la place.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s20",
+          "nom": "Xelor",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Vole 1 PA à 1 joueur.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s24",
+          "nom": "Lanterne des Damnés",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Tant que tu la tiens, tous les monstres sont doublés (lancent 2 dés).",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s25",
+          "nom": "Edge",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Tous les portails sont inactifs.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s26",
+          "nom": "Canabis",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Tous les joueurs ont -1 PA.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s21",
+          "nom": "Miroir de Brume",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Utilisez gratuitement l'effet d'1 sort ou d'1 énergie qui ne vous appartient pas.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s18",
+          "nom": "Talisman d'Équilibre",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "",
+          "effet": "Échange ce sort avec celui d'un autre joueur.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s6",
+          "nom": "Poing Américain",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "+1 au résultat du dé pendant les attaques pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s7",
+          "nom": "Lutte Illimitée",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pendant 1 tour, lancez 1 dé de plus en combat pour chaque sort que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s8",
+          "nom": "J'ai Soif !",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Les monstres vous donnent 1 sort en plus lorsqu'ils sont vaincus.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s29",
+          "nom": "Couteau de l'Ombre",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Attaquez 1 joueur depuis une carte adjacente (ignore les murs).",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s30",
+          "nom": "Hache du Tyran",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Quand vous tuez 1 joueur, piochez 1 sort.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s31",
+          "nom": "Botte du Chasseur",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Lance 1 dé de plus en combat contre les monstres pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s35",
+          "nom": "Tonnerre de Zeus",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Attaque 1 joueur en ligne de vue et crée une réaction en chaîne. Chaque joueur touché propage l'attaque à tous les joueurs à 4 cases de lui sans ligne de vue jusqu'à épuisement. Chaque propagation réduit le résultat du dé de 1.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s33",
+          "nom": "Sacrieur",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Attire 1 joueur en ligne de vue. Si vous déclenchez 1 combat dans le même tour, +1 au résultat pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s32",
+          "nom": "Couteau du Chasseur",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "+1 au résultat du dé en combat contre les monstres pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s10",
+          "nom": "Chaussures qui Court Loin",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé et tu déplaces ton personnage sur n'importe quel portail.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s11",
+          "nom": "Mercy",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "3x partie",
+          "effet": "Vous avez 3 compteurs sur ce sort. Si 1 autre joueur perd un combat dans votre ligne de vue, vous pouvez utiliser 1 compteur et annuler ce combat.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s12",
+          "nom": "Séisme",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Sélectionnez 1 carré de 3 tuiles de côté et supprimez toutes les tuiles contrôlables sans joueur dessus ",
+          "quantite": 1,
+          "notes": "Doublon avec énergie "
+        },
+        {
+          "id": "s39",
+          "nom": "Bouclier du Chasseur",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Les monstres ont -1 au résultat du dé pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s41",
+          "nom": "Porteur de Chemins",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Pose 1 carte Map n'importe où sur un emplacement vide.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s42",
+          "nom": "Briseur de Sol",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Retire 1 case du plateau où il n'y a pas de joueurs.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s43",
+          "nom": "Derviche Tourneur",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Tourne 1 case du plateau même s'il y a des joueurs dessus.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s44",
+          "nom": "Sadida",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Retourne 1 case map contrôlable. La case ne peut plus être traversée ni détruite.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s45",
+          "nom": "Carapace",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pendant 1 tour global, vous ne pouvez pas être ciblé par les sorts des autres joueurs et +1 au résultat du dé en combat pendant les défenses.",
+          "quantite": 1,
+          "notes": "Passer le coût à 1pa ?"
+        },
+        {
+          "id": "s46",
+          "nom": "Eh Viens ! Viens !",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pendant 1 tour global, vous ne pouvez pas être attaqué à distance et +1 au résultat du dé en combat pendant les défenses.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s47",
+          "nom": "RedBull",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pendant 1 tour global, lancez 1 dé de plus en combat pendant les défenses pour chaque énergie que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "p976r9rcy3b",
+          "nom": "Delicious & Dungeon  0PA 1/tour",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+ 2 PV pendant un combat contre un monstre ",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s49",
+          "nom": "2 pour 1",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s50",
+          "nom": "Marque du Voyageur",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pose un « artefact » sur ta case ; tu peux t'y téléporter pour 1 PA pendant ton tour. La case où est l'artefact devient indestructible et tu n'as qu'un seul artefact.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s51",
+          "nom": "Parachute",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Quand vous passez à travers 1 portail, vous choisissez n'importe quelle case sur la map pour atterrir.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s52",
+          "nom": "Courant d'Air",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "3/tour",
+          "effet": "À la place d'attaquer 1 joueur, vous pouvez le pousser de 3 cases dans 1 direction. La cible ne peut pas vous attaquer avant pour contrer.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s53",
+          "nom": "Panda",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "",
+          "effet": "Portez 1 personnage sur la même case que vous.\nVous pouvez vous déplacer en le portant et le jeter à 4 cases de distance sans ligne de vue.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s54",
+          "nom": "Petit Canard",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "L'action d'explorer coûte 0 PA si elle ne révèle pas une nouvelle case pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s55",
+          "nom": "I'm Going On An Adventure!",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Lancez 1 dé et déplacez-vous jusqu'à ce nombre sur des cases révélées ou non, mais si vous tombez sur 1 monstre vous êtes obligé de l'affronter entièrement.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s19",
+          "nom": "Éliotrope",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "4/tour",
+          "effet": "Déplace 1 case Portail où tu veux sur un emplacement vide.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s15",
+          "nom": "Échange de Place",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Choisis 1 joueur et échange de position avec lui.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s28",
+          "nom": "Cape d'Invisibilité",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Posez 3 jetons autour de vous. Un = vraie position, deux = leurres.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s58",
+          "nom": "Ah Bon ?",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "2/tour",
+          "effet": "Relancer 1 dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s59",
+          "nom": "Rappel Rapide",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Déplace-toi vers une carte de départ.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s22",
+          "nom": "Voudoo",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Déplace de 3 cases révélées 1 personnage (peut passer à travers un portail).",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s23",
+          "nom": "Déjà Vu",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Ce sort devient la copie d'un sort présent dans la défausse pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s61",
+          "nom": "Cain",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Regarde les 5 prochaines cartes d'1 pioche et place-les dans l'ordre de ton choix.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s62",
+          "nom": "Torche d'Exploration",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Pendant 1 tour, quand tu entres sur 1 case, place une carte map sur chacun de ses couloirs ouverts.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s63",
+          "nom": "Chaman",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "1 PA",
+          "limite": "1/tour",
+          "effet": "Pose votre artefact unique n'importe où, toutes les cases à effet et les items sont désactivés sur cette case. (Sauf porte et clé ?)",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s64",
+          "nom": "Exigences",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "2 PA",
+          "limite": "",
+          "effet": "Défaussez-vous d'1 sort et piochez 1 sort, ou défaussez-vous d'1 énergie et piochez 1 énergie.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s65",
+          "nom": "RH",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "3 PA",
+          "limite": "1x partie",
+          "effet": "Permet de recruter un personnage à contrôler. Il joue juste après ton tour, 2 PA, 1 slot sort, 1 slot énergie et pas de contrôle de labyrinthe. Si l'item est retiré, le personnage meurt.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s66",
+          "nom": "Necromenchien",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Au moment de piocher, peut choisir de prendre n'importe quelle carte dans la défausse correspondante.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s67",
+          "nom": "Water Cooling",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "4/tour",
+          "effet": "Si vous êtes sur une case fontaine, vous pouvez vous téléporter sur une autre fontaine comme si c'était des portails.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s69",
+          "nom": "Pain",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Regarde les 3 prochaines cartes d'1 pioche, mets-en 1 au-dessus de la pioche et les autres en dessous.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s71",
+          "nom": "Cloche du Chaos",
+          "element": "Eau",
+          "statut": "Test 1",
+          "cout": "1 PA",
+          "limite": "3/tour",
+          "effet": "Échange 1 case contrôlable du plateau par la première de la pioche.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s72",
+          "nom": "Oh T'es Gentil",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Tous les joueurs sauf toi ont +1 PA.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s73",
+          "nom": "Sceptre de Ruine",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — À chaque tour global, tous les joueurs doivent défausser un item.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s74",
+          "nom": "Flamme Incontrôlable",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Détruit chaque case que tu quittes.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s75",
+          "nom": "Less Is More",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Détruit ce sort et celui d'un autre joueur. (Les sorts détruits vont dans la défausse, pas sur le plateau.)",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s76",
+          "nom": "Cadran du Temps",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Glissez ce sort en bas de la pioche et rejouez 1 tour complet.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s36",
+          "nom": "Bâton de Brume",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Passif — Si tu gagnes un combat, tu peux immédiatement te téléporter vers un portail visible.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s60",
+          "nom": "Bon Réflexe",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "À la fin de votre tour vous avez 1 sprint gratuit.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "twf7ozj9kmq",
+          "nom": "Reconstitution 0 PA 5xTour",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lorsqu'une case séisme est défausser pendant votre tour, replacer là où vous voulez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s9",
+          "nom": "Non",
+          "element": "Terre",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Quand 1 joueur t'attaque, tu peux lancer 1 d6, sur 4+ le combat est annulé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "427kyr43c62",
+          "nom": "L'appel de la boisson 1 PA 1xTour",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s37",
+          "nom": "Poing Mexicain",
+          "element": "Terre",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "+1 au résultat du dé pendant les défenses pendant 1 tour global.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s38",
+          "nom": "Gourdeux",
+          "element": "Terre",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "1/tour",
+          "effet": "Lance 1 dé de plus pendant les défenses pendant 1 tour global, garde le meilleur résultat.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "s48",
+          "nom": "Vengeance !",
+          "element": "Terre",
+          "statut": "Test 1",
+          "cout": "0 PA",
+          "limite": "",
+          "effet": "Si tu perds 1 combat, lance 1 dé : sur 5+, tous les combattants perdent.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "489y0e5z6ed",
+          "nom": "Flemme d'Udun  0PA 1/tour",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lorsque vous attaquez un joueur, donnez lui 3 marqueurs.\nÀ chaque début de tour de ce joueur, il retire un marqueur et perd 1 PV.",
+          "quantite": 1,
+          "notes": ""
+        }
+      ],
+      "energies": [
+        {
+          "id": "e3",
+          "nom": "Fiiiiire !!",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Défaussez : jusqu'à la fin de votre tour +3 à tous vos jets de dés.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e4",
+          "nom": "Philippe ! Je sais où tu te caches",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Défaussez : lancez une attaque à distance sur un joueur où qu'il soit.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e7",
+          "nom": "Éphémère Eau 1",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Défaussez : téléportez-vous sur la case d'un autre joueur et volez lui 3 PA",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "8ind2pquk8f",
+          "nom": "Séisme ",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Défausser: Choisissez un carré de 3 x 3 cases et supprimez les.\nLes joueurs dessus meurts.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e12",
+          "nom": "Multiplicateur!",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Défaussez : doublez tous les chiffres de vos items jusqu'à la fin du tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e13",
+          "nom": "Elio-propre",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Défaussez : replacez où vous voulez tous les portails révélés.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e11",
+          "nom": "Bolt",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort air, vous obtenez 1 sprint gratuit pour ce tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e14",
+          "nom": "Peste",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 au résultat de tous vos lancés de dé pour chaque sort maudit possédé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e30",
+          "nom": "+ 1 Magique !",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Pour chaque sort d'élément différent, augmentez de 1 le chiffre sur 1 item pendant 1 tour global.",
+          "quantite": 5,
+          "notes": ""
+        },
+        {
+          "id": "e15",
+          "nom": "Multitâche ",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 PA pour chaque sort d'élément différent possédé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "65mbl3q7lh4",
+          "nom": "+1 Magique !",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Pendant 1 tour global, augmente de 1 le chiffre d'un sort de cet élément.",
+          "quantite": 5,
+          "notes": ""
+        },
+        {
+          "id": "e18",
+          "nom": "Action !",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 PA pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "tmttfed7x2o",
+          "nom": "Yoloooo",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+ 1PV pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e19",
+          "nom": "Juste au cas où ",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lance 1 dé de plus en combat.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e20",
+          "nom": "Nul en math",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 au résultat du dé en combat.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e21",
+          "nom": "Encore ?",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez utiliser 1 fois de plus 1 sort pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e27",
+          "nom": "Mirroir mirroir ",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Au début de votre tour, cette énergie devient la copie d'1 de vos sorts du même jusqu'à la fin de votre tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e28",
+          "nom": "Plus léger comme ça ",
+          "element": "Commun",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Réduit de 1 PA le coût d'un sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e24",
+          "nom": "Énergie Commune 10",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous gagnez +1 au résultat du dé en combat pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e25",
+          "nom": "Énergie Commune 9",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous commencez votre tour sur 1 case de votre élément, vous lancez 1 dé de plus en combat pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e17",
+          "nom": "Énergie Commune 1",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Pour chaque sort de cet élément, posez 1 marqueur +1 qui augmente de 1 le chiffre sur 1 item de cet élément pendant 1 tour global.",
+          "quantite": 5,
+          "notes": ""
+        },
+        {
+          "id": "e22",
+          "nom": "Énergie Commune 6",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez attaquer les joueurs présents à 0 case de distance d'1 de vos cases élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e16",
+          "nom": "Exodia",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous possédez un item feu, terre, air et eau, +5 au résultat de tous vos lancers de dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e29",
+          "nom": "Poubelle de recyclage ",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez utiliser 1 fois de plus 1 sort pour chaque sort d'élément différent.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e31",
+          "nom": "Multiprise ",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lance 1 dé de plus en combat pour chaque sort d'élément différent que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e32",
+          "nom": "Multitude ",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 au résultat du dé en combat pour chaque sort d'élément différent.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e33",
+          "nom": "Exodio",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous possédez un item feu, terre, air et eau, lancez 5 dés de plus sur tous vos lancers de dé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e34",
+          "nom": "Exodiu",
+          "element": "Multi",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous possédez un item feu, terre, air et eau, vous avez +5 PA.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e35",
+          "nom": "Le bras long",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous attaquez, vous pouvez cibler 1 joueur en ligne de vue.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e36",
+          "nom": "AOE",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous attaquez 1 joueur, tous les joueurs adjacents ennemis à lui subissent l'attaque (ignore murs).",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e37",
+          "nom": "Galette cendrée",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lance 1 dé de plus en combat pour 1 lancé pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e38",
+          "nom": "Galinette cendrée ",
+          "element": "Feu",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 au résultat du dé en combat pour 1 lancé pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e39",
+          "nom": "Énergie Feu 5",
+          "element": "Feu",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Attaque autant de fois qu'on veut pendant le tour mais max 1 fois par joueur ou par monstre.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e40",
+          "nom": "Énergie Eau 1",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort eau, vous pouvez déplacer 1 joueur de 1 case révélée.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e41",
+          "nom": "Énergie Eau 2",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Au début de votre tour, cette énergie devient la copie d'1 item d'un joueur ou du plateau pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e42",
+          "nom": "Énergie Eau 3",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Pendant 1 tour global, diminue de 1 le chiffre sur 1 item pour chaque sort d'élément eau que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e43",
+          "nom": "Énergie Eau 4",
+          "element": "Eau",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort eau, vous pouvez voler 1 PA à 1 autre joueur.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e44",
+          "nom": "Énergie Eau 5",
+          "element": "Eau",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Si vous êtes sur une case fontaine, vous ne pouvez pas être ciblé par les sorts d'autres joueurs.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e9",
+          "nom": "Terrine de campagne ",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+1 au résultat du dé en combat pour 1 lancé pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e45",
+          "nom": "Terrine de porc",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lance 1 dé de plus en combat pendant 1 défense pour chaque sort de cet élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e46",
+          "nom": "Mauvais levier ",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort terre, vous pouvez détruire toutes les cartes tremblement du plateau, les joueurs dessus meurent.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e48",
+          "nom": "Switch 2",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort air, vous pouvez échanger de place avec 1 autre joueur.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e49",
+          "nom": "Ni vu ni connu",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez relancer 1 dé pendant votre tour pour chaque sort air que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e50",
+          "nom": "Pfiou!",
+          "element": "Air",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez un sort air, vous pouvez échanger cette énergie avec celle d'un autre joueur.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e51",
+          "nom": "Énergie Air 5",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous faites 1 sprint, lancez 3 dés.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e52",
+          "nom": "Énergie Air 6",
+          "element": "Air",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez vous téléporter sur un portail à la fin de votre tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e53",
+          "nom": "Choléra ",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Lancez 1 dé de plus sur tous vos lancés de dé pour chaque sort maudit possédé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e54",
+          "nom": "Croque-mort ",
+          "element": "Ombre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "+3 PA pour chaque sort maudit possédé.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e23",
+          "nom": "Énergie Commune 7",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "La première fois par tour que vous êtes sur une case de votre élément, vous gagnez 1 PA pendant 1 tour.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e26",
+          "nom": "Énergie Commune 10",
+          "element": "Commun",
+          "statut": "Test 1",
+          "cout": "",
+          "limite": "",
+          "effet": "Quand vous utilisez 1 sort de cet élément, vous pouvez échanger de place avec les joueurs présents à 0 case de distance d'1 case de votre élément.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "e47",
+          "nom": "On est chez moi ici !",
+          "element": "Terre",
+          "statut": "Validé",
+          "cout": "",
+          "limite": "",
+          "effet": "Vous pouvez faire 1 contrôle de labyrinthe en plus à la fin de votre tour pour chaque sort Terre que vous possédez.",
+          "quantite": 1,
+          "notes": ""
+        }
+      ],
+      "monstres": [
+        {
+          "id": "m1",
+          "nom": "Monstre 1",
+          "lvl": "Lvl 1",
+          "statut": "Validé",
+          "effet": "Victoire : posez 3 cases Map n'importe où. Un joueur de votre chois choisit l'orientation.",
+          "quantite": 1,
+          "notes": "",
+          "cout": ""
+        },
+        {
+          "id": "m2",
+          "nom": "Monstre 2",
+          "lvl": "Lvl 1",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 1 case sans joueur dessus",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m3",
+          "nom": "Bouftou",
+          "lvl": "Lvl 1",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur pioche un sort.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m4",
+          "nom": "Piou rose",
+          "lvl": "Lvl 1",
+          "statut": "Validé",
+          "effet": "Victoire : Tous les joueurs récupèrent tout leur PV",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m6",
+          "nom": "Monstre 3",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : choisissez un joueur, pendant son prochain tour vous choisissez l'orientation des cases qu'il révèle.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m7",
+          "nom": "Monstre 4",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur choisit une énergie à défausser puis en pioche une.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m8",
+          "nom": "Blop",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : Tourner de 90° dans le sens horaire la case du joueur de votre choix",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m9",
+          "nom": "Arakne",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : Tourner de 180° cette carte monstre",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m10",
+          "nom": "Corbac",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur choisit un sort à défausser puis en pioche un.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m11",
+          "nom": "Chafer Lancier",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : choisit une énergie à défausser puis pioches en une.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m12",
+          "nom": "Chafer Archer",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : choisit un sort à défausser puis pioches en un.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m13",
+          "nom": "Blop multicolor ",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : choisissez une pioche et coupez-la en deux.",
+          "quantite": 3,
+          "notes": "X 3 ?"
+        },
+        {
+          "id": "m15",
+          "nom": "Craqueleur",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Défaite : Tous les joueurs perdent 1 PV\nVictoire : Tous les joueurs récupères 1 PV",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m16",
+          "nom": "Monstre 6",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur pioche une énergie.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m17",
+          "nom": "Boufmouth",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur pioche un sort.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m18",
+          "nom": "Vilain petit Corbac",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : Vole une énergie à un joueur",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m19",
+          "nom": "Tofukaz",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Défaite : choisissez un joueur. Si vous perdez il perd aussi.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m20",
+          "nom": "Tofoune",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : choisissez un joueur. Si vous gagnez il reçoit aussi les récompenses.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m21",
+          "nom": "Fantomalamère",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : Si tu perds le combat le joueur à ta gauche perds aussi",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m23",
+          "nom": "Monstre 8",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : rejouez immédiatement un tour entier après celui-ci.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m22",
+          "nom": "Monstre 7",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : piochez autant de sorts que de joueurs. Gardez-en un, passez les autres à gauche.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m24",
+          "nom": "Monstre 9",
+          "lvl": "Lvl 4",
+          "statut": "Validé",
+          "effet": "Victoire : volez un sort à un joueur de votre choix.\n(Mais vous piochez que un sort)",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m25",
+          "nom": "Monstre 10",
+          "lvl": "Lvl 4",
+          "statut": "Validé",
+          "effet": "Choisissez un joueur. Si vous perdez il perd aussi. Si vous gagnez il reçoit aussi les récompenses.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m14",
+          "nom": "Monstre 11",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : retirez la case où se trouve un ou plusieurs joueurs. Ils subissent une pénalité de mort.",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "m5",
+          "nom": "Moskito",
+          "lvl": "Lvl 2",
+          "statut": "Validé",
+          "effet": "Victoire : chaque joueur dans le sens horaire en commençant par vous retire 2 case sans joueur dessus",
+          "quantite": 1,
+          "notes": ""
+        },
+        {
+          "id": "ht768exg8x",
+          "nom": "Blop multicolor royal ",
+          "lvl": "Lvl 3",
+          "statut": "Validé",
+          "effet": "Victoire : choisissez une pioche et coupez-la en deux.",
+          "quantite": 1,
+          "notes": ""
+        }
+      ],
+      "modes": [
+        {
+          "id": "md1",
+          "nom": "Capture de Drapeau",
+          "emoji": "🚩",
+          "difficulte": "⭐⭐",
+          "style": "Stratégie Combat",
+          "joueurs": "2-10",
+          "contenu": "Objectif : voler le drapeau adverse et le ramener sur votre base.\n\nMise en place : deux équipes Rouge et Bleu. Bases indestructibles à 7 cases de distance. Portails par couleur (joueur bleu peut emprunter portail rouge).\n\nRègles : ramasser le drapeau = 0 PA. Porteur ne peut pas sprinter. Finir son tour sur sa base avec le drapeau adverse = victoire. Si combat perdu, lâche le drapeau.\n\nVariante Distorsion : sur case Œil, piocher une carte et la placer n'importe où dans n'importe quel sens.",
+          "notes": "À tester : rester 1 tour sur la base pour valider ☑️\n\n\nProblème : nombre impair de joueurs\n\nContrôle de labyrinthe que cases adjacentes pour pas casser trop facilement ce que font les adversaires \n\nFinir sont tour chez les ennemis pour récupérer le drapeau. Mais aussi finir sont tour chez sois avec le drapeau pour gagner ? Peut être chiant parce qu'après un combat on est low PV. Mais du coup le but est de rentrer et casser le passage(ex fermer portail). (Et maintenant qu'on réapparaît qu'au prochain tour de jeu lors d'une mort c'est mieux,)☑️"
+        },
+        {
+          "id": "md2",
+          "nom": "Keeyp",
+          "emoji": "🗝️",
+          "difficulte": "⭐⭐",
+          "style": "Escape",
+          "joueurs": "1-10",
+          "contenu": "Objectif : trouver la Clé, trouver la Porte, s'échapper.\n\nRègles : ramasser la Clé = 0 PA. Porteur ne peut pas sprinter. Si combat perdu, Clé retourne à son origine. Combats monstres automatiques.\n\nVictoire : atteindre la Porte avec la Clé et finir son tour dessus.",
+          "notes": "À tester : ajouter un double monstre à battre pour finir"
+        },
+        {
+          "id": "md3",
+          "nom": "Laboratoire",
+          "emoji": "🧪",
+          "difficulte": "⭐⭐⭐",
+          "style": "Escape Combat",
+          "joueurs": "2-10",
+          "contenu": "Rôles :\nDocteur Fou — contrôle lab partout, pas sprint, pas clé, 1 sort + 1 énergie, tp fontaine 3 PA. S'il bat un Héros, ce Héros devient Zombie.\nZombies — contrôle lab adjacent, pas sprint, pas clé, 1 sort + 1 énergie.\nHéros — contrôle lab adjacent, sprint, clé, 3 sorts + 3 énergies, 2 dés contre méchant.\n\nMise en place : carré 5x5 révélé. Docteur place sa case d'abord. Retirer le carré. Docteur joue en premier. Retirer item Edge.\n\nVictoire Héros : s'échapper par la Porte avec la Clé.\nVictoire Docteur : tous les Héros deviennent Zombies.",
+          "notes": "Priorité de modification\nÀ tester : 7x7, tp fontaine 1 PA, -1 au dé méchants\nProblème : snowball, difficile changer de cible\n\n\nTester avec les PV : pour transformer en zombie, le docteur doit faire perdre en combat un nombre de pv égal au nombre de méchant actuellement dans la partie.\n- hyper bien mais si peu de joueurs ou beaucoup de joueurs ça change beaucoup.\nDonc plutôt que compter les gentils ou les méchant dans une partie, on compter la différence ? : plus de gentils : 1 PV suffit, égalité 2 PV, plus de méchant 3 pv (pas mal mais en nombre de joueurs impair ça passe de 1 à 3 pv, mais pour l'instant meilleur solution)."
+        },
+        {
+          "id": "md4",
+          "nom": "Indiana Jones",
+          "emoji": "🪨",
+          "difficulte": "⭐⭐⭐⭐",
+          "style": "Escape Stratégie",
+          "joueurs": "4-8",
+          "contenu": "Héros : ramasser l'artefact et atteindre la Porte.\nMéchant : écraser chaque Héros une fois avec la Boule Géante.\n\nBoule Géante : avance en ligne droite jusqu'à un mur. Tue tout joueur traversé. Disparaît sur case de départ.\nMéchant contrôle : déplacer dans une direction OU faire apparaître sur une Fontaine.\nHéros contrôle : si fin de tour sur Fontaine, contrôler la Boule à la place du Méchant.",
+          "notes": "Priorité de modification\nÀ tester : case boule déplaçable\nProblème : trop d'anti jeu"
+        },
+        {
+          "id": "md5",
+          "nom": "Traque",
+          "emoji": "🪓",
+          "difficulte": "⭐⭐",
+          "style": "Combat",
+          "joueurs": "3-5",
+          "contenu": "Objectif : traquer et éliminer ta cible secrète.\n\nMise en place : chaque joueur contrôle 2 personnages. Carré 7x7. PA partagés entre les 2 persos.\n\nRègles : éliminer ta cible = 1 marque + nouvelle carte Cible.\n\nVictoire : premier à 3 marques.",
+          "notes": "À tester : version rapide 1 perso chacun"
+        },
+        {
+          "id": "md6",
+          "nom": "Survie",
+          "emoji": "🔥",
+          "difficulte": "⭐",
+          "style": "Combat",
+          "joueurs": "2-10",
+          "contenu": "Objectif : être le dernier joueur en vie.\n\nRègles : 1 Vie par joueur. Perdre un combat = pénalité + perdre une vie. Activer une case Révélation = regagner sa Vie. Mourir à 0 Vie = éliminé.\n\nVictoire : dernier joueur encore en jeu.",
+          "notes": "Mode d'introduction recommandé"
+        },
+        {
+          "id": "md7",
+          "nom": "3 Monstres",
+          "emoji": "👹",
+          "difficulte": "⭐",
+          "style": "Combat",
+          "joueurs": "2-10",
+          "contenu": "Objectif : premier à éliminer 3 monstres.\n\nRègles : battre un monstre = 1 jeton. Cases Monstre indestructibles. Double Monstre = 2 jetons.\n\nVictoire : 3 jetons.",
+          "notes": "À tester : fusionner avec 4 Items"
+        },
+        {
+          "id": "md8",
+          "nom": "4 Items",
+          "emoji": "💎",
+          "difficulte": "⭐",
+          "style": "Combat",
+          "joueurs": "2-10",
+          "contenu": "Objectif : premier à obtenir un 4ème item.\n\nRègles : monstres attaquent automatiquement.\n\nVictoire : 4 items en main = victoire instantanée.",
+          "notes": "À tester : fusionner avec 3 Monstres"
+        },
+        {
+          "id": "md9",
+          "nom": "Infection",
+          "emoji": "🦠",
+          "difficulte": "⭐⭐⭐",
+          "style": "Rôle Caché",
+          "joueurs": "4-8",
+          "contenu": "Gentils veulent purifier. Méchants veulent infecter.\n\nCartes Alignement + Cartes Infection distribuées secrètement.\n\nFontaines : orienter secrètement une carte Infection vers Sain ou Infecté.\n\nRévélations : rituel — yeux fermés, pouce haut = Sain, pouce bas = Infecté.\n\nCompte à rebours : 3 tours globaux puis révélation finale. Majorité gagne.",
+          "notes": "À tester : nerf révélation dans ce mode"
+        },
+        {
+          "id": "md10",
+          "nom": "Rumble in the House",
+          "emoji": "🎭",
+          "difficulte": "⭐",
+          "style": "Rôle Caché",
+          "joueurs": "3-10",
+          "contenu": "Objectif : être le dernier survivant.\n\n3-5 joueurs : double de personnages, 2 jetons secrets chacun.\n6-10 joueurs : 1 personnage par joueur, 1 jeton secret chacun.\n\nRègles : au début de son tour choisir n'importe quel personnage vivant. Mort permanente. 1 item par personnage.",
+          "notes": ""
+        },
+        {
+          "id": "md11",
+          "nom": "Sabotage",
+          "emoji": "🧩",
+          "difficulte": "⭐⭐",
+          "style": "Stratégie",
+          "joueurs": "4-10",
+          "contenu": "Restaurateurs vs Saboteurs — réparer ou saboter les Fontaines.\n\nRègles : finir son tour sur une Fontaine = choisir Réparer ou Saboter. L'action prend tout le tour suivant.\n\nVictoire : autant de Fontaines que de joueurs réparées ou sabotées.",
+          "notes": ""
+        },
+        {
+          "id": "md12",
+          "nom": "Amon Gus",
+          "emoji": "👨‍🚀",
+          "difficulte": "⭐⭐⭐⭐",
+          "style": "Rôle Caché Stratégie",
+          "joueurs": "4-10",
+          "contenu": "Gentils : réparer les Fontaines et éliminer les Imposteurs.\nImposteurs : saboter en secret, tuer les Gentils.\n\nRépartition : 4-5 joueurs = 1 Imposteur / 6-7 = 2 / 8-10 = 3.\n\nEmergency Meeting : tous les X jetons posés (X = nb joueurs) ou sur Révélation. Si majorité sabotés = victoire Imposteurs. Vote : chaque vote = -1 au dé.\n\nPouvoir Imposteur : révéler son rôle une fois = +2 au combat jusqu'à la mort.",
+          "notes": ""
+        },
+        {
+          "id": "md13",
+          "nom": "Relique Maudite",
+          "emoji": "🪬",
+          "difficulte": "⭐⭐",
+          "style": "Combat",
+          "joueurs": "3-6",
+          "contenu": "Objectif : découvrir la Relique et survivre 3 tours complets.\n\nEffets : +2 au combat. Ne peut plus utiliser les Portails.\n\nVictoire : survivre 3 tours complets avec la Relique.",
+          "notes": ""
+        }
+      ],
+      "reglesNotes": "",
+      "casesNotes": "",
+      "sortsNotes": "Et si les sorts et énergies se piochent dans la même pioche ? Peut être plus simple à comprendre ?\nMais trop risquer de piocher uniquement des énergies...\nPar contre introduire des sorts dans les énergies peut être bien",
+      "energiesNotes": "Énergies maudite et multi donnent un bonus ? (mtn non). \nPar contre , items maudits ne comptent pas dans la limite des 3. (Donc pas chiant pour maudit mais pour multi ça les rends moins fort parce qu'ils sont pété de base)\n\nDepuis qu'on divise en 2 les pioches, on pourrait laisser face caché les items sur le sol, parce qu'on se rappelle pas forcément de l'item mais on peut voir l'élément qui nous intéresse !",
+      "monstresNotes": "Préciser que les monstres commence toujours un combat full vie\n\nAjouter 2 PV aux monstres c'est bien ?\n\nCe serait cool d'avoir les niveaux des monstres sur le dos de la carte, et quand on pioche on peut un peu choisir quel niveau de monstre on affronte.\nPlus facile et moins frustrant quand on veut pas se prendre la tête et ça encourage à team play si on doit affronter un monstre fort.\n\nSi on ajoute monstre affrontements automatique dans tous les modes de jeu moins de team play, on subit juste si y a deux gros monstres .\nOu alors ! Monstres affrontements automatique mais juste pour un dé ! Donc si on est low c'est dangereux ",
+      "modesNotes": ""
     }
   },
-  "activeVersion": "v1",
+  "activeVersion": "v3",
   "casesNotes": "",
   "modesNotes": ""
 }
