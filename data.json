@@ -915,7 +915,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Attaque 1 joueur à distance en ligne de vue et le repousse au maximum.",
       "quantite": 1,
       "notes": ""
     }
