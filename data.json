@@ -2022,6 +2022,11 @@
       "definition": "Case déjà présente et visible sur le plateau."
     },
     {
+      "id": "l9",
+      "terme": "Adjacent",
+      "definition": "Case directement connectée à la vôtre par un passage ouvert."
+    },
+    {
       "id": "l5",
       "terme": "PA",
       "definition": "Point d'Action. 3 par joueur par tour par défaut."
@@ -2055,11 +2060,6 @@
       "id": "l8",
       "terme": "Ligne de vue",
       "definition": "Chemin en ligne sans mur entre deux positions. Le vide ne bloque pas les lignes de vue"
-    },
-    {
-      "id": "l9",
-      "terme": "Adjacent",
-      "definition": "Case directement connectée à la vôtre par un passage ouvert."
     },
     {
       "id": "l10",
