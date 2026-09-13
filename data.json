@@ -914,7 +914,7 @@
       "element": "Eau",
       "statut": "Test 3",
       "cout": "1 PA",
-      "limite": "",
+      "limite": "1/tour",
       "effet": "Attaque 1 joueur à distance en ligne de vue et le repousse au maximum.",
       "quantite": 1,
       "notes": ""
