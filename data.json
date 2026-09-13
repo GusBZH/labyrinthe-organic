@@ -929,6 +929,17 @@
       "effet": "Attaque 1 cible à distance en ligne de vue et le repousse de 4 cases dans la direction de votre choix.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "89wfou460x9",
+      "nom": "Nouveau",
+      "element": "Eau",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
