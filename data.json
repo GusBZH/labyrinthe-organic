@@ -926,7 +926,7 @@
       "statut": "Test 3",
       "cout": "",
       "limite": "",
-      "effet": "",
+      "effet": "Attaque 1 cible à distance en ligne de vue et le repousse de 4 cases dans la direction de votre choix.",
       "quantite": 1,
       "notes": ""
     }
