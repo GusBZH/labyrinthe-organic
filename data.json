@@ -913,7 +913,7 @@
       "nom": "Nouveau",
       "element": "Eau",
       "statut": "Test 3",
-      "cout": "",
+      "cout": "1 PA",
       "limite": "",
       "effet": "Attaque 1 joueur à distance en ligne de vue et le repousse au maximum.",
       "quantite": 1,
