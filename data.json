@@ -2038,7 +2038,7 @@
     {
       "id": "l8",
       "terme": "Ligne de vue",
-      "definition": "Chemin sans mur entre deux positions. Effet d'un vide encore à définir."
+      "definition": "Chemin en ligne sans mur entre deux positions. Le vide ne bloque pas les lignes de vue"
     },
     {
       "id": "l9",
