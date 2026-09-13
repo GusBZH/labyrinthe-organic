@@ -935,7 +935,7 @@
       "nom": "Nouveau",
       "element": "Eau",
       "statut": "Test 3",
-      "cout": "",
+      "cout": "1 PA",
       "limite": "",
       "effet": "Choisissez un joueur en ligne de vue et l'immobilise jusqu'à la fin de son prochain tour.",
       "quantite": 1,
