@@ -2081,6 +2081,11 @@
       "definition": "Cycle de jeu jusqu'au début de votre prochain tour."
     },
     {
+      "id": "76kv5v22su5",
+      "terme": "Attaque à distance ",
+      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
+    },
+    {
       "id": "l18",
       "terme": "Item équivalent",
       "definition": "Sort contre sort, énergie contre énergie. Pour les échanges."
@@ -2104,11 +2109,6 @@
       "id": "zhtb9f5y0h",
       "terme": "Repousser",
       "definition": "Déplace la cible en ligne du nombre de cases indiqué ou jusqu'à rencontrer un mur ou un vide. \n(Uniquement un joueur)\nSi la direction n'est pas indiqué, c'est la direction du lanceur vers la cible.\n(Si la cible traverse une case instable elle est détruite et les joueurs dessus payent la pénalité de mort.)"
-    },
-    {
-      "id": "76kv5v22su5",
-      "terme": "Attaque à distance ",
-      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
     },
     {
       "id": "xcinix0b0sm",
