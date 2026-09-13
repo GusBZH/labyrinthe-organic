@@ -307,7 +307,7 @@
       "id": "s29",
       "nom": "Couteau de l'Ombre",
       "element": "Feu",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "0 PA",
       "limite": "1/tour",
       "effet": "Attaquez 1 joueur depuis une carte adjacente (ignore les murs).",
