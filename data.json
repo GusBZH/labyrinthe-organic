@@ -2024,7 +2024,7 @@
     {
       "id": "l3",
       "terme": "Explorer",
-      "definition": "1 PA — Annoncer une direction, piocher une case et la poser connectée au plateau."
+      "definition": "1 PA : Annoncer une direction, piocher une case et la poser connectée au plateau puis déplacer son personnage dessus. \nOn peut se déplacer sur une case déjà révélée"
     },
     {
       "id": "l4",
