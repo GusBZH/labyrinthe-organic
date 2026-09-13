@@ -2036,6 +2036,11 @@
       "definition": "Distance d'attaque. Permet d'attaquer sans partager sa case."
     },
     {
+      "id": "76kv5v22su5",
+      "terme": "Attaque à distance ",
+      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
+    },
+    {
       "id": "l8",
       "terme": "Ligne de vue",
       "definition": "Chemin en ligne sans mur entre deux positions. Le vide ne bloque pas les lignes de vue"
@@ -2049,11 +2054,6 @@
       "id": "l10",
       "terme": "Lâcher",
       "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
-    },
-    {
-      "id": "76kv5v22su5",
-      "terme": "Attaque à distance ",
-      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
     },
     {
       "id": "l11",
