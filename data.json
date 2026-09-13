@@ -2071,11 +2071,6 @@
       "definition": "Sort pioché en début de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
     },
     {
-      "id": "l15",
-      "terme": "Ombre",
-      "definition": "Catégorie spéciale. Ne compte pas dans la limite. Se lâche uniquement à la mort."
-    },
-    {
       "id": "l16",
       "terme": "Multi",
       "definition": "Élément spécial qui ne compte comme aucun élément spécifique."
@@ -2089,6 +2084,11 @@
       "id": "l18",
       "terme": "Item équivalent",
       "definition": "Sort contre sort, énergie contre énergie. Pour les échanges."
+    },
+    {
+      "id": "l15",
+      "terme": "Ombre",
+      "definition": "Catégorie spéciale. Ne compte pas dans la limite. Se lâche uniquement à la mort."
     },
     {
       "id": "l19",
