@@ -2022,16 +2022,6 @@
       "definition": "Case déjà présente et visible sur le plateau."
     },
     {
-      "id": "l3",
-      "terme": "Explorer",
-      "definition": "1 PA : Annoncer une direction, piocher une case et la poser connectée au plateau puis déplacer son personnage dessus. \nOn peut se déplacer sur une case déjà révélée"
-    },
-    {
-      "id": "l4",
-      "terme": "Sprint",
-      "definition": "1 PA, 1/tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement.\nOn peut déclencher les effets des cases et continuer notre sprint, mais utiliser 1 ou plusieurs PA arrête le sprint "
-    },
-    {
       "id": "l5",
       "terme": "PA",
       "definition": "Point d'Action. 3 par joueur par tour par défaut."
@@ -2040,6 +2030,16 @@
       "id": "l6",
       "terme": "PV",
       "definition": "Point de Vie. À tester : 2 PV vs 1 PV (one shot)."
+    },
+    {
+      "id": "l3",
+      "terme": "Explorer",
+      "definition": "1 PA : Annoncer une direction, piocher une case et la poser connectée au plateau puis déplacer son personnage dessus. \nOn peut se déplacer sur une case déjà révélée"
+    },
+    {
+      "id": "l4",
+      "terme": "Sprint",
+      "definition": "1 PA, 1/tour — Lancer un dé et se déplacer de ce nombre sur des cases révélées uniquement.\nOn peut déclencher les effets des cases et continuer notre sprint, mais utiliser 1 ou plusieurs PA arrête le sprint "
     },
     {
       "id": "l7",
