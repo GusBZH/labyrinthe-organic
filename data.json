@@ -2125,6 +2125,11 @@
       "id": "xcinix0b0sm",
       "terme": "Immobiliser ",
       "definition": "Jusqu'à la fin de son prochain tour, la cible ne peut pas sprinter ni explorer"
+    },
+    {
+      "id": "pt7xve8qd7",
+      "terme": "Terme",
+      "definition": "Définition"
     }
   ],
   "modes": [
