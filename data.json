@@ -857,7 +857,7 @@
       "id": "427kyr43c62",
       "nom": "L'appel de la boisson 1 PA 1xTour",
       "element": "Eau",
-      "statut": "Validé",
+      "statut": "Test 2",
       "cout": "",
       "limite": "",
       "effet": "Déplace n'importe quel autre joueur sue une case fontaine ",
