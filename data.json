@@ -2062,16 +2062,6 @@
       "definition": "Chemin en ligne sans mur entre deux positions. Le vide ne bloque pas les lignes de vue"
     },
     {
-      "id": "l10",
-      "terme": "Lâcher",
-      "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
-    },
-    {
-      "id": "l11",
-      "terme": "Défausser",
-      "definition": "Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."
-    },
-    {
       "id": "l12",
       "terme": "Sort",
       "definition": "Item obtenu en battant un monstre. Effet actif. Limite : 3."
@@ -2080,6 +2070,16 @@
       "id": "l13",
       "terme": "Énergie",
       "definition": "Item obtenu sur une case Énergie. Effet passif + effet actif déclenché par un sort du même élément. Limite : 3."
+    },
+    {
+      "id": "l10",
+      "terme": "Lâcher",
+      "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
+    },
+    {
+      "id": "l11",
+      "terme": "Défausser",
+      "definition": "Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."
     },
     {
       "id": "l14",
