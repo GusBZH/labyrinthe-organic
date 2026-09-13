@@ -351,7 +351,7 @@
       "id": "s33",
       "nom": "Sacrieur",
       "element": "Feu",
-      "statut": "Test 2",
+      "statut": "Test 1",
       "cout": "0 PA",
       "limite": "1/tour",
       "effet": "Attire 1 joueur en ligne de vue. Si vous déclenchez 1 combat dans le même tour, +1 au résultat pendant 1 tour.",
