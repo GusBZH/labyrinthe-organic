@@ -505,7 +505,7 @@
       "id": "s49",
       "nom": "2 pour 1",
       "element": "Air",
-      "statut": "Validé",
+      "statut": "Test 1",
       "cout": "0 PA",
       "limite": "1/tour",
       "effet": "Explorer permet de se déplacer ou découvrir 1 case de plus.",
