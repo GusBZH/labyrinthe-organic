@@ -747,7 +747,7 @@
       "id": "s71",
       "nom": "Cloche du Chaos",
       "element": "Eau",
-      "statut": "Test 1",
+      "statut": "Test 2",
       "cout": "1 PA",
       "limite": "3/tour",
       "effet": "Échange 1 case contrôlable du plateau par la première de la pioche.",
