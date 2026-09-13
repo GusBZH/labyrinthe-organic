@@ -2108,7 +2108,12 @@
     {
       "id": "76kv5v22su5",
       "terme": "Attaque à distance ",
-      "definition": "A"
+      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
+    },
+    {
+      "id": "xcinix0b0sm",
+      "terme": "Terme",
+      "definition": "Définition"
     }
   ],
   "modes": [
