@@ -2104,6 +2104,11 @@
       "id": "zhtb9f5y0h",
       "terme": "Repousser",
       "definition": "Déplace la cible en ligne du nombre de cases indiqué ou jusqu'à rencontrer un mur ou un vide. \nSi la direction n'est pas indiqué, c'est la direction du lanceur vers la cible.\n(Si la cible traverse une case instable elle est détruite et les joueurs dessus payent la pénalité de mort.)"
+    },
+    {
+      "id": "76kv5v22su5",
+      "terme": "Terme",
+      "definition": "Définition"
     }
   ],
   "modes": [
