@@ -2072,6 +2072,11 @@
       "definition": "Item obtenu sur une case Énergie. Effet passif + effet actif déclenché par un sort du même élément. Limite : 3."
     },
     {
+      "id": "l14",
+      "terme": "Sort de Nature",
+      "definition": "Sort pioché en début de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
+    },
+    {
       "id": "l10",
       "terme": "Lâcher",
       "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
@@ -2080,11 +2085,6 @@
       "id": "l11",
       "terme": "Défausser",
       "definition": "Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."
-    },
-    {
-      "id": "l14",
-      "terme": "Sort de Nature",
-      "definition": "Sort pioché en début de partie parmi 3. Indestructible et involable. Ne compte pas dans la limite."
     },
     {
       "id": "l16",
