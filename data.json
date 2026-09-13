@@ -918,6 +918,17 @@
       "effet": "Attaque 1 joueur à distance en ligne de vue et le repousse au maximum.",
       "quantite": 1,
       "notes": ""
+    },
+    {
+      "id": "j5kkpu4wk9",
+      "nom": "Nouveau",
+      "element": "Eau",
+      "statut": "Test 3",
+      "cout": "",
+      "limite": "",
+      "effet": "",
+      "quantite": 1,
+      "notes": ""
     }
   ],
   "energies": [
