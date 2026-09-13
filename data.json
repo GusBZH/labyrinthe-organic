@@ -2051,6 +2051,11 @@
       "definition": "Laisser un item sur sa case. Reste sur le plateau, récupérable par d'autres. Si monstre présent, le battre d'abord."
     },
     {
+      "id": "76kv5v22su5",
+      "terme": "Attaque à distance ",
+      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
+    },
+    {
       "id": "l11",
       "terme": "Défausser",
       "definition": "Retirer définitivement un item du jeu. Va dans la défausse de sa pioche."
@@ -2079,11 +2084,6 @@
       "id": "l17",
       "terme": "Tour global",
       "definition": "Cycle de jeu jusqu'au début de votre prochain tour."
-    },
-    {
-      "id": "76kv5v22su5",
-      "terme": "Attaque à distance ",
-      "definition": "Attaque une cible qui ne partage pas la même case que le lanceur. Les deux lancent les dés comme en combat mais uniquement la cible peut perdre un PV"
     },
     {
       "id": "l18",
