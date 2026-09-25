@@ -2356,12 +2356,12 @@
       "label": "🪄 Sorts"
     },
     {
-      "key": "monstres",
-      "label": "👹 Monstres"
-    },
-    {
       "key": "energies",
       "label": "🔥 Énergies"
+    },
+    {
+      "key": "monstres",
+      "label": "👹 Monstres"
     },
     {
       "key": "lexique",
