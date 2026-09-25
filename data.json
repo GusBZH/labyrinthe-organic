@@ -2352,12 +2352,12 @@
       "label": "🗺️ Cases"
     },
     {
-      "key": "sorts",
-      "label": "🪄 Sorts"
-    },
-    {
       "key": "energies",
       "label": "🔥 Énergies"
+    },
+    {
+      "key": "sorts",
+      "label": "🪄 Sorts"
     },
     {
       "key": "monstres",
