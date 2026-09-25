@@ -2352,16 +2352,16 @@
       "label": "🗺️ Cases"
     },
     {
-      "key": "energies",
-      "label": "🔥 Énergies"
-    },
-    {
       "key": "sorts",
       "label": "🪄 Sorts"
     },
     {
       "key": "monstres",
       "label": "👹 Monstres"
+    },
+    {
+      "key": "energies",
+      "label": "🔥 Énergies"
     },
     {
       "key": "lexique",
