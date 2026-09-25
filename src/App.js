@@ -78,8 +78,25 @@ export function App() {
   const shaRef = useRef(null);
   const pastRef = useRef([]);
   const futureRef = useRef([]);
+  // Vrai depuis l'instant où une modif est faite jusqu'à ce que sa sauvegarde
+  // (debounce de 2s + requête GitHub, potentiellement lente sur une mauvaise
+  // connexion) soit vraiment terminée — sert uniquement à armer l'avertissement
+  // de fermeture ci-dessous (Gus : "si je refresh... ma modification sera pas
+  // prise en compte ?"). Recharger/fermer pendant cette fenêtre perd bien la
+  // modif (aucune requête HTTP ne survit à un vrai unload avec un payload de
+  // cette taille — `keepalive` a une limite de 64 Ko, largement dépassée par
+  // data.json) ; ce garde-fou ne fait qu'avertir, il ne garantit pas la livraison.
+  const pendingSaveRef = useRef(false);
 
   useEffect(() => { shaRef.current = sha; }, [sha]);
+
+  useEffect(() => {
+    function onBeforeUnload(e){
+      if (pendingSaveRef.current) { e.preventDefault(); e.returnValue = ''; }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   function resetHistory(){
     pastRef.current = [];
@@ -103,6 +120,7 @@ export function App() {
   const save = useCallback((nd) => {
     if (!token) return;
     clearTimeout(saveTimer.current);
+    pendingSaveRef.current = true;
     saveTimer.current = setTimeout(async () => {
       setSaving(true); setSaveErr(null);
       try {
@@ -124,6 +142,7 @@ export function App() {
         }
       }
       setSaving(false);
+      pendingSaveRef.current = false;
     }, 2000);
   }, [token]);
 

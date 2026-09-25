@@ -3412,6 +3412,54 @@ sha toujours périmé), la 2ème tentative échoue aussi, "Sauvegarde échouée"
 reproduit exactement le symptôme de Gus. AVEC le fix, la requête de récupération atteint
 bien le réseau à chaque fois (sha réellement à jour), la sauvegarde se rétablit d'elle-même.
 
+### Avertissement avant de quitter pendant une sauvegarde en cours
+Gus, sur une connexion lente : "si je refresh ou que je change de version ou que je
+quitte le site ma modification sera pas prise en compte ?" — confirmé : une modif
+attend d'abord le debounce de 2s (`saveTimer` dans `save()`, `src/App.js`) puis part
+vers GitHub (potentiellement lent sur une mauvaise connexion) ; recharger/fermer
+pendant cette fenêtre perd bien la modif, aucune requête ne survit à un vrai unload de
+page. **Changer de version seul n'interrompt rien** (pas de rechargement de page, la
+requête déjà lancée continue tranquillement en arrière-plan) — seul un vrai
+rechargement/fermeture pendant ce court instant est à risque.
+
+`keepalive:true` sur `fetch` (la technique standard pour survivre à un unload) a été
+envisagé puis écarté : Chrome plafonne la taille combinée des requêtes `keepalive` à
+64 Ko, largement dépassé par `data.json` (~200+ Ko) — la requête serait simplement
+refusée. Pas de garantie de livraison possible avec la taille actuelle du fichier.
+
+Fix retenu, un filet plus modeste mais réel : `pendingSaveRef` (`src/App.js`), vrai
+depuis l'instant où `save()` est appelée jusqu'à ce que la tentative complète (avec sa
+propre retentative en cas de conflit de sha, voir plus haut) se termine — un
+`beforeunload` posé une seule fois affiche l'avertissement natif du navigateur
+("des changements ne sont peut-être pas enregistrés") tant que ce flag est vrai,
+laissant le temps d'annuler la fermeture/le rechargement. Pas une garantie à 100% (rien
+ne l'est sans revoir la taille du payload), mais réduit fortement le risque de perte
+accidentelle. Vérifié en Playwright (fausse latence réseau simulée) : pas d'avertissement
+avant toute modif, avertissement pendant le debounce ET pendant la requête réseau
+elle-même, plus d'avertissement une fois la sauvegarde terminée.
+
+### Icône du site (favicon + PWA) — manquante, corrigée
+Gus : le raccourci ajouté sur l'écran d'accueil de son téléphone n'affichait qu'un "G"
+générique, pas d'icône propre à l'app ; même chose pour l'icône d'onglet sur ordinateur.
+Cause trouvée : `index.html` n'avait **aucun** `<link rel="icon">`/`<link rel="manifest">`/
+`<link rel="apple-touch-icon">` du tout, et le seul icône déclaré (`manifest.json`)
+pointait vers `https://raw.githubusercontent.com/.../icon.png` — un fichier qui n'a
+jamais existé dans le repo (404 silencieux). Sans manifest lié ni icône déclarée, les
+navigateurs/iOS retombent sur un repli générique.
+
+Gus n'avait pas d'image prête (`AskUserQuestion` : "génère un placeholder simple") —
+`icon.png` (192×192) et `favicon-32.png` (32×32, rendu net en petit plutôt qu'un
+192px redimensionné à la volée) générés via une page HTML/CSS simple (dé blanc à
+pastilles noires sur fond `#0e0e0e`, cohérent avec le 🎲 déjà utilisé sur l'écran
+d'accueil) capturée en PNG avec Playwright à la bonne taille de viewport directement
+(pas de dépendance à une lib d'image — aucune bibliothèque Python d'image disponible
+dans ce bac à sable). `manifest.json` pointe maintenant sur `icon.png` en chemin
+relatif (plus besoin de raw.githubusercontent.com, le fichier vit dans le même repo
+que `index.html`/`manifest.json`). `index.html` gagne les 4 balises manquantes
+(`manifest`, `icon` 32×32, `icon` 192×192, `apple-touch-icon`). À remplacer par un
+vrai visuel si/quand Gus en fournit un — remplacer `icon.png`/`favicon-32.png` par
+les nouveaux fichiers (mêmes noms) suffit, aucun autre changement de code nécessaire.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux

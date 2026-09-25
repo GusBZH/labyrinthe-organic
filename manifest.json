@@ -7,7 +7,7 @@
   "theme_color": "#0e0e0e",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/GusBZH/labyrinthe-organic/main/icon.png",
+      "src": "icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
