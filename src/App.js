@@ -135,8 +135,19 @@ export function App() {
     futureRef.current = [];
     setCanUndo(true);
     setCanRedo(false);
-    setData(nd);
-    save(nd);
+    // Garde `versions[activeVersion]` en phase avec les clés de premier
+    // niveau qu'il mirrore (data.sorts/cases/...) à CHAQUE modification —
+    // sans ça, éditer un sort ne touchait que le miroir de premier niveau,
+    // jamais sa propre entrée dans `versions` ; au rechargement suivant,
+    // withMigrations réétale cette entrée (jamais mise à jour) PAR-DESSUS
+    // le miroir, effaçant la modif (Gus : "les modif que je fais sur les
+    // sorts... ne sont jamais sauvegardé... même sans changer de version").
+    // No-op pour switchOrCreateVersion, qui a déjà posé les deux en phase.
+    const synced = nd.activeVersion
+      ? {...nd, versions: {...nd.versions, [nd.activeVersion]: snapshotVersionedFields(nd)}}
+      : nd;
+    setData(synced);
+    save(synced);
   }, [data, save]);
 
   const undo = useCallback(() => {

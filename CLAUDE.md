@@ -3333,6 +3333,55 @@ de fichier, comportement sans token, notes globales versionnées) via `AskUserQu
   identiques avant/après une bascule ; aller sur le Plateau puis revenir à l'accueil ne
   perturbe pas la version active ; aucune erreur console sur l'ensemble du scénario.
 
+### Bug corrigé (grave) : les modifs de sorts/cases/etc. ne se sauvegardaient JAMAIS
+Gus, après une heure de travail sur "v2" : "les modif que je fais sur les sorts et tout
+ne sont jamais sauvegardé (même sans changer de version juste en rechargeant la page)...
+j'ai testé faire une modif sur la v1 et pareil ça sauvegarde pas... les notes etc
+fonctionne". Confirmé dans l'historique GitHub lui-même : une modif de sort committée à
+21:54:34, disparue toute seule 53 secondes plus tard (21:55:27) sans aucune action de
+Gus entre les deux.
+
+Cause : `updArr`/`addArr`/`delArr`/`upd` ne modifient QUE le miroir de premier niveau
+(`data.sorts`, `data.cases`...) — jamais `data.versions[activeVersion].sorts`, qui reste
+figé sur son ancien contenu. Or `withMigrations` réétale INCONDITIONNELLEMENT
+`...versions[activeVersion]` PAR-DESSUS ces clés de premier niveau à **CHAQUE**
+chargement (pas seulement lors d'un changement de version) — donc toute modif jamais
+recopiée dans `versions[activeVersion]` se faisait silencieusement écraser par l'ancien
+instantané au moindre rechargement de page. `switchOrCreateVersion` s'en sortait bien
+(elle photographie explicitement l'état courant AVANT de changer de version), ce qui
+explique pourquoi les tests Playwright précédents (qui ne passaient QUE par des
+bascules de version, jamais par un simple `updArr` suivi d'un rechargement réel) n'ont
+jamais attrapé ce bug — angle mort de la suite de tests, pas seulement du code.
+
+Fix : `upd` (`src/App.js`, le point de passage central de TOUTE modification) resynchronise
+maintenant `nd.versions[nd.activeVersion]` depuis les clés de premier niveau de `nd`
+(`snapshotVersionedFields(nd)`) à chaque appel, avant de committer/sauvegarder — no-op
+pour `switchOrCreateVersion` (déjà en phase par construction), corrige tout le reste
+(`updArr`/`addArr`/`delArr`/toute mise à jour directe des sections versionnées).
+
+**Nuance à garder en tête** : "toujours afficher la version la plus récente au
+chargement" (voir plus haut) reste inchangé — après ce fix, éditer "v1" puis recharger
+affichera quand même "v2" par défaut si v2 existe (comportement voulu par Gus), mais
+l'édition sur v1 n'est PLUS perdue : en rebasculant sur "v1", elle est bien là. Ne pas
+confondre "v1 n'est pas affiché par défaut après reload" (normal, "always latest") avec
+"l'édition sur v1 a disparu" (le vrai bug, corrigé) — à clarifier avec Gus si la
+confusion revient.
+
+Vérifié en Playwright (repro exacte du bug avant fix, via un faux backend GitHub
+persistant dans localStorage pour survivre à un vrai rechargement de page) : édition
+d'un sort sur "v1" pendant que "v2" existe (numériquement plus grand) → sauvegarde →
+rechargement RÉEL de la page (pas juste un re-render) → l'appli retombe bien sur "v2"
+par défaut (comportement voulu) → bascule manuelle vers "v1" → le sort édité est bien
+là (`NEW_V1_EDITED`), pas l'ancien contenu — confirme que l'édition a survécu au
+rechargement, contrairement à avant le fix. Aucune régression sur le scénario de test
+déjà existant plus haut.
+
+**Travail perdu de Gus (l'heure sur "v2") : pas récupérable.** Vérifié dans l'historique
+GitHub — chaque rechargement pendant cette session a effectivement fait écraser le
+miroir de premier niveau par l'ancien instantané `versions.v2` avant que le
+`ghPut`/commit suivant ne re-sauvegarde cet état déjà écrasé ; aucune trace des vraies
+modifs de sorts de cette session n'a donc survécu dans un commit GitHub intermédiaire.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
