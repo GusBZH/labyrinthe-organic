@@ -34,8 +34,17 @@ export async function fetchPublicData(){
 }
 
 export async function ghGet(token){
+  // `cache:'no-store'` — sans ça, le navigateur peut servir une réponse mise
+  // en cache pour cette même URL (déjà appelée au chargement de la page) au
+  // lieu de revérifier auprès de GitHub. Ça n'avait aucune conséquence
+  // visible tant que `ghGet` n'était appelée qu'une fois par chargement de
+  // page, mais devient un vrai bug depuis que `save()` (App.js) rappelle
+  // `ghGet` pour récupérer un sha frais après un conflit : sans ce flag, le
+  // "sha frais" pouvait être exactement le même sha périmé déjà en cache,
+  // faisant échouer la tentative de récupération à chaque fois — Gus :
+  // "maintenant ça fait sauvegarde échouée à chaque modification".
   const r = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,
-    {headers:{Authorization:`token ${token}`,Accept:"application/vnd.github.v3+json"}});
+    {cache:'no-store', headers:{Authorization:`token ${token}`,Accept:"application/vnd.github.v3+json"}});
   if(r.status===404) return {data:null,sha:null};
   if(!r.ok) throw new Error("GitHub error");
   const j = await r.json();

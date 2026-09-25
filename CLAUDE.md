@@ -3382,6 +3382,36 @@ miroir de premier niveau par l'ancien instantané `versions.v2` avant que le
 `ghPut`/commit suivant ne re-sauvegarde cet état déjà écrasé ; aucune trace des vraies
 modifs de sorts de cette session n'a donc survécu dans un commit GitHub intermédiaire.
 
+### Bug corrigé : "Sauvegarde échouée" à chaque modification (deux causes empilées)
+Épisode séparé, découvert le même jour que le bug ci-dessus, en 2 temps.
+
+**1er symptôme (Gus : "je peux plus rien sauvegarder... ça s'est arrêté au moment où
+j'ai créé la v2")** — un conflit de sha GitHub (deux sauvegardes trop rapprochées,
+connexion coupée en plein envoi...) laissait `shaRef` (`src/App.js`) désynchronisé pour
+de bon : sans filet, TOUTES les sauvegardes suivantes échouaient, puisque `shaRef` ne se
+corrige jamais tout seul en dehors d'un rechargement de page. Fix : `save()` retente
+maintenant une fois avec un sha frais (`ghGet`) avant d'abandonner pour de bon.
+
+**2ème symptôme, révélé PAR ce premier fix (Gus, juste après : "maintenant ça fait
+sauvegarde échouée à chaque modification")** — `ghGet` (`src/github.js`) n'avait jamais
+`cache:'no-store'` sur son `fetch`, contrairement à `fetchPublicData`/`VersionBanner`.
+Sans conséquence tant que `ghGet` n'était appelée qu'une fois par chargement de page,
+mais devenu un vrai bug dès que `save()` la rappelle pour récupérer un sha "frais" après
+un conflit : le navigateur pouvait servir une réponse mise en cache pour cette même URL
+au lieu de revérifier auprès de GitHub — le "sha frais" récupéré était alors EXACTEMENT
+le même sha périmé déjà en cache, donc la tentative de récupération échouait à nouveau,
+systématiquement, à chaque modification. Fix : `cache:'no-store'` ajouté à `ghGet`.
+
+Vérifié en Playwright avec un vrai petit serveur HTTP local (pas un simple mock de
+route — un mock de route Playwright ne reproduit pas le comportement réel du cache
+navigateur) servant des réponses `Cache-Control:max-age=3600` réalistes : sha externe
+changé "sous les pieds" du client (simule mes propres commits git directs) → 1ère
+tentative de sauvegarde échoue (sha périmé) → SANS le fix, la 2ème requête `ghGet` de
+récupération est bien servie depuis le cache navigateur (aucune vraie requête réseau,
+sha toujours périmé), la 2ème tentative échoue aussi, "Sauvegarde échouée" affichée —
+reproduit exactement le symptôme de Gus. AVEC le fix, la requête de récupération atteint
+bien le réseau à chaque fois (sha réellement à jour), la sauvegarde se rétablit d'elle-même.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
