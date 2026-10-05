@@ -2348,12 +2348,12 @@
       "label": "📋 Règles de base"
     },
     {
-      "key": "cases",
-      "label": "🗺️ Cases"
-    },
-    {
       "key": "sorts",
       "label": "🪄 Sorts"
+    },
+    {
+      "key": "cases",
+      "label": "🗺️ Cases"
     },
     {
       "key": "energies",
