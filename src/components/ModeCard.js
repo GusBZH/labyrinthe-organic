@@ -13,13 +13,18 @@ export function ModeCard({mode, editMode, onUpdate, onDelete, dragHandle}) {
       dragHandle,
       h('span', {style:{fontSize:11, transform:open?'rotate(0)':'rotate(-90deg)', transition:'transform .2s', display:'inline-block', color:'#777'}}, '▼'),
       h('span', {style:{fontSize:14}}, mode.emoji),
-      h('span', {style:{flex:1, fontSize:12, fontWeight:600, color:'#ddd'}}, mode.nom),
-      // Both now editable by double-tap (Gus: "pouvoir modifier le nombre
-      // d'emoji étoiles et le nombre de joueurs") — each wrapped in its own
-      // span with `onClick:e=>e.stopPropagation()` so double-tapping to
-      // edit doesn't also toggle this whole header's own onClick (open/
-      // close the card), the same guard the ✕ delete button just below
-      // already needed for the same reason.
+      // Éditable par double-tap (Gus : "je peux pas éditer le noms des
+      // modes de jeu") — vivait comme texte simple, jamais passé par
+      // `EditText`. Même garde `stopPropagation` que difficulte/joueurs
+      // juste en dessous, pour ne pas aussi plier/déplier la carte.
+      h('span', {onClick:e=>e.stopPropagation(), style:{flex:1, fontSize:12, fontWeight:600, color:'#ddd'}},
+        h(EditText, {value:mode.nom, onChange:v=>onUpdate({...mode,nom:v}), editMode})
+      ),
+      // Toutes éditables par double-tap (Gus : "pouvoir modifier le nombre
+      // d'emoji étoiles et le nombre de joueurs") — chacune enveloppée dans
+      // son propre span avec `onClick:e=>e.stopPropagation()` pour que le
+      // double-tap d'édition ne plie/déplie pas aussi cet en-tête (même
+      // garde que la croix ✕ de suppression juste en dessous).
       h('span', {onClick:e=>e.stopPropagation(), style:{fontSize:10, color:'#666'}},
         h(EditText, {value:mode.difficulte||'', onChange:v=>onUpdate({...mode,difficulte:v}), editMode})
       ),

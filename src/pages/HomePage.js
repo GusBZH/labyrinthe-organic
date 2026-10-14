@@ -213,18 +213,24 @@ export function HomePage({data, editMode, setEditMode, saving, saveErr, canUndo,
     ],
 
     // Nouvelle catégorie principale (Gus) — deux sous-catégories ("onglet
-    // déroulant dans l'onglet déroulant"), simple `Section` non-renamable
-    // (contrairement aux grandes catégories, pas besoin de renommer/glisser
-    // ces deux-là — Gus a donné leurs noms exacts) plutôt qu'une deuxième
-    // `EditableSection` imbriquée. Chacune a son propre espace note (double
-    // entrée, comme toutes les autres) — `applicationNoteNotes`/
-    // `applicationJeuNotes`, distincts de `applicationNotes` (la note
-    // globale de la catégorie principale elle-même, juste en dessous).
+    // déroulant dans l'onglet déroulant"). À l'origine un simple `Section`
+    // non-renamable (Gus n'avait pas demandé à renommer ces deux-là) — passé
+    // à `EditableSection` (Gus, plus tard : "je peux pas éditer... les
+    // catégories note et jeux dans application") pour un renommage par
+    // double-tap, même convention que les catégories Visuels/les grandes
+    // sections. Libellé complet (emoji inclus) dans `applicationNoteLabel`/
+    // `applicationJeuLabel`, avec repli `||'📜 Note'`/`||'👾 Jeu'` tant que
+    // ces champs n'existent pas encore dans data.json — aucune migration
+    // dédiée nécessaire pour un simple texte optionnel. Chacune garde son
+    // propre espace note (double entrée, comme toutes les autres) —
+    // `applicationNoteNotes`/`applicationJeuNotes`, distincts de
+    // `applicationNotes` (la note globale de la catégorie principale
+    // elle-même, juste en dessous).
     application: [
-      h(Section, {key:'note', emoji:'📜', title:'Note'},
+      h(EditableSection, {key:'note', title:data.applicationNoteLabel||'📜 Note', onTitleChange:v=>upd({...data,applicationNoteLabel:v})},
         h(NotesBlock, {value:data.applicationNoteNotes, onChange:v=>upd({...data,applicationNoteNotes:v}), editMode, label:'Notes', alwaysVisible:true})
       ),
-      h(Section, {key:'jeu', emoji:'👾', title:'Jeu'},
+      h(EditableSection, {key:'jeu', title:data.applicationJeuLabel||'👾 Jeu', onTitleChange:v=>upd({...data,applicationJeuLabel:v})},
         h(NotesBlock, {value:data.applicationJeuNotes, onChange:v=>upd({...data,applicationJeuNotes:v}), editMode, label:'Notes', alwaysVisible:true})
       ),
       h(NotesBlock, {key:'notes', value:data.applicationNotes, onChange:v=>upd({...data,applicationNotes:v}), editMode, label:'Notes — Application'})

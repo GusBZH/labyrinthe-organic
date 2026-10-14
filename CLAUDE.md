@@ -3460,6 +3460,31 @@ que `index.html`/`manifest.json`). `index.html` gagne les 4 balises manquantes
 vrai visuel si/quand Gus en fournit un — remplacer `icon.png`/`favicon-32.png` par
 les nouveaux fichiers (mêmes noms) suffit, aucun autre changement de code nécessaire.
 
+## Bugs corrigés : noms des modes de jeu et sous-catégories Application non éditables
+Gus : "je peux pas éditer le noms des modes de jeu, (capture de drapeau, keeyp...) Et
+pareil pour les catégories note et jeux dans application" — deux bugs distincts, même
+cause de fond : un texte rendu comme simple `<span>`/texte, jamais passé par `EditText`,
+donc le double-tap d'édition n'y faisait structurellement rien.
+- **`ModeCard.js`** : `mode.nom` vivait comme texte brut dans l'en-tête de la carte,
+  alors que `mode.difficulte`/`mode.joueurs` juste à côté étaient déjà éditables depuis
+  une session précédente — simple oubli à l'époque. Enveloppé dans un `EditText` (même
+  `onClick:e=>e.stopPropagation()` sur le span englobant que `difficulte`/`joueurs`,
+  pour que le double-tap d'édition ne plie/déplie pas aussi la carte via l'`onClick` de
+  l'en-tête).
+- **Sous-catégories "Note"/"Jeu" de la catégorie principale Application** : créées à
+  l'origine comme deux `Section` fixes (non renommables — voir "Vocabulaire des notes",
+  Gus n'avait alors pas demandé à les renommer). Passées à `EditableSection` (même
+  composant que les catégories Visuels/les grandes sections), chacune avec son propre
+  libellé stocké dans un nouveau champ optionnel (`data.applicationNoteLabel`/
+  `data.applicationJeuLabel`), repli `||'📜 Note'`/`||'👾 Jeu'` tant qu'absent — un
+  simple texte scalaire optionnel, aucune migration dédiée nécessaire.
+- Vérifié en Playwright : double-tap sur le nom d'un mode ("Capture de Drapeau") ouvre
+  bien un `<input>`, le renommage persiste, et la carte reste fermée (pas de
+  plier/déplier parasite) ; double-tap sur "📜 Note" dans Application ouvre bien un
+  `<input>`, le renommage persiste (`data.applicationNoteLabel`) sans toucher à "Jeu" ni
+  à la section Application elle-même (reste ouverte) ; le plier/déplier par la flèche
+  ▼ des deux sous-catégories continue de fonctionner normalement ; aucune erreur console.
+
 ## Fonctionnalités en attente / roadmap
 - Barre de filtre rapide par statut (pastilles colorées, filtre toutes les sections en même temps)
 - Déplacer le bouton Déconnexion en bas de page, après les boutons d'action principaux
